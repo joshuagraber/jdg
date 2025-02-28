@@ -8,7 +8,7 @@ import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
 import { DateTime } from 'luxon'
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
 	data,
 	type ActionFunctionArgs,
@@ -17,14 +17,13 @@ import {
 	useLoaderData,
 	useNavigation,
 } from 'react-router'
-import { type z } from 'zod'
 import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { formatContentForEditor, makePostSlug } from '#app/utils/mdx.ts'
+import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { PostImageManager } from './__image-manager'
@@ -130,7 +129,6 @@ export default function NewPost() {
 	})
 
 	const [content, setContent] = useState('')
-	const [key, setKey] = useState('begin')
 	const contentRef = useRef<HTMLTextAreaElement>(null)
 
 	// Sync MDEditor value with the hidden textarea
@@ -162,24 +160,6 @@ export default function NewPost() {
 				method="post"
 				{...getFormProps(form)}
 				className="mb-12 space-y-6"
-				onChange={(event: FormEvent) => {
-					if (
-						['description', 'title', 'publishAt', 'slug'].includes(
-							// @ts-expect-error
-							event.target.name,
-						)
-					) {
-						const data = new FormData((event.target as HTMLFormElement).form)
-						setContent(
-							formatContentForEditor(
-								Object.fromEntries(data.entries()) as unknown as z.infer<
-									typeof PostSchema
-								>,
-							),
-						)
-						setKey(Math.random().toString())
-					}
-				}}
 			>
 				<Field
 					labelProps={{
@@ -227,7 +207,6 @@ export default function NewPost() {
 					<label className="mb-1 block text-sm font-medium">Content</label>
 					<div className="rounded-md border">
 						<MDXEditorComponent
-							key={key}
 							images={images.map((image) => getPostImageSource(image.id))}
 							imageUploadHandler={handleImageUpload}
 							markdown={content}

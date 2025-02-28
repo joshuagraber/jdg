@@ -1,4 +1,5 @@
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { format } from 'date-fns'
 import {
 	type LoaderFunctionArgs,
 	Link,
@@ -8,7 +9,6 @@ import {
 import { Button } from '#app/components/ui/button.tsx'
 import { requireUserId } from '#app/utils/auth.server'
 import { prisma } from '#app/utils/db.server'
-import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { DeletePost } from './__deleters'
 import { PostImageManager } from './__image-manager'
 import { PostVideoManager } from './__video-manager'
@@ -30,7 +30,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				createdAt: true,
 				updatedAt: true,
 			},
-			orderBy: { publishAt: 'desc' },
+			orderBy: [
+				{ publishAt: { sort: 'desc', nulls: 'first' } },
+			],
 		}),
 		prisma.postImage.findMany({
 			select: {
@@ -82,14 +84,12 @@ export default function AdminPosts() {
 								<div className="flex gap-2 text-sm text-muted-foreground">
 									<span>
 										Created{' '}
-										{formatDateStringForPostDefault(
-											post.createdAt
-										)}
+										{format(post.createdAt, "dd MMM yyyy")}
 									</span>
 									<span>•</span>
 									<span>
 										{post.publishAt
-											? `Published ${post.publishAt}`
+											? `Published ${format(post.publishAt, "dd MMM yyyy, hh:mm aaaa")}`
 											: 'Draft'}
 									</span>
 									<span>•</span>

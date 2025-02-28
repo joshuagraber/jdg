@@ -39,9 +39,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 	invariantResponse(post, 'Not found', { status: 404 })
 
-	const { code, frontmatter } = await compileMDX(post.content)
+	const { code } = await compileMDX(post.content)
 
-	return { post, code, frontmatter, ogURL: url }
+	return { post, code, ogURL: url }
 }
 
 export const meta: Route.MetaFunction = ({ data, matches }) => {
@@ -79,13 +79,13 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 }
 
 export default function Fragment() {
-	const { post, code, frontmatter } = useLoaderData<typeof loader>()
+	const { post, code } = useLoaderData<typeof loader>()
 	const Component = useMemo(() => getMDXComponent(code), [code])
 
 	return (
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">
-			<h1 className="mb-4">{frontmatter.title}</h1>
-			<p>{frontmatter.description}</p>
+			<h1 className="mb-4">{post.title}</h1>
+			<p>{post.description}</p>
 			<p className="text-sm text-neutral-500">
 				{/* Non-null assertion okay here. If the post is returned here, that means it's published */}
 				<Time time={post.publishAt!.toDateString()} />

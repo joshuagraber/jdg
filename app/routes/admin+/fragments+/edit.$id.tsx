@@ -7,26 +7,22 @@ import {
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { DateTime } from 'luxon'
-import React, { type FormEvent, useEffect, useRef, useState } from 'react'
+import  { useEffect, useRef, useState } from 'react'
 import {
 	data,
-	type ActionFunctionArgs,
-	type LoaderFunctionArgs,
 	Form,
 	useActionData,
 	useLoaderData,
 	useNavigation,
 } from 'react-router'
-import { type z } from 'zod'
 import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
-import { getHints, useHints } from '#app/utils/client-hints.tsx'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import {
 	formatDateStringForPostDefault,
-	formatContentForEditor,
 } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
@@ -74,7 +70,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 	invariantResponse(videos, 'Error fetching videos', { status: 404 })
 
 	return { post, images, videos }
-	// return data({post: { title: '', description: '', publishAt: new Date().toLocaleDateString(), content: '', slug: '' }});
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -135,7 +130,6 @@ export default function EditPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
-  const hints = useHints();
 
 	const handleImageUpload = useFileUploader({
 		path: '/admin/fragments/images/create',
@@ -154,12 +148,12 @@ export default function EditPost() {
 			content: post.content,
 			description: post.description,
 			slug: post.slug,
-			publishAt: post.publishAt ? formatDateStringForPostDefault(new Date(post.publishAt.toLocaleString('en-US', { timeZone: hints.timeZone }))) : undefined,
+			publishAt: post.publishAt ? formatDateStringForPostDefault(new Date(post.publishAt)) : undefined,
 		},
 	})
 
+
 	const [content, setContent] = useState(post.content)
-	const [key, setKey] = useState('begin')
 	const contentRef = useRef<HTMLTextAreaElement>(null)
 
 	// Sync editor value with the hidden textarea
@@ -178,24 +172,6 @@ export default function EditPost() {
 				method="post"
 				{...getFormProps(form)}
 				className="space-y-6"
-				onChange={(event: FormEvent) => {
-					if (
-						['description', 'title', 'publishAt', 'slug'].includes(
-							// @ts-expect-error
-							event.target.name,
-						)
-					) {
-						const data = new FormData((event.target as HTMLFormElement).form)
-						setContent(
-							formatContentForEditor(
-								Object.fromEntries(data.entries()) as unknown as z.infer<
-									typeof PostSchema
-								>,
-							),
-						)
-						setKey(Math.random().toString())
-					}
-				}}
 			>
 				<Field
 					labelProps={{
@@ -244,7 +220,6 @@ export default function EditPost() {
 					<label className="mb-1 block text-sm font-medium">Content</label>
 					<div className="border">
 						<MDXEditorComponent
-							key={key}
 							imageUploadHandler={handleImageUpload}
 							images={images.map((image) => getPostImageSource(image.id))}
 							markdown={content}
