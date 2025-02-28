@@ -7,7 +7,7 @@ import {
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
-import { DateTime } from 'luxon'
+import { formatISO, parseISO } from 'date-fns'
 import { useEffect, useRef, useState } from 'react'
 import {
 	data,
@@ -21,7 +21,6 @@ import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
-import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
@@ -64,7 +63,6 @@ export async function loader() {
 export async function action({ request }: ActionFunctionArgs) {
 	const authorId = await requireUserId(request)
 	const formData = await request.formData()
-	const { timeZone } = getHints(request);
 
 	const submission = await parseWithZod(formData, {
 		schema: PostSchema,
@@ -81,9 +79,10 @@ export async function action({ request }: ActionFunctionArgs) {
 	const { title, content, description, publishAt, slug } =
 		submission.value
 
-	const publishAtWithTimeZone = publishAt
-		? DateTime.fromISO(publishAt.toISOString(), { zone: timeZone }).toISO()
-		: null
+	const publishAtWithTimeZone =  publishAt
+			? formatISO(parseISO(publishAt.toISOString()), { representation: 'complete' })
+			: null
+	
 
 	try {
 		await prisma.post.create({

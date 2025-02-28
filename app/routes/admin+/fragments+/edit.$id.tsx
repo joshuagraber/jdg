@@ -6,7 +6,7 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { DateTime } from 'luxon'
+import { formatISO, parseISO } from 'date-fns'
 import  { useEffect, useRef, useState } from 'react'
 import {
 	data,
@@ -19,7 +19,7 @@ import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
-import { getHints } from '#app/utils/client-hints.tsx'
+import { useHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import {
 	formatDateStringForPostDefault,
@@ -74,7 +74,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
 	await requireUserId(request)
-	const { timeZone } = getHints(request);
 	const formData = await request.formData()
 
 	const submission = await parseWithZod(formData, {
@@ -99,7 +98,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 		submission.value
 	const published = publishAt ?? existingPost?.publishAt ?? null
 	const publishAtWithTimeZone = published
-		? DateTime.fromISO(published.toISOString(), { zone: timeZone }).toISO()
+		? formatISO(parseISO(published.toISOString()), { representation: 'complete' })
 		: null
 
 		try {
@@ -130,6 +129,7 @@ export default function EditPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
+	const { timeZone } = useHints();
 
 	const handleImageUpload = useFileUploader({
 		path: '/admin/fragments/images/create',
@@ -148,7 +148,7 @@ export default function EditPost() {
 			content: post.content,
 			description: post.description,
 			slug: post.slug,
-			publishAt: post.publishAt ? formatDateStringForPostDefault(new Date(post.publishAt)) : undefined,
+			publishAt: post.publishAt ? formatDateStringForPostDefault(new Date(post.publishAt.toLocaleString('en', { timeZone }))) : undefined,
 		},
 	})
 
