@@ -7,11 +7,10 @@ import {
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
-import { formatISO, parseISO } from 'date-fns'
+import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
 	data,
-	type ActionFunctionArgs,
 	Form,
 	useActionData,
 	useLoaderData,
@@ -21,10 +20,12 @@ import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
+import { type Route } from './+types/create'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
@@ -60,9 +61,10 @@ export async function loader() {
 	return { images, videos }
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
 	const authorId = await requireUserId(request)
 	const formData = await request.formData()
+	const { timeZone } = getHints(request)
 
 	const submission = await parseWithZod(formData, {
 		schema: PostSchema,
@@ -79,11 +81,10 @@ export async function action({ request }: ActionFunctionArgs) {
 	const { title, content, description, publishAt, slug } =
 		submission.value
 
-	const publishAtWithTimeZone =  publishAt
-			? formatISO(parseISO(publishAt.toISOString()), { representation: 'complete' })
-			: null
+	const publishAtWithTimezone = publishAt
+		? fromZonedTime(publishAt, timeZone)
+		: null;
 	
-
 	try {
 		await prisma.post.create({
 			data: {
@@ -91,7 +92,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				content,
 				description,
 				slug: makePostSlug(title, slug),
-				publishAt: publishAtWithTimeZone,
+				publishAt: publishAtWithTimezone,
 				authorId,
 			},
 		})
@@ -107,6 +108,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		)
 	}
 }
+
 export default function NewPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
@@ -134,22 +136,8 @@ export default function NewPost() {
 	useEffect(() => {
 		if (contentRef.current) {
 			contentRef.current.value = content
-			contentRef.current.dispatchEvent(new Event('change'))
 		}
 	}, [content])
-
-	useEffect(() => {
-		const timeZoneField = document.getElementById(
-			'timeZone',
-		) as HTMLInputElement
-		if (timeZoneField) {
-			console.log('timeZone field being set', {
-				intl: Intl.DateTimeFormat().resolvedOptions().timeZone,
-			})
-			timeZoneField.value =
-				Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
-		}
-	}, [])
 
 	return (
 		<div className="p-8">
