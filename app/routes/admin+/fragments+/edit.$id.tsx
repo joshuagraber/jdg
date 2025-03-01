@@ -1,40 +1,26 @@
-import {
-	useForm,
-	getFormProps,
-	getInputProps,
-	getTextareaProps,
-} from '@conform-to/react'
+import { useForm, getFormProps, getInputProps, getTextareaProps } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { DateTime } from 'luxon'
-import React, { type FormEvent, useEffect, useRef, useState } from 'react'
-import {
-	data,
-	type ActionFunctionArgs,
-	type LoaderFunctionArgs,
-	Form,
-	useActionData,
-	useLoaderData,
-	useNavigation,
-} from 'react-router'
-import { type z } from 'zod'
+import { fromZonedTime } from 'date-fns-tz';
+import { useEffect, useRef, useState } from 'react'
+import { data, Form, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
+import { Button } from '#app/components/ui/button'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
+import { getHints, useHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import {
-	formatDateStringForPostDefault,
-	formatContentForEditor,
-} from '#app/utils/mdx.ts'
+import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
+import { type Route } from './+types/edit.$id'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaUpdate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
 
-export async function loader({ params, request }: LoaderFunctionArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
 	await requireUserId(request)
 
 	const [post, images, videos] = await Promise.all([
@@ -72,12 +58,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 	invariantResponse(videos, 'Error fetching videos', { status: 404 })
 
 	return { post, images, videos }
-	// return data({post: { title: '', description: '', publishAt: new Date().toLocaleDateString(), content: '', slug: '' }});
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
 	await requireUserId(request)
 	const formData = await request.formData()
+	const { timeZone } = getHints(request)
 
 	const submission = await parseWithZod(formData, {
 		schema: PostSchema,
@@ -97,12 +83,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 			})
 		: undefined
 
-	const { title, content, description, publishAt, slug, timezone } =
-		submission.value
-	const published = publishAt ?? existingPost?.publishAt ?? null
-	const publishAtWithTimezone = published
-		? DateTime.fromISO(published.toISOString(), { zone: timezone }).toISO()
-		: null
+	const { title, content, description, publishAt, slug } = submission.value
+    const publishAtWithTimezone = publishAt
+			? fromZonedTime(publishAt, timeZone)
+			: null;
+
+	const published = publishAtWithTimezone ?? existingPost?.publishAt ?? null
 
 	try {
 		await prisma.post.update({
@@ -112,7 +98,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 				content,
 				description,
 				slug,
-				publishAt: publishAtWithTimezone,
+				publishAt: published,
 			},
 		})
 
@@ -132,6 +118,7 @@ export default function EditPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
+	const { timeZone } = useHints()
 
 	const handleImageUpload = useFileUploader({
 		path: '/admin/fragments/images/create',
@@ -150,12 +137,17 @@ export default function EditPost() {
 			content: post.content,
 			description: post.description,
 			slug: post.slug,
-			publishAt: formatDateStringForPostDefault(post.publishAt),
+			publishAt: post.publishAt
+				? formatDateStringForPostDefault(
+					  // ensure if rendered on server that the date is in client TZ
+						new Date(post.publishAt.toLocaleString('en', { timeZone })),
+					)
+				: null,
 		},
 	})
 
 	const [content, setContent] = useState(post.content)
-	const [key, setKey] = useState('begin')
+	const [showDateField, setShowDateField] = useState(false)
 	const contentRef = useRef<HTMLTextAreaElement>(null)
 
 	// Sync editor value with the hidden textarea
@@ -170,29 +162,7 @@ export default function EditPost() {
 		<div className="p-8">
 			<h1 className="mb-6 text-2xl font-bold">Edit Post</h1>
 
-			<Form
-				method="post"
-				{...getFormProps(form)}
-				className="space-y-6"
-				onChange={(event: FormEvent) => {
-					if (
-						['description', 'title', 'publishAt', 'slug'].includes(
-							// @ts-expect-error
-							event.target.name,
-						)
-					) {
-						const data = new FormData((event.target as HTMLFormElement).form)
-						setContent(
-							formatContentForEditor(
-								Object.fromEntries(data.entries()) as unknown as z.infer<
-									typeof PostSchema
-								>,
-							),
-						)
-						setKey(Math.random().toString())
-					}
-				}}
-			>
+			<Form method="post" {...getFormProps(form)} className="space-y-6">
 				<Field
 					labelProps={{
 						htmlFor: fields.title.id,
@@ -223,37 +193,28 @@ export default function EditPost() {
 					}}
 					errors={fields.slug.errors}
 				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.publishAt.id,
-						children: post.publishAt
-							? 'This post is published. Would you like to update the publish date?'
-							: 'This post is not yet published. When would you like to publish it?',
-					}}
-					inputProps={{
-						...getInputProps(fields.publishAt, { type: 'datetime-local' }),
-					}}
-					errors={fields.publishAt.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: 'timezone',
-						children: 'Timezone',
-					}}
-					inputProps={{
-						id: 'timezone',
-						name: 'timezone',
-						type: 'text',
-						defaultValue: 'America/New_York',
-					}}
-					errors={fields.timezone.errors}
-				/>
+				{post.publishAt && !showDateField && (
+					<Button variant="outline" type="button" onClick={() => setShowDateField(true)}>
+						Post is published. Edit the publish date?
+					</Button>
+				)}
+				{(showDateField || !post.publishAt) && (
+					<Field
+						labelProps={{
+							htmlFor: fields.publishAt.id,
+							children: 'Update publish date',
+						}}
+						inputProps={{
+							...getInputProps(fields.publishAt, { type: 'datetime-local' }),
+						}}
+						errors={fields.publishAt.errors}
+					/>
+				)}
 
 				<div>
 					<label className="mb-1 block text-sm font-medium">Content</label>
 					<div className="border">
 						<MDXEditorComponent
-							key={key}
 							imageUploadHandler={handleImageUpload}
 							images={images.map((image) => getPostImageSource(image.id))}
 							markdown={content}
@@ -261,15 +222,9 @@ export default function EditPost() {
 							diffSource={post.content}
 						/>
 					</div>
-					<textarea
-						ref={contentRef}
-						{...getTextareaProps(fields.content)}
-						className="hidden"
-					/>
+					<textarea ref={contentRef} {...getTextareaProps(fields.content)} className="hidden" />
 					{fields.content.errors ? (
-						<div className="text-sm text-destructive">
-							{fields.content.errors}
-						</div>
+						<div className="text-sm text-destructive">{fields.content.errors}</div>
 					) : null}
 				</div>
 

@@ -7,25 +7,25 @@ import {
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
-import { DateTime } from 'luxon'
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { fromZonedTime } from 'date-fns-tz'
+import { useEffect, useRef, useState } from 'react'
 import {
 	data,
-	type ActionFunctionArgs,
 	Form,
 	useActionData,
 	useLoaderData,
 	useNavigation,
 } from 'react-router'
-import { type z } from 'zod'
 import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { formatContentForEditor, makePostSlug } from '#app/utils/mdx.ts'
+import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
+import { type Route } from './+types/create'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
@@ -61,9 +61,10 @@ export async function loader() {
 	return { images, videos }
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
 	const authorId = await requireUserId(request)
 	const formData = await request.formData()
+	const { timeZone } = getHints(request)
 
 	const submission = await parseWithZod(formData, {
 		schema: PostSchema,
@@ -77,13 +78,13 @@ export async function action({ request }: ActionFunctionArgs) {
 		)
 	}
 
-	const { title, content, description, publishAt, slug, timezone } =
+	const { title, content, description, publishAt, slug } =
 		submission.value
 
 	const publishAtWithTimezone = publishAt
-		? DateTime.fromISO(publishAt.toISOString(), { zone: timezone }).toISO()
-		: null
-
+		? fromZonedTime(publishAt, timeZone)
+		: null;
+	
 	try {
 		await prisma.post.create({
 			data: {
@@ -107,6 +108,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		)
 	}
 }
+
 export default function NewPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
@@ -128,29 +130,14 @@ export default function NewPost() {
 	})
 
 	const [content, setContent] = useState('')
-	const [key, setKey] = useState('begin')
 	const contentRef = useRef<HTMLTextAreaElement>(null)
 
 	// Sync MDEditor value with the hidden textarea
 	useEffect(() => {
 		if (contentRef.current) {
 			contentRef.current.value = content
-			contentRef.current.dispatchEvent(new Event('change'))
 		}
 	}, [content])
-
-	useEffect(() => {
-		const timezoneField = document.getElementById(
-			'timezone',
-		) as HTMLInputElement
-		if (timezoneField) {
-			console.log('timezone field being set', {
-				intl: Intl.DateTimeFormat().resolvedOptions().timeZone,
-			})
-			timezoneField.value =
-				Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
-		}
-	}, [])
 
 	return (
 		<div className="p-8">
@@ -160,24 +147,6 @@ export default function NewPost() {
 				method="post"
 				{...getFormProps(form)}
 				className="mb-12 space-y-6"
-				onChange={(event: FormEvent) => {
-					if (
-						['description', 'title', 'publishAt', 'slug'].includes(
-							// @ts-expect-error
-							event.target.name,
-						)
-					) {
-						const data = new FormData((event.target as HTMLFormElement).form)
-						setContent(
-							formatContentForEditor(
-								Object.fromEntries(data.entries()) as unknown as z.infer<
-									typeof PostSchema
-								>,
-							),
-						)
-						setKey(Math.random().toString())
-					}
-				}}
 			>
 				<Field
 					labelProps={{
@@ -220,25 +189,11 @@ export default function NewPost() {
 					}}
 					errors={fields.publishAt.errors}
 				/>
-				<Field
-					labelProps={{
-						htmlFor: 'timezone',
-						children: 'Timezone',
-					}}
-					inputProps={{
-						id: 'timezone',
-						name: 'timezone',
-						type: 'text',
-						defaultValue: 'America/New_York',
-					}}
-					errors={fields.timezone.errors}
-				/>
 
 				<div>
 					<label className="mb-1 block text-sm font-medium">Content</label>
 					<div className="rounded-md border">
 						<MDXEditorComponent
-							key={key}
 							images={images.map((image) => getPostImageSource(image.id))}
 							imageUploadHandler={handleImageUpload}
 							markdown={content}

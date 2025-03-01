@@ -176,7 +176,7 @@
 
 /* TODO: find a more "tailwindy" way of doing this */
 .jdg_typography p:not(:first-of-type) {
-	@apply mt-3;
+	@apply my-3;
 }
 
 /* .jdg_typography h1, */
@@ -240,7 +240,7 @@
 }
 
 .jdg_typography .jdg-link-preview {
-  @apply my-2 md:my-4 lg:my-6;
+  @apply my-3 md:my-4 lg:my-6;
 }
 
 
