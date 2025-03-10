@@ -70,7 +70,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.5",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.1",
     "execa": "^9.4.1",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
