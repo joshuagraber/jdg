@@ -249,6 +249,52 @@
 	@apply mb-4 md:mb-6 lg:mb-8;
 }
 
+.jdg_typography details {
+	@apply bg-secondary/25 p-5 rounded-md;
+}
+
+
+.jdg_typography summary {
+	@apply list-none cursor-pointer relative;
+}
+
+.jdg_typography summary::-webkit-details-marker {
+  @apply hidden;
+}
+
+.jdg_typography details[open] summary {
+	@apply mb-6;
+}
+
+
+/* Create custom arrow using pseudo-element */
+.jdg_typography summary::after {
+	@apply content-[''] absolute right-[10px] top-1/2 w-2 h-2 border-r-2 border-b-2 border-[#666] transition-transform duration-300 ease-in-out;
+	transform: translateY(-50%) rotate(45deg);
+}
+
+/* Rotate arrow when open */
+.jdg_typography details[open] summary::after {
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+/* Animate content */
+.jdg_typography details > *:not(summary) {
+  animation: slide 0.3s ease-in-out;
+}
+
+@keyframes slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 /* MDX Editor — TODO: update other vars as need be */
 .dark-editor { 
 	color: var(--neutral-4);
