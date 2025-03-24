@@ -2,9 +2,23 @@ import { useLoaderData, Link } from 'react-router'
 import { ClientOnly } from 'remix-utils/client-only'
 import { LinkPreview } from '#app/components/link-preview'
 import { Spacer } from '#app/components/spacer'
-import { RECENT_PUBLICATIONS } from '#app/utils/constants.ts'
 import { prisma } from '#app/utils/db.server'
 import { Time } from './fragments+/__time'
+
+const RECENT_PUBLICATIONS = [
+  "https://www.theadroitjournal.org/2025/03/24/a-review-of-alex-higleys-true-failure/",
+  "https://www.post-gazette.com/ae/books/2024/04/27/review-mara-van-der-lugt-begetting-what-does-it-mean-to-create-a-child/stories/202404280037",
+  "https://www.artreview.com/genre-and-the-newer-newness-danielle-dutton-prairie-dresses-art-other-review/",
+  "https://www.mrbullbull.com/newbull/fiction/metaphors-toward-__________________"
+  ];
+  
+// const TRUSTED_IMAGE_DOMAINS = [
+//     'https://www.wp.org',
+//     ...RECENT_PUBLICATIONS
+//   ].map((url) => {
+//     const hostname = new URL(url).hostname;
+//     return hostname.replace(/^[^.]+\./, '*.');
+//   });
 
 export async function loader() {
   const recentFragments = await prisma.post.findMany({
@@ -20,7 +34,7 @@ export async function loader() {
     take: 3,
   })
 
-  return { fragments: recentFragments }
+  return { fragments: recentFragments, recentPubs: RECENT_PUBLICATIONS }
 }
 
 export default function Index() {
@@ -95,7 +109,7 @@ export default function Index() {
         {() => {
           return (
             <ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
-              {RECENT_PUBLICATIONS.map((url) => {
+              {data.recentPubs.map((url) => {
                 return (
                   <li key={url}>
                     <LinkPreview
@@ -130,7 +144,7 @@ export default function Index() {
         <Spacer size="4xs" />I am occasionally available for engineering
         projects on a freelance basis. Please{' '}
         <Link
-          to="contact"
+					to="contact"
         >
           get in touch
         </Link>{' '}
@@ -198,7 +212,7 @@ export default function Index() {
         workshops or programming courses. If you’re looking for an engaging,
         improvisational speaker,{' '}
         <Link
-          to="contact"
+					to="contact"
         >
           let&apos;s chat
         </Link>

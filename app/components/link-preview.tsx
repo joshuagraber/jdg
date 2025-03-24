@@ -51,15 +51,6 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 		}
 	}, [previewFetcher.data, url])
 
-  useEffect(() => {
-		// Fallback in case the image doesn't load
-		if (previewFetcher.data || cached) {
-			setTimeout(() => {
-				setIsImageLoaded(true);
-			}, 6000)
-		}
-  }, [cached, previewFetcher.data])
-
 	const isLoading =
 		previewFetcher.state === 'loading' ||
 		previewFetcher.state === 'submitting' ||
@@ -94,22 +85,8 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 							<img
 								src={previewData.image}
 								alt={previewData.title || ''}
-								className="h-full w-full opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100"
-								onLoad={(e) => {
-									const img = e.target as HTMLImageElement;
-									const aspectRatio = img.naturalWidth / img.naturalHeight;
-									
-									// Check if image is significantly wider or taller than container
-									const containerAspectRatio = 1; // since container is square (44x44)
-									
-									if (Math.abs(aspectRatio - containerAspectRatio) > 2) {
-										img.style.objectFit = 'contain';
-									} else {
-										img.style.objectFit = 'cover';
-									}
-									
-									setIsImageLoaded(true);
-								}}							
+								className="h-full w-full object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100"
+								onLoad={() => setIsImageLoaded(true)}
 							/>
 						</div>
 					)}

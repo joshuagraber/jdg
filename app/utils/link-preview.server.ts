@@ -13,26 +13,6 @@ const ogSchema = z.object({
 
 export type OpenGraphData = z.infer<typeof ogSchema>
 
-const fetchWithTimeout = async (url: string, timeout = 5000) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; LinkPreviewBot/1.0)',
-            },
-            signal: controller.signal,
-            redirect: 'follow', // explicitly follow redirects
-        });
-
-        clearTimeout(timeoutId);
-        return response;
-    } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-    }
-};
 
 export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 	try {
@@ -46,19 +26,19 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
             }
             html = Buffer.from(base64Data, 'base64').toString('utf-8')
         } else {
-            try {
-                const response = await fetchWithTimeout(url);
-                
-                if (!response.ok) {
-                    console.error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-                    return {};
-                }
-            
-                html = await response.text();
-            } catch (error) {
-                console.error(`Error fetching ${url}:`, error);
-                return {};
+            // Fetch the URL content
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'bot',
+                },
+            })
+
+            if (!response.ok) {
+                console.error(`Failed to fetch ${url}: ${response.status}`)
+                return {}
             }
+
+            html = await response.text()
         }
 
         const root = parse(html)
