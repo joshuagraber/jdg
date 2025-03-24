@@ -1,6 +1,8 @@
 import { useLoaderData, Link } from 'react-router'
+import { ClientOnly } from 'remix-utils/client-only'
 import { LinkPreview } from '#app/components/link-preview'
 import { Spacer } from '#app/components/spacer'
+import { RECENT_PUBLICATIONS } from '#app/utils/constants.ts'
 import { prisma } from '#app/utils/db.server'
 import { Time } from './fragments+/__time'
 
@@ -89,33 +91,25 @@ export default function Index() {
       </ol>
       <Spacer size="3xs" />
       <h3>Some recent publications</h3>
-      <ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
-        {/* TODO: add to DB, create admin route to update these without needing to trigger a new build. Also update the link preview logic. Fetch in the loader so that we don't have to cache */}
-        <li>
-          <LinkPreview
-            className="max-w-3xl"
-            url="https://www.post-gazette.com/ae/books/2025/02/02/review-dose-effect-optimize-dopamine-oxytocin-serotonin-endorphins-tj-power/stories/202502020045"
-          />
-        </li>
-        <li>
-          <LinkPreview
-            className="max-w-3xl"
-            url="https://www.post-gazette.com/ae/books/2024/04/27/review-mara-van-der-lugt-begetting-what-does-it-mean-to-create-a-child/stories/202404280037"
-          />
-        </li>
-        <li>
-          <LinkPreview
-            className="max-w-3xl"
-            url="https://artreview.com/genre-and-the-newer-newness-danielle-dutton-prairie-dresses-art-other-review/"
-          />
-        </li>
-        <li>
-          <LinkPreview
-            className="max-w-3xl"
-            url="https://mrbullbull.com/newbull/fiction/metaphors-toward-__________________"
-          />
-        </li>
-      </ul>
+      <ClientOnly fallback={null}>
+        {() => {
+          return (
+            <ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
+              {RECENT_PUBLICATIONS.map((url) => {
+                return (
+                  <li key={url}>
+                    <LinkPreview
+                      className="max-w-3xl"
+                      url={url}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+
+          )
+        }}
+      </ClientOnly>
       <Spacer size="2xs" />
       {/* Software */}
       <h2 id="software">Software</h2>
@@ -136,7 +130,7 @@ export default function Index() {
         <Spacer size="4xs" />I am occasionally available for engineering
         projects on a freelance basis. Please{' '}
         <Link
-					to="contact"
+          to="contact"
         >
           get in touch
         </Link>{' '}
@@ -204,7 +198,7 @@ export default function Index() {
         workshops or programming courses. If you’re looking for an engaging,
         improvisational speaker,{' '}
         <Link
-					to="contact"
+          to="contact"
         >
           let&apos;s chat
         </Link>

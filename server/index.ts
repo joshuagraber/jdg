@@ -11,6 +11,7 @@ import getPort, { portNumbers } from 'get-port'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import { type ServerBuild } from 'react-router'
+import { TRUSTED_IMAGE_DOMAINS } from '#app/utils/constants.js'
 
 const MODE = process.env.NODE_ENV ?? 'development'
 const IS_PROD = MODE === 'production'
@@ -120,7 +121,7 @@ app.use(
 				].filter(Boolean),
 				'font-src': ["'self'"],
 				'frame-src': ["'self'"],
-				'img-src': ["'self'", 'data:'],
+				'img-src': ["'self'", 'data:', ...TRUSTED_IMAGE_DOMAINS],
 				'script-src': [
 					"'strict-dynamic'",
 					"'self'",

@@ -67,7 +67,7 @@ export default function ContactRoute() {
   })
 
   return (
-    <div className="container pb-32 pt-20">
+    <div className="container pb-32 pt-4 md:pt-10">
       <h1>Say hello</h1>
       <Form method="POST" {...getFormProps(form)} className="flex-1">
         <HoneypotInputs />
