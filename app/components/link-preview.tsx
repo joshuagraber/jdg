@@ -51,6 +51,17 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 		}
 	}, [previewFetcher.data, url])
 
+	// set image loading state on timeout if image doesn't load
+	useEffect(() => {
+		if (!isImageLoaded) {
+			const timeout = setTimeout(() => {
+				setIsImageLoaded(true)
+			}, 6000)
+
+			return () => clearTimeout(timeout)
+		}
+	}, [])
+
 	const isLoading =
 		previewFetcher.state === 'loading' ||
 		previewFetcher.state === 'submitting' ||
