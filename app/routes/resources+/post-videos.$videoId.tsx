@@ -1,48 +1,56 @@
+import { Worker } from 'worker_threads'
 import { prisma } from '#app/utils/db.server'
 import { type Route } from './+types/post-videos.$videoId'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-	const video = await prisma.postVideo.findUnique({
-		where: { id: params.videoId },
-		select: { blob: true, contentType: true },
-	})
 
-	if (!video) {
-		throw new Response('Not found', { status: 404 })
-	}
+export async function loader({ params }: Route.LoaderArgs) {
+  // Create a promise that will resolve with our video data
+  const videoPromise = new Promise((resolve, reject) => {
+    const worker = new Worker(
+      `
+      const { parentPort } = require('worker_threads');
+      const { PrismaClient } = require('@prisma/client');
 
-	const range = request.headers.get('range')
-	const videoSize = Buffer.byteLength(video.blob)
+      async function getVideo() {
+        const prisma = new PrismaClient();
+        try {
+          const video = await prisma.postVideo.findUnique({
+            where: { id: "${params.videoId}" },
+            select: { blob: true, contentType: true },
+          });
+          parentPort.postMessage(video);
+        } catch (error) {
+          parentPort.postMessage({ error: error.message });
+        } finally {
+          await prisma.$disconnect();
+        }
+      }
 
-	if (!range) {
-		// No range requested, return full video with streaming headers
-		return new Response(video.blob, {
-			headers: {
-				'Content-Type': video.contentType,
-				'Content-Length': videoSize.toString(),
-				'Accept-Ranges': 'bytes',
-				'Cache-Control': 'public, max-age=31536000',
-			},
-		})
-	}
+      getVideo();
+      `,
+      { eval: true }
+    )
 
-	// Handle range request
-	const parts = range.replace(/bytes=/, '').split('-')
-	const start = parseInt(parts?.[0] ?? '', 10)
-	const end = parts[1] ? parseInt(parts[1], 10) : videoSize - 1
-	const chunkSize = end - start + 1
+    worker.on('message', resolve)
+    worker.on('error', reject)
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`))
+      }
+    })
+  })
 
-	const videoBuffer = Buffer.from(video.blob)
-	const chunk = videoBuffer.slice(start, end + 1)
+  const video = await videoPromise as any
 
-	return new Response(chunk, {
-		status: 206,
-		headers: {
-			'Content-Type': video.contentType,
-			'Content-Length': chunkSize.toString(),
-			'Accept-Ranges': 'bytes',
-			'Content-Range': `bytes ${start}-${end}/${videoSize}`,
-			'Cache-Control': 'public, max-age=31536000',
-		},
-	})
+  if (!video || video.error) {
+    throw new Response('Not found', { status: 404 })
+  }
+
+  return new Response(video.blob, {
+    headers: {
+      'Content-Type': video.contentType,
+      'Content-Length': Buffer.byteLength(video.blob).toString(),
+      'Content-Disposition': 'inline',
+    },
+  })
 }
