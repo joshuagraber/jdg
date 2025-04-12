@@ -45,7 +45,7 @@ script_checks = [ ]
 
   [[services.http_checks]]
   interval = "10s"
-  grace_period = "5s"
+  grace_period = "10s"
   method = "get"
   path = "/resources/healthcheck"
   protocol = "http"
