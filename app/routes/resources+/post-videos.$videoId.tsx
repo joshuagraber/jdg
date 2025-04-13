@@ -1,48 +1,54 @@
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '#app/utils/db.server'
 import { type Route } from './+types/post-videos.$videoId'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+})
+
+export async function loader({ params }: Route.LoaderArgs) {
 	const video = await prisma.postVideo.findUnique({
 		where: { id: params.videoId },
-		select: { blob: true, contentType: true },
+		select: { blob: true, contentType: true, s3Key: true },
 	})
 
 	if (!video) {
 		throw new Response('Not found', { status: 404 })
 	}
 
-	const range = request.headers.get('range')
-	const videoSize = Buffer.byteLength(video.blob)
-
-	if (!range) {
-		// No range requested, return full video with streaming headers
+	if (video.blob) {
+		console.debug('returning video from db')
 		return new Response(video.blob, {
 			headers: {
 				'Content-Type': video.contentType,
-				'Content-Length': videoSize.toString(),
-				'Accept-Ranges': 'bytes',
-				'Cache-Control': 'public, max-age=31536000',
+				'Content-Length': Buffer.byteLength(video.blob).toString(),
+				'Content-Disposition': 'inline',
 			},
 		})
 	}
 
-	// Handle range request
-	const parts = range.replace(/bytes=/, '').split('-')
-	const start = parseInt(parts?.[0] ?? '', 10)
-	const end = parts[1] ? parseInt(parts[1], 10) : videoSize - 1
-	const chunkSize = end - start + 1
+	if (video.s3Key) {
+		console.debug('returning video from S3 bucket')
+		const command = new GetObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: video.s3Key ?? undefined,
+  	})
 
-	const videoBuffer = Buffer.from(video.blob)
-	const chunk = videoBuffer.slice(start, end + 1)
+		const signedUrl = await getSignedUrl(s3, command, { 
+			expiresIn: 3600 
+		})
 
-	return new Response(chunk, {
-		status: 206,
-		headers: {
-			'Content-Type': video.contentType,
-			'Content-Length': chunkSize.toString(),
-			'Accept-Ranges': 'bytes',
-			'Content-Range': `bytes ${start}-${end}/${videoSize}`,
-			'Cache-Control': 'public, max-age=31536000',
-		},
-	})
+		return new Response(null, {
+			status: 303,
+			headers: {
+				Location: signedUrl,
+				'Cache-Control': 'public, max-age=3000',
+			},
+		})
+	}
 }

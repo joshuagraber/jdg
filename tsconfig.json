@@ -13,7 +13,8 @@
 		"types/**/*.tsx",
 		"server/**/*.tsx",
 		"./*.ts",
-		".react-router/types/**/*"
+		".react-router/types/**/*",
+		"scripts/**/*.ts"
 	],
 	"compilerOptions": {
 		"types": ["@react-router/node", "vite/client"],

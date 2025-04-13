@@ -48,7 +48,6 @@ export async function action({ request }: Route.ActionArgs) {
 	)
 
 	const file = formData.get('file') as File | null
-	const postId = formData.get('postId') as string | null
 	const altText = formData.get('altText') as string | null
 	const title = formData.get('title') as string | null
 
@@ -65,7 +64,6 @@ export async function action({ request }: Route.ActionArgs) {
 		const image = await prisma.postImage.create({
 			data: {
 				...imageData,
-				...(postId ? { posts: { connect: { id: postId } } } : {}),
 			},
 		})
 
