@@ -14,29 +14,17 @@ const s3 = new S3Client({
 export async function loader({ params }: Route.LoaderArgs) {
 	const video = await prisma.postVideo.findUnique({
 		where: { id: params.videoId },
-		select: { blob: true, contentType: true, s3Key: true },
+		select: { contentType: true, s3Key: true },
 	})
 
 	if (!video) {
 		throw new Response('Not found', { status: 404 })
 	}
 
-	if (video.blob) {
-		console.debug('returning video from db')
-		return new Response(video.blob, {
-			headers: {
-				'Content-Type': video.contentType,
-				'Content-Length': Buffer.byteLength(video.blob).toString(),
-				'Content-Disposition': 'inline',
-			},
-		})
-	}
-
-	if (video.s3Key) {
 		console.debug('returning video from S3 bucket')
 		const command = new GetObjectCommand({
 			Bucket: process.env.AWS_BUCKET_NAME,
-			Key: video.s3Key ?? undefined,
+			Key: video.s3Key,
   	})
 
 		const signedUrl = await getSignedUrl(s3, command, { 
@@ -50,5 +38,4 @@ export async function loader({ params }: Route.LoaderArgs) {
 				'Cache-Control': 'public, max-age=3000',
 			},
 		})
-	}
 }

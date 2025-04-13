@@ -6,6 +6,7 @@ import { prisma } from '#app/utils/db.server'
 import { resizeImage } from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { fileToBlob } from '#app/utils/post-images.server'
+import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 10 // 10MB
@@ -59,15 +60,30 @@ export async function action({ request }: Route.ActionArgs) {
 	}
 
 	try {
-		const imageData = await fileToBlob({ file, altText, title })
-
+		const key = `images/${Date.now()}-${file.name}`
+		const uploadUrl = await getSignedUploadUrl(key, file.type)
+		
 		const image = await prisma.postImage.create({
-			data: {
-				...imageData,
+			data: { 
+				s3Key: key,
+				contentType: file.type,
+				altText: formData.get('altText') as string,
+				title: formData.get('title') as string
 			},
 		})
 
+		if (image) {      
+			await fetch(uploadUrl, {
+				method: 'PUT',
+				body: file,
+				headers: {
+					'Content-Type': file.type,
+				},
+			})
+		}
+
 		return getPostImageSource(image.id)
+
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

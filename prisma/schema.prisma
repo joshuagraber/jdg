@@ -51,8 +51,7 @@ model PostImage {
   altText     String?
   title       String?
   contentType String
-  blob        Bytes?
-  s3Key       String?
+  s3Key       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -63,8 +62,7 @@ model PostVideo {
   altText     String?
   title       String?
   contentType String
-  blob        Bytes?
-  s3Key       String?
+  s3Key       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

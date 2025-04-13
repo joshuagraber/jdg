@@ -15,24 +15,11 @@ const s3 = new S3Client({
 export async function loader({ params }: LoaderFunctionArgs) {
 	const image = await prisma.postImage.findUnique({
 		where: { id: params.imageId },
-		select: { blob: true, contentType: true, s3Key: true },
+		select: { contentType: true, s3Key: true },
 	})
 
 	invariantResponse(image, 'Not found', { status: 404 })
 
-	if (image.blob) {
-		console.debug('returning image from db')
-
-		return new Response(image.blob, {
-			headers: {
-				'Content-Type': image.contentType,
-				'Content-Length': Buffer.from(image.blob).length.toString(),
-				'Cache-Control': 'public, max-age=31536000, immutable',
-			},
-		})
-	}
-
-	if (image.s3Key) {
 		const command = new GetObjectCommand({
 			Bucket: process.env.AWS_BUCKET_NAME,
 			Key: image.s3Key,
@@ -49,6 +36,4 @@ export async function loader({ params }: LoaderFunctionArgs) {
 				'Cache-Control': 'public, max-age=3000',
 			},
 		})
-	
-	}
 }
