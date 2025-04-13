@@ -6,6 +6,7 @@ import { requireUserId } from '#app/utils/auth.server'
 import { prisma } from '#app/utils/db.server'
 import { getPostVideoSource } from '#app/utils/misc.tsx'
 import { fileToBlob } from '#app/utils/post-images.server'
+import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/post-video-upload'
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 50 // 50MB
@@ -37,16 +38,29 @@ export async function action({ request }: Route.ActionArgs) {
 	invariantResponse(file, 'No file provided', { status: 404 })
 
 	try {
-		const videoData = await fileToBlob({ file })
-
+		const key = `videos/${Date.now()}-${file.name}`
+		const uploadUrl = await getSignedUploadUrl(key, file.type)
+		
 		const video = await prisma.postVideo.create({
 			data: {
-				...videoData,
+				s3Key: key,
+				contentType: file.type,
 			},
 		})
 
-		return getPostVideoSource(video.id)
-	} catch {
+		if (video) {      
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      })
+		}
+
+		
+		return data({ uploadUrl, id: video.id })
+		} catch {
 		return data({ error: 'Error uploading video' }, { status: 500 })
 	} finally {
 		try {
