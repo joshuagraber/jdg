@@ -5,7 +5,6 @@ import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
 import { resizeImage } from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
-import { fileToBlob } from '#app/utils/post-images.server'
 import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
 

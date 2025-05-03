@@ -230,7 +230,16 @@ function Document({
 						__html: `window.ENV = ${JSON.stringify(env)}`,
 					}}
 				/>
-				<ScrollRestoration nonce={nonce} />
+				<ScrollRestoration   
+					getKey={(location, matches) => {
+						const paths = ["/fragments"];
+						return paths.includes(location.pathname)
+							?
+								location.pathname + location.search
+							: 
+								location.key;
+					}} 
+					nonce={nonce} />
 				<Scripts nonce={nonce} />
 			</body>
 		</html>

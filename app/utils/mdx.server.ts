@@ -12,6 +12,13 @@ interface DirectiveNode extends Node {
 	attributes?: { [key: string]: string }
 }
 
+interface ImageNode extends Node {
+	type: 'image'
+	url: string
+	alt?: string
+	title?: string
+}
+
 export async function compileMDX(source: string) {
 	if (!source) throw new Error('Source is required')
 
@@ -25,6 +32,7 @@ export async function compileMDX(source: string) {
 				remarkDirective,
 				remarkYoutube,
 				remarkPreview,
+				remarkClientOnlyImages,
 			]
 			return options
 		},
@@ -77,6 +85,44 @@ const remarkPreview: Plugin = () => {
 					},
 				]
 			}
+		})
+	}
+}
+
+const remarkClientOnlyImages: Plugin = () => {
+	return (tree) => {
+		visit(tree, 'image', (node: ImageNode) => {
+			const mdxNode = node as unknown as MdxJsxFlowElement
+			mdxNode.type = 'mdxJsxFlowElement'
+			mdxNode.name = 'ClientOnlyImage'
+			mdxNode.attributes = [
+				{
+					type: 'mdxJsxAttribute',
+					name: 'src',
+					value: node.url,
+				},
+				{
+					type: 'mdxJsxAttribute',
+					name: 'alt',
+					value: node.alt || '',
+				},
+			]
+
+			// Add title attribute if it exists
+			if (node.title) {
+				mdxNode.attributes.push({
+					type: 'mdxJsxAttribute',
+					name: 'title',
+					value: node.title,
+				})
+			}
+
+			// Add default className for styling
+			mdxNode.attributes.push({
+				type: 'mdxJsxAttribute',
+				name: 'className',
+				value: 'rounded-md max-w-full h-auto',
+			})
 		})
 	}
 }
