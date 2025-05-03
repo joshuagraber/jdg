@@ -37,13 +37,6 @@ import { makeTimings, time } from './utils/timing.server.ts'
 import { getToast } from './utils/toast.server.ts'
 import { useOptionalUser } from './utils/user.ts'
 import '@mdxeditor/editor/style.css?url'
-;<link
-	rel="preload"
-	href="/fonts/Inter-Regular.woff2"
-	as="font"
-	type="font/woff2"
-	crossOrigin="anonymous"
-/>
 
 export const links: Route.LinksFunction = () => {
 	return [
@@ -230,16 +223,7 @@ function Document({
 						__html: `window.ENV = ${JSON.stringify(env)}`,
 					}}
 				/>
-				<ScrollRestoration   
-					getKey={(location, matches) => {
-						const paths = ["/fragments"];
-						return paths.includes(location.pathname)
-							?
-								location.pathname + location.search
-							: 
-								location.key;
-					}} 
-					nonce={nonce} />
+				<ScrollRestoration nonce={nonce} />
 				<Scripts nonce={nonce} />
 			</body>
 		</html>

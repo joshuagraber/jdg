@@ -119,8 +119,9 @@ app.use(
 					"'self'",
 				].filter(Boolean),
 				'font-src': ["'self'"],
-				'frame-src': ["'self'"],
+				'frame-src': ["'self'", "https://www.youtube.com/"],
 				'img-src': ["'self'", 'data:'],
+				'media-src': ["'self'", "https://jdg-media.s3.us-east-2.amazonaws.com"],
 				'script-src': [
 					"'strict-dynamic'",
 					"'self'",

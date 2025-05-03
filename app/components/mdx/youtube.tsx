@@ -7,7 +7,6 @@ export const YouTubeEmbed = ({ id }: { id: string }) => {
 
 	return (
 		<div className="relative my-2 aspect-video md:my-4">
-			{isLoading && <YouTubeLoading />}
 			<ClientOnly fallback={<YouTubeLoading />}>
 				{() => (
 					<iframe
