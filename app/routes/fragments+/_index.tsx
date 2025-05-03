@@ -13,7 +13,7 @@ import { Time } from './__time'
 export const POSTS_PER_PAGE = 5
 
 export async function loader({ request }: Route.LoaderArgs) {
-	const url = new URL(request.url)
+	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
 	const skip = Number(url.searchParams.get('skip')) || 0
 
