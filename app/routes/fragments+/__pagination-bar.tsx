@@ -8,25 +8,17 @@ const paginationButtonClasses =
 	'text-primary border border-input bg-background hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground h-8 w-8 rounded-md flex items-center justify-center no-underline cursor-pointer'
 const paginationButtonDisabledClasses = 'pointer-events-none opacity-50'
 
-export function PaginationBar({ 
-	total, 
-	currentPage, 
-	nextCursor, 
-	hasNextPage, 
-	hasPrevPage 
-}: { 
-	total: number; 
-	currentPage: number;
-	nextCursor?: string | null;
-	hasNextPage: boolean;
-	hasPrevPage: boolean;
-}) {
+export function PaginationBar({ total }: { total: number }) {
 	const [searchParams] = useSearchParams()
+	const skip = Number(searchParams.get('skip')) || 0
 	const top = Number(searchParams.get('top')) || POSTS_PER_PAGE
 
 	const totalPages = Math.ceil(total / top)
+	const currentPage = Math.floor(skip / top) + 1
 	const maxPages = 3
 	const halfMaxPages = Math.floor(maxPages / 2)
+	const canPageBackwardsBy = (skip - 0) / top
+	const canPageForwardsBy = total - (skip + top)
 
 	const pages = maxPages < totalPages ? maxPages : totalPages
 	const pageNumbers = [] as Array<number>
@@ -56,15 +48,14 @@ export function PaginationBar({
 			<Link
 				to={{
 					search: setSearchParamsString(searchParams, {
-						page: 1,
-						cursor: undefined,
+						skip: 0,
 					}),
 				}}
 				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					!hasPrevPage && paginationButtonDisabledClasses,
+					canPageBackwardsBy < 2 && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> First page</span>
@@ -74,14 +65,14 @@ export function PaginationBar({
 			<Link
 				to={{
 					search: setSearchParamsString(searchParams, {
-						page: Math.max(currentPage - 1, 1),
+						skip: Math.max(skip - top, 0),
 					}),
 				}}
 				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					!hasPrevPage && paginationButtonDisabledClasses,
+					canPageBackwardsBy < 1 && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Previous page</span>
@@ -89,6 +80,7 @@ export function PaginationBar({
 			</Link>
 
 			{pageNumbers.map((pageNumber) => {
+				const pageSkip = (pageNumber - 1) * top
 				const isCurrentPage = pageNumber === currentPage
 				if (isCurrentPage) {
 					return (
@@ -108,7 +100,7 @@ export function PaginationBar({
 							key={pageNumber}
 							to={{
 								search: setSearchParamsString(searchParams, {
-									page: pageNumber,
+									skip: pageSkip,
 								}),
 							}}
 							preventScrollReset
@@ -123,15 +115,14 @@ export function PaginationBar({
 			<Link
 				to={{
 					search: setSearchParamsString(searchParams, {
-						page: currentPage + 1,
-						...(nextCursor ? { cursor: nextCursor } : {}),
+						skip: skip + top,
 					}),
 				}}
 				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					!hasNextPage && paginationButtonDisabledClasses,
+					canPageForwardsBy < 1 && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Next page</span>
@@ -140,14 +131,14 @@ export function PaginationBar({
 			<Link
 				to={{
 					search: setSearchParamsString(searchParams, {
-						page: totalPages,
+						skip: (totalPages - 1) * top,
 					}),
 				}}
 				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					currentPage >= totalPages && paginationButtonDisabledClasses,
+					canPageForwardsBy < 2 && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Last page</span>
