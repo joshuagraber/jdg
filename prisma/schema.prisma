@@ -44,6 +44,7 @@ model Post {
 
   @@index([authorId])
   @@index([authorId, updatedAt])
+  @@index([publishAt]) // Added index for faster queries on publishAt
 }
 
 model PostImage {

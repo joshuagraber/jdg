@@ -7,36 +7,59 @@ import { prisma } from '#app/utils/db.server'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
 import { type Route } from './+types/_index'
+import { storeCursor, getCursor } from './__cursor-store'
 import { PaginationBar } from './__pagination-bar'
 import { Time } from './__time'
 
+// Cache for post count
+let cachedPostCount: number | null = null
+let cacheTime: number | null = null
+const CACHE_DURATION = 60 * 60 * 1000 // 1 hour in milliseconds
+
 export const POSTS_PER_PAGE = 5
+
 
 export async function loader({ request }: Route.LoaderArgs) {
 	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
-	const skip = Number(url.searchParams.get('skip')) || 0
-
-	const [posts, totalPosts] = await Promise.all([
-		prisma.post.findMany({
+	const page = Number(url.searchParams.get('page')) || 1
+	const cursor = url.searchParams.get('cursor') || getCursor(page)
+	
+	// Get posts with cursor-based pagination
+	const posts = await prisma.post.findMany({
+		where: { publishAt: { not: null } },
+		select: {
+			id: true,
+			title: true,
+			slug: true,
+			content: true,
+			description: true,
+			createdAt: true,
+			publishAt: true,
+		},
+		orderBy: { publishAt: 'desc' },
+		take: top,
+		...(cursor && page > 1 ? { cursor: { id: cursor }, skip: 1 } : {}),
+	})
+	
+	// Store the cursor for the next page
+	if (posts.length > 0) {
+		const lastPostId = posts[posts.length - 1]?.id
+		if (typeof lastPostId === 'string') storeCursor(page + 1, lastPostId)
+	}
+	
+	// Use cached count if available and not expired
+	let totalPosts: number
+	const now = Date.now()
+	if (cachedPostCount !== null && cacheTime !== null && now - cacheTime < CACHE_DURATION) {
+		totalPosts = cachedPostCount
+	} else {
+		totalPosts = await prisma.post.count({
 			where: { publishAt: { not: null } },
-			select: {
-				id: true,
-				title: true,
-				slug: true,
-				content: true,
-				description: true,
-				createdAt: true,
-				publishAt: true,
-			},
-			orderBy: { publishAt: 'desc' },
-			take: top,
-			skip,
-		}),
-		prisma.post.count({
-			where: { publishAt: { not: null } },
-		}),
-	])
+		})
+		cachedPostCount = totalPosts
+		cacheTime = now
+	}
 
 	// Bundle MDX for each post
 	const postsWithMDX = await Promise.all(
@@ -54,6 +77,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 		posts: postsWithMDX,
 		total: totalPosts,
 		ogURL: url,
+		currentPage: page,
+		nextCursor: posts[posts.length - 1]?.id ?? null,
+		hasNextPage: posts.length === top && (page * top) < totalPosts,
+		hasPrevPage: page > 1,
 	}
 }
 
@@ -88,7 +115,7 @@ function PostContent({ code }: { code: string }) {
 }
 
 export default function Fragments() {
-	const { posts, total } = useLoaderData<typeof loader>()
+	const { posts, total, currentPage, nextCursor, hasNextPage, hasPrevPage } = useLoaderData<typeof loader>()
 
 	return (
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">
@@ -110,7 +137,13 @@ export default function Fragments() {
 					</article>
 				))}
 
-				<PaginationBar total={total} />
+				<PaginationBar 
+					total={total} 
+					currentPage={currentPage} 
+					nextCursor={nextCursor} 
+					hasNextPage={hasNextPage} 
+					hasPrevPage={hasPrevPage} 
+				/>
 			</div>
 		</div>
 	)
