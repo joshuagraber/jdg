@@ -1,10 +1,7 @@
-import React from 'react'
 import { ClientOnly } from 'remix-utils/client-only'
 import { Icon } from '../ui/icon'
 
 export const YouTubeEmbed = ({ id }: { id: string }) => {
-	const [isLoading, setIsLoading] = React.useState(true)
-
 	return (
 		<div className="relative my-2 aspect-video md:my-4">
 			<ClientOnly fallback={<YouTubeLoading />}>
@@ -14,9 +11,7 @@ export const YouTubeEmbed = ({ id }: { id: string }) => {
 						className="aspect-video w-full"
 						src={`https://www.youtube.com/embed/${id}?origin=${window.location.origin}`}
 						title="YouTube video player"
-						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowFullScreen
-						onLoad={() => setIsLoading(false)}
 					/>
 				)}
 			</ClientOnly>
