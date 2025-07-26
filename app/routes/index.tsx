@@ -6,6 +6,7 @@ import { prisma } from '#app/utils/db.server'
 import { Time } from './fragments+/__time'
 
 const RECENT_PUBLICATIONS = [
+  "https://www.post-gazette.com/ae/books/2025/07/20/ben-weissenbach-north-to-future-online-joshua-graber/stories/202507200058",
   "https://www.post-gazette.com/ae/books/2025/05/31/laurence-leamer-muses-andy-warhol/stories/202506010061",
   "https://www.theadroitjournal.org/2025/03/24/a-review-of-alex-higleys-true-failure/",
   "https://www.post-gazette.com/ae/books/2024/04/27/review-mara-van-der-lugt-begetting-what-does-it-mean-to-create-a-child/stories/202404280037",
