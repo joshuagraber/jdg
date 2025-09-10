@@ -30,9 +30,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				createdAt: true,
 				updatedAt: true,
 			},
-			orderBy: [
-				{ publishAt: { sort: 'desc', nulls: 'first' } },
-			],
+			orderBy: [{ publishAt: { sort: 'desc', nulls: 'first' } }],
 		}),
 		prisma.postImage.findMany({
 			select: {
@@ -82,14 +80,11 @@ export default function AdminPosts() {
 							<div>
 								<h2 className="text-xl font-semibold">{post.title}</h2>
 								<div className="flex gap-2 text-sm text-muted-foreground">
-									<span>
-										Created{' '}
-										{format(post.createdAt, "dd MMM yyyy")}
-									</span>
+									<span>Created {format(post.createdAt, 'dd MMM yyyy')}</span>
 									<span>•</span>
 									<span>
 										{post.publishAt
-											? `Published ${format(post.publishAt, "dd MMM yyyy, hh:mm aaaa")}`
+											? `Published ${format(post.publishAt, 'dd MMM yyyy, hh:mm aaaa')}`
 											: 'Draft'}
 									</span>
 									<span>•</span>

@@ -21,17 +21,17 @@ export async function action({ request }: Route.ActionArgs) {
 	try {
 		const key = `videos/${Date.now()}-${file.name}`
 		const uploadUrl = await getSignedUploadUrl(key, file.type)
-		
+
 		const video = await prisma.postVideo.create({
 			data: {
 				s3Key: key,
 				contentType: file.type,
 				altText,
-				title
+				title,
 			},
 		})
 
-		if (video) {      
+		if (video) {
 			await fetch(uploadUrl, {
 				method: 'PUT',
 				body: file,
@@ -41,7 +41,6 @@ export async function action({ request }: Route.ActionArgs) {
 			})
 		}
 
-		
 		return getPostVideoSource(video.id)
 	} catch (error) {
 		return data(

@@ -1,14 +1,14 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { invariantResponse } from '@epic-web/invariant'
-import { type LoaderFunctionArgs } from 'react-router';
+import { type LoaderFunctionArgs } from 'react-router'
 import { prisma } from '#app/utils/db.server'
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+	region: process.env.AWS_REGION,
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	},
 })
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
@@ -37,7 +37,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 	if (s3Response.ContentLength)
 		headers.set('Content-Length', String(s3Response.ContentLength))
 	if (s3Response.LastModified)
-		headers.set('Last-Modified', new Date(s3Response.LastModified).toUTCString())
+		headers.set(
+			'Last-Modified',
+			new Date(s3Response.LastModified).toUTCString(),
+		)
 	// Aggressive caching; objects are content-addressed by ID/s3Key
 	headers.set('Cache-Control', 'public, max-age=31536000, immutable')
 	headers.set('Accept-Ranges', 'bytes')

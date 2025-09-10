@@ -61,17 +61,17 @@ export async function action({ request }: Route.ActionArgs) {
 	try {
 		const key = `images/${Date.now()}-${file.name}`
 		const uploadUrl = await getSignedUploadUrl(key, file.type)
-		
+
 		const image = await prisma.postImage.create({
-			data: { 
+			data: {
 				s3Key: key,
 				contentType: file.type,
 				altText: formData.get('altText') as string,
-				title: formData.get('title') as string
+				title: formData.get('title') as string,
 			},
 		})
 
-		if (image) {      
+		if (image) {
 			await fetch(uploadUrl, {
 				method: 'PUT',
 				body: file,
@@ -82,7 +82,6 @@ export async function action({ request }: Route.ActionArgs) {
 		}
 
 		return getPostImageSource(image.id)
-
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

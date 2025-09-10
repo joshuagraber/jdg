@@ -5,7 +5,9 @@ import { YouTubeEmbed } from './youtube'
 type MDXComponents = {
 	youtube: (props: { id: string }) => JSX.Element
 	preview: (props: { url: string }) => JSX.Element
-	ClientOnlyImage: (props: React.ComponentProps<typeof ClientOnlyImage>) => JSX.Element
+	ClientOnlyImage: (
+		props: React.ComponentProps<typeof ClientOnlyImage>,
+	) => JSX.Element
 }
 
 export const mdxComponents: MDXComponents = {

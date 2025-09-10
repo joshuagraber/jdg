@@ -1,8 +1,8 @@
-import { format } from 'date-fns';
+import { format } from 'date-fns'
 
 export function formatDateStringForPostDefault(date: Date | null) {
-	if (!date) return null;
-	return format(date, "yyyy-MM-dd'T'HH:mm");
+	if (!date) return null
+	return format(date, "yyyy-MM-dd'T'HH:mm")
 }
 
 export function makePostSlug(title: string, slug?: string) {

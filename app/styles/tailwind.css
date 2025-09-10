@@ -185,7 +185,7 @@
 .jdg_typography h4,
 .jdg_typography h5,
 .jdg_typography h6 {
-  @apply mb-3;
+	@apply mb-3;
 }
 .jdg_typography blockquote {
 	@apply my-6 border-l-4 py-1 pl-4;
@@ -240,9 +240,8 @@
 }
 
 .jdg_typography .jdg-link-preview {
-  @apply my-3 md:my-4 lg:my-6;
+	@apply my-3 md:my-4 lg:my-6;
 }
-
 
 .jdg_typography p:has(video),
 .jdg_typography p:has(img) {
@@ -250,53 +249,50 @@
 }
 
 .jdg_typography details {
-	@apply bg-secondary/25 p-5 rounded-md;
+	@apply rounded-md bg-secondary/25 p-5;
 }
 
-
 .jdg_typography summary {
-	@apply list-none cursor-pointer relative;
+	@apply relative cursor-pointer list-none;
 }
 
 .jdg_typography summary::-webkit-details-marker {
-  @apply hidden;
+	@apply hidden;
 }
 
 .jdg_typography details[open] summary {
 	@apply mb-6;
 }
 
-
 /* Create custom arrow using pseudo-element */
 .jdg_typography summary::after {
-	@apply content-[''] absolute right-[10px] top-1/2 w-2 h-2 border-r-2 border-b-2 border-[#666] transition-transform duration-300 ease-in-out;
+	@apply absolute right-[10px] top-1/2 h-2 w-2 border-b-2 border-r-2 border-[#666] transition-transform duration-300 ease-in-out content-[''];
 	transform: translateY(-50%) rotate(45deg);
 }
 
 /* Rotate arrow when open */
 .jdg_typography details[open] summary::after {
-  transform: translateY(-50%) rotate(-135deg);
+	transform: translateY(-50%) rotate(-135deg);
 }
 
 /* Animate content */
 .jdg_typography details > *:not(summary) {
-  animation: slide 0.3s ease-in-out;
+	animation: slide 0.3s ease-in-out;
 }
 
 @keyframes slide {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
-
 /* MDX Editor — TODO: update other vars as need be */
-.dark-editor { 
+.dark-editor {
 	color: var(--neutral-4);
 	--basePageBg: var(--neutral-0);
 	background: var(--neutral-0);

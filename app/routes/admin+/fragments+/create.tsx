@@ -78,13 +78,12 @@ export async function action({ request }: Route.ActionArgs) {
 		)
 	}
 
-	const { title, content, description, publishAt, slug } =
-		submission.value
+	const { title, content, description, publishAt, slug } = submission.value
 
 	const publishAtWithTimezone = publishAt
 		? fromZonedTime(publishAt, timeZone)
-		: null;
-	
+		: null
+
 	try {
 		await prisma.post.create({
 			data: {
@@ -143,11 +142,7 @@ export default function NewPost() {
 		<div className="p-8">
 			<h1 className="mb-6 text-2xl font-bold">New Post</h1>
 
-			<Form
-				method="post"
-				{...getFormProps(form)}
-				className="mb-12 space-y-6"
-			>
+			<Form method="post" {...getFormProps(form)} className="mb-12 space-y-6">
 				<Field
 					labelProps={{
 						htmlFor: fields.title.id,

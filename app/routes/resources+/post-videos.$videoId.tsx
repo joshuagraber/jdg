@@ -3,11 +3,11 @@ import { prisma } from '#app/utils/db.server'
 import { type Route } from './+types/post-videos.$videoId'
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+	region: process.env.AWS_REGION,
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	},
 })
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -40,7 +40,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 	if (s3Response.ContentLength)
 		headers.set('Content-Length', String(s3Response.ContentLength))
 	if (s3Response.LastModified)
-		headers.set('Last-Modified', new Date(s3Response.LastModified).toUTCString())
+		headers.set(
+			'Last-Modified',
+			new Date(s3Response.LastModified).toUTCString(),
+		)
 	headers.set('Cache-Control', 'public, max-age=31536000, immutable')
 	headers.set('Accept-Ranges', 'bytes')
 	headers.set('Content-Disposition', 'inline')
