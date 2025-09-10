@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-	getCachedPreview,
-	setCachedPreview,
-} from '#app/utils/link-preview-cache.ts'
+// Removed localStorage caching to avoid stale empty data
 import { cn } from '#app/utils/misc.tsx'
 import { Icon } from './ui/icon'
 
@@ -35,13 +32,6 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 		abortRef.current?.abort()
 		abortRef.current = new AbortController()
 
-		// Try cache first
-		const cached = getCachedPreview(url)
-		if (cached) {
-			setData(cached)
-			return
-		}
-
 		const setImageLoading = () => {
 			setIsImageLoaded(true)
 		}
@@ -59,7 +49,6 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 				if (!res.ok) return
 				const json = (await res.json()) as LinkPreviewData
 				setData(json)
-				setCachedPreview(url, json)
 			} catch (error) {
 				// ignore (timeout/abort/network)
 				console.error('Failed to fetch link preview', { error })

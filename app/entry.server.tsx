@@ -1,15 +1,16 @@
 import { PassThrough } from 'node:stream'
-import { createReadableStreamFromReadable } from '@react-router/node';
-
+import { createReadableStreamFromReadable } from '@react-router/node'
 
 import * as Sentry from '@sentry/remix'
 import chalk from 'chalk'
 import { isbot } from 'isbot'
 import { renderToPipeableStream } from 'react-dom/server'
-import { ServerRouter,
-    type LoaderFunctionArgs,
-    type ActionFunctionArgs,
-    type HandleDocumentRequestFunction } from 'react-router';
+import {
+	ServerRouter,
+	type LoaderFunctionArgs,
+	type ActionFunctionArgs,
+	type HandleDocumentRequestFunction,
+} from 'react-router'
 import { getEnv, init } from './utils/env.server.ts'
 import { getInstanceInfo } from './utils/litefs.server.ts'
 import { NonceProvider } from './utils/nonce-provider.ts'
@@ -81,7 +82,7 @@ export default async function handleRequest(...args: DocRequestArgs) {
 		// Automatically timeout the React renderer after 6 seconds, which ensures
 		// React has enough time to flush down the rejected boundary contents
 		setTimeout(abort, streamTimeout + 1000)
-	});
+	})
 }
 
 export async function handleDataRequest(response: Response) {

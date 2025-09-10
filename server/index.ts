@@ -119,9 +119,9 @@ app.use(
 					"'self'",
 				].filter(Boolean),
 				'font-src': ["'self'"],
-				'frame-src': ["'self'", "https://www.youtube.com/"],
+				'frame-src': ["'self'", 'https://www.youtube.com/'],
 				'img-src': ["'self'", 'data:'],
-				'media-src': ["'self'", "https://jdg-media.s3.us-east-2.amazonaws.com"],
+				'media-src': ["'self'", 'https://jdg-media.s3.us-east-2.amazonaws.com'],
 				'script-src': [
 					"'strict-dynamic'",
 					"'self'",
@@ -227,7 +227,6 @@ app.use(
 	express.static('public/fonts', { immutable: true, maxAge: '1y' }),
 )
 
-
 app.all(
 	'*',
 	createRequestHandler({
@@ -287,31 +286,31 @@ ${chalk.bold('Press Ctrl+C to stop')}
 
 // --- Boot-time MDX prewarm (runs in background, non-blocking) ---
 async function prewarmPublishedFragments() {
-  try {
-    const token = process.env.INTERNAL_COMMAND_TOKEN
-    if (!token) {
-      console.info('🧯 Prewarm: skipping (no INTERNAL_COMMAND_TOKEN)')
-      return
-    }
-    const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments`
-    console.info('🧯 Prewarm: calling', url)
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) {
-      console.warn('🧯 Prewarm: request failed', res.status, res.statusText)
-      return
-    }
-    const body = await res.json().catch(() => ({}))
-    console.info('🧯 Prewarm: done', body)
-  } catch (e) {
-    console.warn('🧯 Prewarm: unexpected error', e)
-  }
+	try {
+		const token = process.env.INTERNAL_COMMAND_TOKEN
+		if (!token) {
+			console.info('🧯 Prewarm: skipping (no INTERNAL_COMMAND_TOKEN)')
+			return
+		}
+		const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments`
+		console.info('🧯 Prewarm: calling', url)
+		const res = await fetch(url, {
+			headers: { Authorization: `Bearer ${token}` },
+		})
+		if (!res.ok) {
+			console.warn('🧯 Prewarm: request failed', res.status, res.statusText)
+			return
+		}
+		const body = await res.json().catch(() => ({}))
+		console.info('🧯 Prewarm: done', body)
+	} catch (e) {
+		console.warn('🧯 Prewarm: unexpected error', e)
+	}
 }
 
 // Run after server starts with a short delay so it doesn't race healthchecks
 setTimeout(() => {
-  void prewarmPublishedFragments()
+	void prewarmPublishedFragments()
 }, 5000)
 
 closeWithGrace(async ({ err }) => {

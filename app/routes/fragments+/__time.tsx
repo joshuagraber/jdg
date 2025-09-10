@@ -5,7 +5,7 @@ interface TimeProps extends React.HTMLProps<HTMLTimeElement> {
 	time: string
 }
 
-export function Time({ time }: TimeProps) {	
+export function Time({ time }: TimeProps) {
 	// Use ClientOnly to ensure consistent rendering
 	return (
 		<ClientOnly fallback={<time dateTime={time}>{null}</time>}>
@@ -13,7 +13,7 @@ export function Time({ time }: TimeProps) {
 				const formattedDate = format(new Date(time), 'd MMMM yyyy')
 
 				return <time dateTime={time}>{formattedDate}</time>
-				}}
+			}}
 		</ClientOnly>
 	)
 }

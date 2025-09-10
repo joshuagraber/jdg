@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router'
 import { Icon } from '#app/components/ui/icon.tsx'
 import { cn } from '#app/utils/misc.tsx'
 import { setSearchParamsString } from './__util'
@@ -13,12 +13,15 @@ export function PaginationBar({ total }: { total: number }) {
 	const skip = Number(searchParams.get('skip')) || 0
 	const top = Number(searchParams.get('top')) || POSTS_PER_PAGE
 
-  const totalPages = Math.max(1, Math.ceil(total / top))
-  const currentPage = Math.max(1, Math.min(Math.floor(skip / top) + 1, totalPages))
-  const maxPages = 3
-  const halfMaxPages = Math.floor(maxPages / 2)
-  const isFirstPage = currentPage === 1
-  const isLastPage = currentPage === totalPages
+	const totalPages = Math.max(1, Math.ceil(total / top))
+	const currentPage = Math.max(
+		1,
+		Math.min(Math.floor(skip / top) + 1, totalPages),
+	)
+	const maxPages = 3
+	const halfMaxPages = Math.floor(maxPages / 2)
+	const isFirstPage = currentPage === 1
+	const isLastPage = currentPage === totalPages
 
 	const pages = maxPages < totalPages ? maxPages : totalPages
 	const pageNumbers = [] as Array<number>
@@ -41,7 +44,7 @@ export function PaginationBar({ total }: { total: number }) {
 		}
 	}
 
-  if (total <= top) return null
+	if (total <= top) return null
 
 	return (
 		<div className="mx-auto flex items-center gap-1">
@@ -53,10 +56,10 @@ export function PaginationBar({ total }: { total: number }) {
 				}}
 				preventScrollReset
 				prefetch="intent"
-      className={cn(
-        paginationButtonClasses,
-        isFirstPage && paginationButtonDisabledClasses,
-      )}
+				className={cn(
+					paginationButtonClasses,
+					isFirstPage && paginationButtonDisabledClasses,
+				)}
 			>
 				<span className="sr-only"> First page</span>
 				<Icon name="double-arrow-left" />
@@ -70,10 +73,10 @@ export function PaginationBar({ total }: { total: number }) {
 				}}
 				preventScrollReset
 				prefetch="intent"
-      className={cn(
-        paginationButtonClasses,
-        isFirstPage && paginationButtonDisabledClasses,
-      )}
+				className={cn(
+					paginationButtonClasses,
+					isFirstPage && paginationButtonDisabledClasses,
+				)}
 			>
 				<span className="sr-only"> Previous page</span>
 				<Icon name="arrow-left" />
@@ -120,10 +123,10 @@ export function PaginationBar({ total }: { total: number }) {
 				}}
 				preventScrollReset
 				prefetch="intent"
-      className={cn(
-        paginationButtonClasses,
-        isLastPage && paginationButtonDisabledClasses,
-      )}
+				className={cn(
+					paginationButtonClasses,
+					isLastPage && paginationButtonDisabledClasses,
+				)}
 			>
 				<span className="sr-only"> Next page</span>
 				<Icon name="arrow-right" />
@@ -136,10 +139,10 @@ export function PaginationBar({ total }: { total: number }) {
 				}}
 				preventScrollReset
 				prefetch="intent"
-      className={cn(
-        paginationButtonClasses,
-        isLastPage && paginationButtonDisabledClasses,
-      )}
+				className={cn(
+					paginationButtonClasses,
+					isLastPage && paginationButtonDisabledClasses,
+				)}
 			>
 				<span className="sr-only"> Last page</span>
 				<Icon name="double-arrow-right" />

@@ -5,7 +5,7 @@ import {
 	browserProfilingIntegration,
 } from '@sentry/remix'
 import { useEffect } from 'react'
-import { useLocation, useMatches } from 'react-router';
+import { useLocation, useMatches } from 'react-router'
 
 export function init() {
 	sentryInit({

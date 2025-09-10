@@ -1,9 +1,20 @@
-import { useForm, getFormProps, getInputProps, getTextareaProps } from '@conform-to/react'
+import {
+	useForm,
+	getFormProps,
+	getInputProps,
+	getTextareaProps,
+} from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
-import { data, Form, useActionData, useLoaderData, useNavigation } from 'react-router'
+import {
+	data,
+	Form,
+	useActionData,
+	useLoaderData,
+	useNavigation,
+} from 'react-router'
 import { Field, ErrorList } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { Button } from '#app/components/ui/button'
@@ -84,9 +95,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 		: undefined
 
 	const { title, content, description, publishAt, slug } = submission.value
-    const publishAtWithTimezone = publishAt
-			? fromZonedTime(publishAt, timeZone)
-			: null;
+	const publishAtWithTimezone = publishAt
+		? fromZonedTime(publishAt, timeZone)
+		: null
 
 	const published = publishAtWithTimezone ?? existingPost?.publishAt ?? null
 
@@ -139,7 +150,7 @@ export default function EditPost() {
 			slug: post.slug,
 			publishAt: post.publishAt
 				? formatDateStringForPostDefault(
-					  // ensure if rendered on server that the date is in client TZ
+						// ensure if rendered on server that the date is in client TZ
 						new Date(post.publishAt.toLocaleString('en', { timeZone })),
 					)
 				: null,
@@ -194,7 +205,11 @@ export default function EditPost() {
 					errors={fields.slug.errors}
 				/>
 				{post.publishAt && !showDateField && (
-					<Button variant="outline" type="button" onClick={() => setShowDateField(true)}>
+					<Button
+						variant="outline"
+						type="button"
+						onClick={() => setShowDateField(true)}
+					>
 						Post is published. Edit the publish date?
 					</Button>
 				)}
@@ -222,9 +237,15 @@ export default function EditPost() {
 							diffSource={post.content}
 						/>
 					</div>
-					<textarea ref={contentRef} {...getTextareaProps(fields.content)} className="hidden" />
+					<textarea
+						ref={contentRef}
+						{...getTextareaProps(fields.content)}
+						className="hidden"
+					/>
 					{fields.content.errors ? (
-						<div className="text-sm text-destructive">{fields.content.errors}</div>
+						<div className="text-sm text-destructive">
+							{fields.content.errors}
+						</div>
 					) : null}
 				</div>
 

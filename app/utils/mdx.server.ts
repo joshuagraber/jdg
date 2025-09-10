@@ -22,35 +22,35 @@ interface ImageNode extends Node {
 }
 
 export async function compileMDX(source: string) {
-    if (!source) throw new Error('Source is required')
+	if (!source) throw new Error('Source is required')
 
-    const hash = crypto.createHash('sha1').update(source).digest('hex')
-    const key = `mdx:bundle:v1:${hash}`
+	const hash = crypto.createHash('sha1').update(source).digest('hex')
+	const key = `mdx:bundle:v1:${hash}`
 
-    return cachified({
-        key,
-        cache,
-        ttl: 1000 * 60 * 60 * 24 * 365, // 1 year
-        swr: 1000 * 60 * 60 * 24 * 30, // 30 days
-        async getFreshValue() {
-            const result = await bundleMDX({
-                source,
-                mdxOptions(options) {
-                    options.rehypePlugins = [...(options.rehypePlugins ?? [])]
-                    options.remarkPlugins = [
-                        ...(options.remarkPlugins ?? []),
-                        remarkGfm,
-                        remarkDirective,
-                        remarkYoutube,
-                        remarkPreview,
-                        remarkClientOnlyImages,
-                    ]
-                    return options
-                },
-            })
-            return result
-        },
-    })
+	return cachified({
+		key,
+		cache,
+		ttl: 1000 * 60 * 60 * 24 * 365, // 1 year
+		swr: 1000 * 60 * 60 * 24 * 30, // 30 days
+		async getFreshValue() {
+			const result = await bundleMDX({
+				source,
+				mdxOptions(options) {
+					options.rehypePlugins = [...(options.rehypePlugins ?? [])]
+					options.remarkPlugins = [
+						...(options.remarkPlugins ?? []),
+						remarkGfm,
+						remarkDirective,
+						remarkYoutube,
+						remarkPreview,
+						remarkClientOnlyImages,
+					]
+					return options
+				},
+			})
+			return result
+		},
+	})
 }
 
 const remarkYoutube: Plugin = () => {

@@ -9,26 +9,28 @@ import { createPassword, img } from '#tests/db-utils.ts'
 import { insertGitHubUser } from '#tests/mocks/github.ts'
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION ?? '',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
-  },
+	region: process.env.AWS_REGION ?? '',
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+	},
 })
 
 async function uploadToS3(filepath: string, contentType: string) {
-  const filename = path.basename(filepath)
-  const key = `seed/${Date.now()}-${filename}`
-  const fileBuffer = await fs.readFile(filepath)
+	const filename = path.basename(filepath)
+	const key = `seed/${Date.now()}-${filename}`
+	const fileBuffer = await fs.readFile(filepath)
 
-  await s3.send(new PutObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: contentType,
-  }))
+	await s3.send(
+		new PutObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+			Body: fileBuffer,
+			ContentType: contentType,
+		}),
+	)
 
-  return key
+	return key
 }
 
 async function seed() {
@@ -43,58 +45,58 @@ async function seed() {
 	console.timeEnd('👑 Creating roles...')
 
 	// Create post images
-  // Create post images
-  console.time('🖼️ Creating post images...')
-  const postImagesHash = await promiseHash({
-    birthdayCat: img({
-      filepath: './tests/fixtures/images/post/cat_birthday.png',
-      altText: 'Grey cat with birthday hat licking its lips',
-      title: 'Birthday cat',
-    }),
-    hammockCat: img({
-      filepath: './tests/fixtures/images/post/cat_hammock.png',
-      altText: 'A cat in a hammock',
-      title: 'Hammock cat',
-    }),
-    hipsterCat: img({
-      filepath: './tests/fixtures/images/post/cat_hipster.png',
-      altText: 'Hipster cat looking pensively into the distance',
-      title: 'Hipster cat',
-    }),
-  })
+	// Create post images
+	console.time('🖼️ Creating post images...')
+	const postImagesHash = await promiseHash({
+		birthdayCat: img({
+			filepath: './tests/fixtures/images/post/cat_birthday.png',
+			altText: 'Grey cat with birthday hat licking its lips',
+			title: 'Birthday cat',
+		}),
+		hammockCat: img({
+			filepath: './tests/fixtures/images/post/cat_hammock.png',
+			altText: 'A cat in a hammock',
+			title: 'Hammock cat',
+		}),
+		hipsterCat: img({
+			filepath: './tests/fixtures/images/post/cat_hipster.png',
+			altText: 'Hipster cat looking pensively into the distance',
+			title: 'Hipster cat',
+		}),
+	})
 
-  // Upload images to S3 and create DB records
-  const [birthdayCatImage, hammockCatImage, hipsterCatImage] = await Promise.all([
-    prisma.postImage.create({
-      data: {
-        ...postImagesHash.birthdayCat,
-        s3Key: await uploadToS3(
-          './tests/fixtures/images/post/cat_birthday.png',
-          'image/png'
-        ),
-      },
-    }),
-    prisma.postImage.create({
-      data: {
-        ...postImagesHash.hammockCat,
-        s3Key: await uploadToS3(
-          './tests/fixtures/images/post/cat_hammock.png',
-          'image/png'
-        ),
-      },
-    }),
-    prisma.postImage.create({
-      data: {
-        ...postImagesHash.hipsterCat,
-        s3Key: await uploadToS3(
-          './tests/fixtures/images/post/cat_hipster.png',
-          'image/png'
-        ),
-      },
-    }),
-  ])
-  console.timeEnd('🖼️ Creating post images...')
-
+	// Upload images to S3 and create DB records
+	const [birthdayCatImage, hammockCatImage, hipsterCatImage] =
+		await Promise.all([
+			prisma.postImage.create({
+				data: {
+					...postImagesHash.birthdayCat,
+					s3Key: await uploadToS3(
+						'./tests/fixtures/images/post/cat_birthday.png',
+						'image/png',
+					),
+				},
+			}),
+			prisma.postImage.create({
+				data: {
+					...postImagesHash.hammockCat,
+					s3Key: await uploadToS3(
+						'./tests/fixtures/images/post/cat_hammock.png',
+						'image/png',
+					),
+				},
+			}),
+			prisma.postImage.create({
+				data: {
+					...postImagesHash.hipsterCat,
+					s3Key: await uploadToS3(
+						'./tests/fixtures/images/post/cat_hipster.png',
+						'image/png',
+					),
+				},
+			}),
+		])
+	console.timeEnd('🖼️ Creating post images...')
 
 	console.time(`🐨 Created admin user "kody"`)
 	const kodyImages = await promiseHash({
