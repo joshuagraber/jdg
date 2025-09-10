@@ -18,11 +18,16 @@ export function ClientOnlyImage({
     <ClientOnly fallback={null}>
       {() => (
         <img
-          src={src}
+          src={
+            (typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL)
+              ? `${window.ENV.ASSET_BASE_URL}${src.startsWith('/') ? '' : '/'}${src}`
+              : src
+          }
           alt={alt}
           title={title}
           className={className}
           loading="lazy"
+          decoding="async"
           {...props}
         />
       )}

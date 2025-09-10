@@ -16,6 +16,7 @@ const schema = z.object({
 	GITHUB_CLIENT_SECRET: z.string().default('MOCK_GITHUB_CLIENT_SECRET'),
 	GITHUB_TOKEN: z.string().default('MOCK_GITHUB_TOKEN'),
 	ALLOW_INDEXING: z.enum(['true', 'false']).optional(),
+	ASSET_BASE_URL: z.string().optional(),
 	AWS_REGION: z.string(),
 	AWS_ACCESS_KEY_ID: z.string(),
 	AWS_SECRET_ACCESS_KEY: z.string(),
@@ -54,6 +55,7 @@ export function getEnv() {
 		MODE: process.env.NODE_ENV,
 		SENTRY_DSN: process.env.SENTRY_DSN ?? '',
 		ALLOW_INDEXING: process.env.ALLOW_INDEXING ?? 'true',
+		ASSET_BASE_URL: process.env.ASSET_BASE_URL ?? '',
 	}
 }
 
