@@ -11,7 +11,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		// and make a HEAD request to ourselves, then we're good.
 		await Promise.all([
 			prisma.user.count(),
-			fetch(`${new URL(request.url).protocol}${host}`, {
+    			fetch(`${new URL(request.url).protocol}//${host}`, {
 				method: 'HEAD',
 				headers: { 'X-Healthcheck': 'true' },
 			}).then((r) => {
