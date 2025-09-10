@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useFetcher } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	getCachedPreview,
 	setCachedPreview,
@@ -21,52 +20,74 @@ interface LinkPreviewProps {
 }
 
 export function LinkPreview({ url, className }: LinkPreviewProps) {
-	const previewFetcher = useFetcher<LinkPreviewData>()
 	// Track separate state to prevent image flicker
 	const [isImageLoaded, setIsImageLoaded] = useState(false)
-	const [cached, setCached] = useState<LinkPreviewData | null>(null)
+	const [data, setData] = useState<LinkPreviewData | null>(null)
+	const abortRef = useRef<AbortController | null>(null)
+
+	const requestUrl = useMemo(
+		() => `/resources/link-preview?url=${encodeURIComponent(url)}`,
+		[url],
+	)
 
 	useEffect(() => {
-		if (previewFetcher.state === 'idle' && !previewFetcher.data) {
-			// Check cache first
-			const cached = getCachedPreview(url)
-			if (cached) {
-				setCached(cached)
-				return
-			} else {
-				// Fetch if not cached
-				void (async () => {
-					await previewFetcher.load(
-						`/resources/link-preview?url=${encodeURIComponent(url)}`,
-					)
-				})()
+		// Abort any in-flight request
+		abortRef.current?.abort()
+		abortRef.current = new AbortController()
+
+		// Try cache first
+		const cached = getCachedPreview(url)
+		if (cached) {
+			setData(cached)
+			return
+		}
+
+		const setImageLoading = () => {
+			setIsImageLoaded(true)
+		}
+
+		// Fetch via window.fetch to bypass Single Fetch .data
+		const controller = abortRef.current
+		controller?.signal.addEventListener('abort', setImageLoading)
+		const timeout = setTimeout(() => controller?.abort(), 6000)
+		void (async () => {
+			try {
+				const res = await fetch(requestUrl, {
+					headers: { Accept: 'application/json' },
+					signal: controller?.signal,
+				})
+				if (!res.ok) return
+				const json = (await res.json()) as LinkPreviewData
+				setData(json)
+				setCachedPreview(url, json)
+			} catch (error) {
+				// ignore (timeout/abort/network)
+				console.error('Failed to fetch link preview', { error })
+			} finally {
+				clearTimeout(timeout)
 			}
-		}
-	}, [url, previewFetcher])
+		})()
 
-	// Cache the response when we get it
-	useEffect(() => {
-		if (previewFetcher.data) {
-			setCachedPreview(url, previewFetcher.data)
+		return () => {
+			clearTimeout(timeout)
+			controller?.abort()
+			controller?.signal.removeEventListener('abort', setImageLoading)
 		}
-	}, [previewFetcher.data, url])
+	}, [requestUrl, url])
 
 	// set image loading state on timeout if image doesn't load
-	useEffect(() => {
-		if (!isImageLoaded) {
-			const timeout = setTimeout(() => {
-				setIsImageLoaded(true)
-			}, 6000)
+	// useEffect(() => {
+	// 	if (!isImageLoaded) {
+	// 		const timeout = setTimeout(() => {
+	// 			setIsImageLoaded(true)
+	// 		}, 6000)
 
-			return () => clearTimeout(timeout)
-		}
-	}, [])
+	// 		return () => clearTimeout(timeout)
+	// 	}
+	// }, [])
 
-	const isLoading =
-		previewFetcher.state === 'loading' ||
-		previewFetcher.state === 'submitting' ||
-		!isImageLoaded
-	const previewData = previewFetcher.data ?? cached
+	const isLoading = !isImageLoaded && !data
+	const previewData = data
 
 	return (
 		<a

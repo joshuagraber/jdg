@@ -309,8 +309,10 @@ async function prewarmPublishedFragments() {
   }
 }
 
-// Run after server starts so we don't delay readiness
-void prewarmPublishedFragments()
+// Run after server starts with a short delay so it doesn't race healthchecks
+setTimeout(() => {
+  void prewarmPublishedFragments()
+}, 5000)
 
 closeWithGrace(async ({ err }) => {
 	await new Promise((resolve, reject) => {
