@@ -26,8 +26,11 @@ export async function loader({ request }: { request: Request }) {
     let index = 0
 
     const worker = async () => {
-      while (index < posts.length) {
-        const current = posts[index++]
+      // Use an index snapshot per iteration to keep types happy
+      while (true) {
+        const i = index++
+        if (i >= posts.length) break
+        const current = posts[i]!
         try {
           await compileMDX(current.content)
           compiled++
@@ -45,4 +48,3 @@ export async function loader({ request }: { request: Request }) {
   const ms = Date.now() - start
   return data({ target, compiled, total, ms })
 }
-
