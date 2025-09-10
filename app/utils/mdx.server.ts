@@ -1,10 +1,12 @@
 import { type MdxJsxFlowElement } from 'mdast-util-mdx'
+import crypto from 'node:crypto'
 import { bundleMDX } from 'mdx-bundler'
 import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
 import { type Plugin, type Data } from 'unified'
 import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
+import { cachified, cache } from './cache.server.ts'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -20,25 +22,35 @@ interface ImageNode extends Node {
 }
 
 export async function compileMDX(source: string) {
-	if (!source) throw new Error('Source is required')
+    if (!source) throw new Error('Source is required')
 
-	const result = await bundleMDX({
-		source,
-		mdxOptions(options) {
-			options.rehypePlugins = [...(options.rehypePlugins ?? [])]
-			options.remarkPlugins = [
-				...(options.remarkPlugins ?? []),
-				remarkGfm,
-				remarkDirective,
-				remarkYoutube,
-				remarkPreview,
-				remarkClientOnlyImages,
-			]
-			return options
-		},
-	})
+    const hash = crypto.createHash('sha1').update(source).digest('hex')
+    const key = `mdx:bundle:v1:${hash}`
 
-	return result
+    return cachified({
+        key,
+        cache,
+        ttl: 1000 * 60 * 60 * 24 * 365, // 1 year
+        swr: 1000 * 60 * 60 * 24 * 30, // 30 days
+        async getFreshValue() {
+            const result = await bundleMDX({
+                source,
+                mdxOptions(options) {
+                    options.rehypePlugins = [...(options.rehypePlugins ?? [])]
+                    options.remarkPlugins = [
+                        ...(options.remarkPlugins ?? []),
+                        remarkGfm,
+                        remarkDirective,
+                        remarkYoutube,
+                        remarkPreview,
+                        remarkClientOnlyImages,
+                    ]
+                    return options
+                },
+            })
+            return result
+        },
+    })
 }
 
 const remarkYoutube: Plugin = () => {

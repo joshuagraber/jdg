@@ -12,8 +12,11 @@ export function init() {
 		dsn: ENV.SENTRY_DSN,
 		environment: ENV.MODE,
 		beforeSend(event) {
-			if (event.request?.url) {
-				const url = new URL(event.request.url)
+			try {
+				const maybeUrl = event.request?.url
+				if (!maybeUrl) return event
+				// Guard against invalid/relative URLs coming from extensions or SDK internals
+				const url = new URL(maybeUrl)
 				if (
 					url.protocol === 'chrome-extension:' ||
 					url.protocol === 'moz-extension:'
@@ -21,8 +24,11 @@ export function init() {
 					// This error is from a browser extension, ignore it
 					return null
 				}
+				return event
+			} catch {
+				// If URL construction fails, keep the event but don't parse the URL
+				return event
 			}
-			return event
 		},
 		integrations: [
 			browserTracingIntegration({

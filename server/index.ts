@@ -285,6 +285,33 @@ ${chalk.bold('Press Ctrl+C to stop')}
 	)
 })
 
+// --- Boot-time MDX prewarm (runs in background, non-blocking) ---
+async function prewarmPublishedFragments() {
+  try {
+    const token = process.env.INTERNAL_COMMAND_TOKEN
+    if (!token) {
+      console.info('🧯 Prewarm: skipping (no INTERNAL_COMMAND_TOKEN)')
+      return
+    }
+    const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments`
+    console.info('🧯 Prewarm: calling', url)
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) {
+      console.warn('🧯 Prewarm: request failed', res.status, res.statusText)
+      return
+    }
+    const body = await res.json().catch(() => ({}))
+    console.info('🧯 Prewarm: done', body)
+  } catch (e) {
+    console.warn('🧯 Prewarm: unexpected error', e)
+  }
+}
+
+// Run after server starts so we don't delay readiness
+void prewarmPublishedFragments()
+
 closeWithGrace(async ({ err }) => {
 	await new Promise((resolve, reject) => {
 		server.close((e) => (e ? reject(e) : resolve('ok')))

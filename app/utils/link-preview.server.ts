@@ -48,13 +48,18 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
         } else {
             try {
                 const response = await fetchWithTimeout(url);
-                
+
                 if (!response.ok) {
                     console.error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
                     return {};
                 }
-            
-                html = await response.text();
+
+                // Enforce a read timeout for slow bodies to avoid upstream 503s
+                const READ_TIMEOUT_MS = 4000;
+                const readTimeout = new Promise<string>((_, reject) =>
+                    setTimeout(() => reject(new Error('Response body read timeout')), READ_TIMEOUT_MS),
+                );
+                html = await Promise.race([response.text(), readTimeout]) as string;
             } catch (error) {
                 console.error(`Error fetching ${url}:`, error);
                 return {};

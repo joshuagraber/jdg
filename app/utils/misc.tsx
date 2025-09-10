@@ -5,16 +5,24 @@ import { useSpinDelay } from 'spin-delay'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
 
+function withAssetBase(path: string) {
+    if (typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL) {
+        const base = window.ENV.ASSET_BASE_URL.replace(/\/$/, '')
+        return `${base}${path.startsWith('/') ? '' : '/'}${path}`
+    }
+    return path
+}
+
 export function getUserImgSrc(imageId?: string | null) {
-	return imageId ? `/resources/user-images/${imageId}` : '/img/user.png'
+    return imageId ? withAssetBase(`/resources/user-images/${imageId}`) : '/img/user.png'
 }
 
 export function getPostImageSource(imageId: string) {
-	return `/resources/post-images/${imageId}`
+    return withAssetBase(`/resources/post-images/${imageId}`)
 }
 
 export function getPostVideoSource(videoId: string) {
-	return `/resources/post-videos/${videoId}`
+    return withAssetBase(`/resources/post-videos/${videoId}`)
 }
 
 export function getErrorMessage(error: unknown) {
