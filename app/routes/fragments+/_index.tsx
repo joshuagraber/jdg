@@ -38,15 +38,23 @@ export async function loader({ request }: Route.LoaderArgs) {
 		}),
 	])
 
-	// Bundle MDX for each post (cached by content hash)
+	// Bundle MDX for each post
 	const postsWithMDX = await Promise.all(
 		posts.map(async (post) => {
 			const { code, frontmatter } = await compileMDX(post.content)
-			return { ...post, code, frontmatter }
+			return {
+				...post,
+				code,
+				frontmatter,
+			}
 		}),
 	)
 
-	return { posts: postsWithMDX, total: totalPosts, ogURL: url }
+	return {
+		posts: postsWithMDX,
+		total: totalPosts,
+		ogURL: url,
+	}
 }
 
 export const meta: Route.MetaFunction = ({ data, matches }) => {
@@ -74,6 +82,7 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 }
 
 function PostContent({ code }: { code: string }) {
+	// Move this to useMemo to prevent recreating the component on every render
 	const Component = useMemo(() => getMDXComponent(code), [code])
 	return <Component components={mdxComponents} />
 }
@@ -96,7 +105,7 @@ export default function Fragments() {
 							<Time time={post.publishAt!.toDateString()} />
 						</p>
 						<div className="mb-4">
-							<PostContent code={(post as any).code} />
+							<PostContent code={post.code} />
 						</div>
 					</article>
 				))}
