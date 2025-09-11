@@ -1,55 +1,5 @@
 import { parse } from 'node-html-parser'
 import { z } from 'zod'
-import { remember } from '@epic-web/remember'
-
-class Semaphore {
-	private max: number
-	private count = 0
-	private queue: Array<() => void> = []
-	constructor(max: number) {
-		this.max = Math.max(1, max)
-	}
-	async acquire(timeoutMs = 3000): Promise<() => void> {
-		if (this.count < this.max) {
-			this.count++
-			let released = false
-			return () => {
-				if (!released) {
-					released = true
-					this.count--
-					this.queue.shift()?.()
-				}
-			}
-		}
-		return new Promise<() => void>((resolve, reject) => {
-			const start = Date.now()
-			const tryAcquire = () => {
-				if (this.count < this.max) {
-					this.count++
-					let released = false
-					resolve(() => {
-						if (!released) {
-							released = true
-							this.count--
-							this.queue.shift()?.()
-						}
-					})
-				} else if (Date.now() - start >= timeoutMs) {
-					reject(new Error('semaphore-timeout'))
-				} else {
-					this.queue.push(tryAcquire)
-				}
-			}
-			this.queue.push(tryAcquire)
-			this.queue.shift()?.()
-		})
-	}
-}
-
-const previewSemaphore = remember(
-	'link-preview-semaphore',
-	() => new Semaphore(2),
-)
 
 const ogSchema = z.object({
 	title: z.string().optional(),
@@ -63,7 +13,7 @@ const ogSchema = z.object({
 
 export type OpenGraphData = z.infer<typeof ogSchema>
 
-const fetchWithTimeout = async (url: string, timeout = 2500) => {
+const fetchWithTimeout = async (url: string, timeout = 5000) => {
 	const controller = new AbortController()
 	const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -86,9 +36,6 @@ const fetchWithTimeout = async (url: string, timeout = 2500) => {
 
 export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 	try {
-		const release = await previewSemaphore.acquire(2000).catch(() => null)
-		// If we couldn't acquire quickly, skip heavy work
-		if (!release) return {}
 		let html: string
 
 		if (url.startsWith('data:')) {
@@ -110,7 +57,7 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 				}
 
 				// Enforce a read timeout for slow bodies to avoid upstream 503s
-				const READ_TIMEOUT_MS = 2500
+				const READ_TIMEOUT_MS = 4000
 				const readTimeout = new Promise<string>((_, reject) =>
 					setTimeout(
 						() => reject(new Error('Response body read timeout')),
@@ -195,9 +142,5 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 	} catch (e) {
 		console.error('Error in getOpenGraphData:', e)
 		return {}
-	} finally {
-		// release semaphore if acquired
-		// @ts-expect-error release may not exist if acquire failed
-		if (typeof release === 'function') release()
 	}
 }

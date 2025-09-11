@@ -20,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 			key: `link-preview:${url}`,
 			cache,
 			ttl: 1000 * 60 * 10, // 10 minutes
-			swr: 1000 * 60 * 60 * 24, // 24 hours background refresh
+			swr: 1000 * 60 * 60 * 24, // 24 hours
 			async getFreshValue(context) {
 				const result = await getOpenGraphData(url)
 				// If we failed to fetch useful data, expire immediately to retry soon
