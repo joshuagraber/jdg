@@ -28,6 +28,11 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 	)
 
 	useEffect(() => {
+		if (data) {
+			abortRef.current?.abort()
+			return;
+		}
+		
 		// Abort any in-flight request
 		abortRef.current?.abort()
 		abortRef.current = new AbortController()
@@ -62,7 +67,7 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 			controller?.abort()
 			controller?.signal.removeEventListener('abort', setImageLoaded)
 		}
-	}, [requestUrl, url])
+	}, [requestUrl, url, data])
 
 	// set image loading state on timeout if image doesn't load
 	// useEffect(() => {
