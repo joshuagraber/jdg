@@ -292,7 +292,7 @@ async function prewarmPublishedFragments() {
 			console.info('🧯 Prewarm: skipping (no INTERNAL_COMMAND_TOKEN)')
 			return
 		}
-		const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments`
+		const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments,link-previews`
 		console.info('🧯 Prewarm: calling', url)
 		const res = await fetch(url, {
 			headers: { Authorization: `Bearer ${token}` },
