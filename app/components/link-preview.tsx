@@ -32,13 +32,13 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 		abortRef.current?.abort()
 		abortRef.current = new AbortController()
 
-		const setImageLoading = () => {
+		const setImageLoaded = () => {
 			setIsImageLoaded(true)
 		}
 
 		// Fetch via window.fetch to bypass Single Fetch .data
 		const controller = abortRef.current
-		controller?.signal.addEventListener('abort', setImageLoading)
+		controller?.signal.addEventListener('abort', setImageLoaded)
 		const timeout = setTimeout(() => controller?.abort(), 6000)
 		void (async () => {
 			try {
@@ -60,7 +60,7 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 		return () => {
 			clearTimeout(timeout)
 			controller?.abort()
-			controller?.signal.removeEventListener('abort', setImageLoading)
+			controller?.signal.removeEventListener('abort', setImageLoaded)
 		}
 	}, [requestUrl, url])
 
