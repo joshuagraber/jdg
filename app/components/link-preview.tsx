@@ -30,9 +30,9 @@ export function LinkPreview({ url, className }: LinkPreviewProps) {
 	useEffect(() => {
 		if (data) {
 			abortRef.current?.abort()
-			return;
+			return
 		}
-		
+
 		// Abort any in-flight request
 		abortRef.current?.abort()
 		abortRef.current = new AbortController()
