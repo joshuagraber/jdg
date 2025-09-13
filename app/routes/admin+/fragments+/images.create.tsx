@@ -3,7 +3,7 @@ import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { data } from 'react-router'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
-import { resizeImage } from '#app/utils/image-processing.server.ts'
+import { getImageDimensions, resizeImage } from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
@@ -23,16 +23,17 @@ export async function action({ request }: Route.ActionArgs) {
 			return fileStorage.get(storageKey)
 		}
 
-		if (fileUpload.fieldName === 'file') {
-			// Convert upload to buffer for processing
-			const buffer = await fileUpload.arrayBuffer()
-			// Resize to max 800px (post container max width)
-			const resizedImageBuffer = await resizeImage(Buffer.from(buffer))
+        if (fileUpload.fieldName === 'file') {
+            // Convert upload to buffer for processing
+            const buffer = await fileUpload.arrayBuffer()
+            // Resize to max 800px (post container max width)
+            const inputBuffer = Buffer.from(buffer)
+            const resizedImageBuffer = await resizeImage(inputBuffer)
 
-			// Create a new File object with the resized image
-			const resizedFile = new File([resizedImageBuffer], fileUpload.name, {
-				type: fileUpload.type,
-			})
+            // Create a new File object with the resized image
+            const resizedFile = new File([resizedImageBuffer], fileUpload.name, {
+                type: fileUpload.type,
+            })
 
 			await fileStorage.set(storageKey, resizedFile)
 			return fileStorage.get(storageKey)
@@ -58,18 +59,24 @@ export async function action({ request }: Route.ActionArgs) {
 		return data({ error: 'Alt text is required' }, { status: 400 })
 	}
 
-	try {
-		const key = `images/${Date.now()}-${file.name}`
-		const uploadUrl = await getSignedUploadUrl(key, file.type)
+    try {
+        const key = `images/${Date.now()}-${file.name}`
+        const uploadUrl = await getSignedUploadUrl(key, file.type)
 
-		const image = await prisma.postImage.create({
-			data: {
-				s3Key: key,
-				contentType: file.type,
-				altText: formData.get('altText') as string,
-				title: formData.get('title') as string,
-			},
-		})
+        // Determine dimensions of the file we will upload (resized or original if gif)
+        const arrayBuf = await file.arrayBuffer()
+        const { width, height } = await getImageDimensions(Buffer.from(arrayBuf))
+
+        const image = await prisma.postImage.create({
+            data: {
+                s3Key: key,
+                contentType: file.type,
+                altText: formData.get('altText') as string,
+                title: formData.get('title') as string,
+                width: width ?? null,
+                height: height ?? null,
+            },
+        })
 
 		if (image) {
 			await fetch(uploadUrl, {

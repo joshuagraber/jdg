@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { cache } from '#app/utils/cache.server.ts'
 
-const MDX_CACHE_PREFIX_V2 = 'mdx:bundle:v2:'
+const MDX_CACHE_PREFIX_V2 = 'mdx:bundle:'
 
 export function mdxCacheKeyFor(source: string, title?: string) {
   const hash = crypto.createHash('sha1').update(source).digest('hex')
