@@ -7,6 +7,7 @@ import { type Plugin, type Data } from 'unified'
 import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
+import { getOpenGraphData } from './link-preview.server.ts'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -42,7 +43,7 @@ export async function compileMDX(source: string) {
 						remarkGfm,
 						remarkDirective,
 						remarkYoutube,
-						remarkPreview,
+						remarkInlinePreviewData,
 						remarkClientOnlyImages,
 					]
 					return options
@@ -78,27 +79,63 @@ const remarkYoutube: Plugin = () => {
 	}
 }
 
-const remarkPreview: Plugin = () => {
-	return (tree) => {
-		visit(tree, (node: Node<Data>) => {
-			if (isDirectiveNode(node) && node.name === 'preview') {
-				const url = node.attributes?.url || node.attributes?.['#']
+const remarkInlinePreviewData: Plugin = () => {
+    return async (tree) => {
+        const tasks: Array<Promise<void>> = []
+        visit(tree, (node: Node<Data>) => {
+            if (!(isDirectiveNode(node) && node.name === 'preview')) return
 
-				if (!url) return
+            const url = node.attributes?.url || node.attributes?.['#']
+            if (!url || typeof url !== 'string') return
 
-				const previewNode = node as unknown as MdxJsxFlowElement
-				previewNode.type = 'mdxJsxFlowElement'
-				previewNode.name = 'preview'
-				previewNode.attributes = [
-					{
-						type: 'mdxJsxAttribute',
-						name: 'url',
-						value: url,
-					},
-				]
-			}
-		})
-	}
+            tasks.push(
+                (async () => {
+                    try {
+                        const og = await cachified({
+                            key: `link-preview:${url}`,
+                            cache,
+                            ttl: 1000 * 60 * 60 * 24, // 24h
+                            swr: 1000 * 60 * 60 * 24 * 7, // 7d
+                            async getFreshValue() {
+                                return await getOpenGraphData(url)
+                            },
+                        })
+
+                        const domain = url.startsWith('data:')
+                            ? 'data-url'
+                            : new URL(url).hostname
+
+                        const previewNode = node as unknown as MdxJsxFlowElement
+                        previewNode.type = 'mdxJsxFlowElement'
+                        previewNode.name = 'LinkPreviewStatic'
+                        previewNode.attributes = [
+                            { type: 'mdxJsxAttribute', name: 'url', value: url },
+                            og.title
+                                ? { type: 'mdxJsxAttribute', name: 'title', value: og.title }
+                                : undefined,
+                            og.description
+                                ? { type: 'mdxJsxAttribute', name: 'description', value: og.description }
+                                : undefined,
+                            og.image
+                                ? { type: 'mdxJsxAttribute', name: 'image', value: og.image }
+                                : undefined,
+                            domain
+                                ? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
+                                : undefined,
+                        ].filter(Boolean) as MdxJsxFlowElement['attributes']
+                    } catch {
+                        const previewNode = node as unknown as MdxJsxFlowElement
+                        previewNode.type = 'mdxJsxFlowElement'
+                        previewNode.name = 'LinkPreviewStatic'
+                        previewNode.attributes = [
+                            { type: 'mdxJsxAttribute', name: 'url', value: String(url) },
+                        ]
+                    }
+                })(),
+            )
+        })
+        await Promise.all(tasks)
+    }
 }
 
 const remarkClientOnlyImages: Plugin = () => {
