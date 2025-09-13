@@ -22,11 +22,12 @@ interface ImageNode extends Node {
 	title?: string
 }
 
-export async function compileMDX(source: string) {
+export async function compileMDX(source: string, opts?: { title?: string }) {
 	if (!source) throw new Error('Source is required')
 
 	const hash = crypto.createHash('sha1').update(source).digest('hex')
-	const key = `mdx:bundle:v1:${hash}`
+	const titlePart = opts?.title?.trim() ? opts.title.trim() : 'untitled'
+	const key = `mdx:bundle:v2:${titlePart}:${hash}`
 
 	return cachified({
 		key,

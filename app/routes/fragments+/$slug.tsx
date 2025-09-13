@@ -39,7 +39,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 	invariantResponse(post, 'Not found', { status: 404 })
 
-	const { code } = await compileMDX(post.content)
+	const { code } = await compileMDX(post.content, { title: post.title })
 
 	return { post, code, ogURL: url }
 }

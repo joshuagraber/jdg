@@ -20,7 +20,7 @@ export async function loader({ request }: { request: Request }) {
 	if (targets.has('fragments')) {
 		const posts = await prisma.post.findMany({
 			where: { publishAt: { not: null } },
-			select: { id: true, slug: true, content: true },
+			select: { id: true, slug: true, content: true, title: true },
 			orderBy: { publishAt: 'desc' },
 		})
 		total = posts.length
@@ -34,7 +34,7 @@ export async function loader({ request }: { request: Request }) {
 				if (i >= posts.length) break
 				const current = posts[i]!
 				try {
-					await compileMDX(current.content)
+					await compileMDX(current.content, { title: current.title })
 					compiled++
 				} catch (e) {
 					// swallow; prewarm shouldn't fail the app

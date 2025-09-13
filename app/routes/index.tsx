@@ -1,8 +1,9 @@
 import { useLoaderData, Link } from 'react-router'
-import { ClientOnly } from 'remix-utils/client-only'
-import { LinkPreview } from '#app/components/link-preview'
+import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
+import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
+import { getOpenGraphData } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
 export const RECENT_PUBLICATIONS = [
@@ -15,7 +16,7 @@ export const RECENT_PUBLICATIONS = [
 ]
 
 export async function loader() {
-	const recentFragments = await prisma.post.findMany({
+    const recentFragments = await prisma.post.findMany({
 		where: {
 			publishAt: {
 				not: null,
@@ -28,7 +29,30 @@ export async function loader() {
 		take: 3,
 	})
 
-	return { fragments: recentFragments, recentPubs: RECENT_PUBLICATIONS }
+	// Fetch and cache link previews server-side for homepage
+	const previews = await Promise.all(
+		RECENT_PUBLICATIONS.map(async (url) => {
+			const og = await cachified({
+				key: `link-preview:${url}`,
+				cache,
+				ttl: 1000 * 60 * 10, // 10 minutes
+				swr: 1000 * 60 * 60 * 24, // 24 hours
+				async getFreshValue() {
+					return await getOpenGraphData(url)
+				},
+			})
+			const domain = url.startsWith('data:') ? 'data-url' : new URL(url).hostname
+			return {
+				url,
+				title: og.title,
+				description: og.description,
+				image: og.image,
+				domain,
+			}
+		}),
+	)
+
+	return { fragments: recentFragments, recentPubs: RECENT_PUBLICATIONS, previews }
 }
 
 export default function Index() {
@@ -99,21 +123,13 @@ export default function Index() {
 			</ol>
 			<Spacer size="3xs" />
 			<h3>Some recent publications</h3>
-			<ClientOnly fallback={null}>
-				{() => {
-					return (
-						<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
-							{data.recentPubs.map((url) => {
-								return (
-									<li key={url}>
-										<LinkPreview className="max-w-3xl" url={url} />
-									</li>
-								)
-							})}
-						</ul>
-					)
-				}}
-			</ClientOnly>
+			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
+				{data.previews.map((p) => (
+					<li key={p.url}>
+						<LinkPreviewStatic className="max-w-3xl" {...p} />
+					</li>
+				))}
+			</ul>
 			<Spacer size="2xs" />
 			{/* Software */}
 			<h2 id="software">Software</h2>
