@@ -42,6 +42,7 @@ import { ClientOnly } from 'remix-utils/client-only'
 import { useTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { cn } from '#app/utils/misc.tsx'
 import { LinkPreview } from '#app/components/link-preview.tsx'
+import { LinkPreviewStatic } from '#app/components/link-preview-static.tsx'
 
 type MDXEditorProps = {
 	markdown: string
@@ -194,15 +195,24 @@ const YouTubeButton = () => {
 const PreviewButton = () => {
     const insertDirective = usePublisher(insertDirective$)
 
+    // Load recent URLs from localStorage for autocomplete
+    let recentSuggestions: string[] = []
+    try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('jdg:preview:recent') : null
+        recentSuggestions = raw ? (JSON.parse(raw) as string[]) : []
+    } catch {
+        recentSuggestions = []
+    }
+
     return (
         <DialogButton
             tooltipTitle="Insert Link Preview"
             submitButtonTitle="Insert preview"
             dialogInputPlaceholder="Paste the URL to preview"
             buttonContent="Preview"
+            autocompleteSuggestions={recentSuggestions}
             onSubmit={(url) => {
                 try {
-                    // basic validation
                     const u = new URL(url)
                     if (!/^https?:/.test(u.protocol)) throw new Error('Invalid scheme')
                 } catch {
@@ -210,12 +220,34 @@ const PreviewButton = () => {
                     return
                 }
 
+                // Optional overrides
+                const title = window.prompt('Optional title override (leave blank to auto-fetch):') || ''
+                const description = window.prompt('Optional description override (leave blank to auto-fetch):') || ''
+                const image = window.prompt('Optional image URL override (leave blank to auto-fetch):') || ''
+                const domain = window.prompt('Optional domain override (leave blank to auto-detect):') || ''
+
+                const attributes: Record<string, string> = { url }
+                if (title.trim()) attributes.title = title.trim()
+                if (description.trim()) attributes.description = description.trim()
+                if (image.trim()) attributes.image = image.trim()
+                if (domain.trim()) attributes.domain = domain.trim()
+
                 insertDirective({
                     name: 'preview',
                     type: 'leafDirective',
-                    attributes: { url },
+                    attributes,
                     children: [],
                 } as LeafDirective)
+
+                // Persist recent URL for autocomplete
+                try {
+                    const raw = localStorage.getItem('jdg:preview:recent')
+                    const list: string[] = raw ? (JSON.parse(raw) as string[]) : []
+                    const next = [url, ...list.filter((u) => u !== url)].slice(0, 15)
+                    localStorage.setItem('jdg:preview:recent', JSON.stringify(next))
+                } catch {
+                    // ignore
+                }
             }}
         />
     )
@@ -277,10 +309,14 @@ const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
     testNode(node) {
         return node.name === 'preview'
     },
-    attributes: ['url'],
+    attributes: ['url', 'title', 'description', 'image', 'domain'],
     hasChildren: false,
     Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
         const url = mdastNode.attributes.url
+        const title = (mdastNode as any).attributes?.title as string | undefined
+        const description = (mdastNode as any).attributes?.description as string | undefined
+        const image = (mdastNode as any).attributes?.image as string | undefined
+        const domain = (mdastNode as any).attributes?.domain as string | undefined
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
                 <button
@@ -294,7 +330,11 @@ const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
                     delete
                 </button>
                 <div style={{ maxWidth: 640 }}>
-                    <LinkPreview url={url} />
+                    {title || description || image || domain ? (
+                        <LinkPreviewStatic url={url} title={title} description={description} image={image} domain={domain} />
+                    ) : (
+                        <LinkPreview url={url} />
+                    )}
                 </div>
             </div>
         )

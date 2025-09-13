@@ -101,23 +101,36 @@ const remarkInlinePreviewData: Plugin = () => {
                             },
                         })
 
-                        const domain = url.startsWith('data:')
+                        const domainFromUrl = url.startsWith('data:')
                             ? 'data-url'
                             : new URL(url).hostname
+
+                        const attrTitle = node.attributes?.title
+                        const attrDescription = node.attributes?.description
+                        const attrImage = node.attributes?.image
+                        const attrDomain = node.attributes?.domain
+
+                        const title = typeof attrTitle === 'string' && attrTitle.length ? attrTitle : og.title
+                        const description =
+                            typeof attrDescription === 'string' && attrDescription.length
+                                ? attrDescription
+                                : og.description
+                        const image = typeof attrImage === 'string' && attrImage.length ? attrImage : og.image
+                        const domain = typeof attrDomain === 'string' && attrDomain.length ? attrDomain : domainFromUrl
 
                         const previewNode = node as unknown as MdxJsxFlowElement
                         previewNode.type = 'mdxJsxFlowElement'
                         previewNode.name = 'LinkPreviewStatic'
                         previewNode.attributes = [
                             { type: 'mdxJsxAttribute', name: 'url', value: url },
-                            og.title
-                                ? { type: 'mdxJsxAttribute', name: 'title', value: og.title }
+                            title
+                                ? { type: 'mdxJsxAttribute', name: 'title', value: title }
                                 : undefined,
-                            og.description
-                                ? { type: 'mdxJsxAttribute', name: 'description', value: og.description }
+                            description
+                                ? { type: 'mdxJsxAttribute', name: 'description', value: description }
                                 : undefined,
-                            og.image
-                                ? { type: 'mdxJsxAttribute', name: 'image', value: og.image }
+                            image
+                                ? { type: 'mdxJsxAttribute', name: 'image', value: image }
                                 : undefined,
                             domain
                                 ? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
