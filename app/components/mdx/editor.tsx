@@ -41,6 +41,7 @@ import { useRef } from 'react'
 import { ClientOnly } from 'remix-utils/client-only'
 import { useTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { cn } from '#app/utils/misc.tsx'
+import { LinkPreview } from '#app/components/link-preview.tsx'
 
 type MDXEditorProps = {
 	markdown: string
@@ -75,11 +76,12 @@ const Toolbar = () => (
 							<Separator />
 							<BlockTypeSelect />
 							<Separator />
-							<CreateLink />
-							<InsertImage />
-							<YouTubeButton />
-							<Separator />
-							<InsertTable />
+								<CreateLink />
+								<InsertImage />
+								<PreviewButton />
+								<YouTubeButton />
+								<Separator />
+								<InsertTable />
 							<InsertThematicBreak />
 							<Separator />
 						</>
@@ -141,9 +143,10 @@ export function MDXEditorComponent({
 									'': 'Unspecified',
 								},
 							}),
-							directivesPlugin({
+						directivesPlugin({
 								directiveDescriptors: [
 									YoutubeDirectiveDescriptor,
+									PreviewDirectiveDescriptor,
 									AdmonitionDirectiveDescriptor,
 								],
 							}),
@@ -188,9 +191,39 @@ const YouTubeButton = () => {
 	)
 }
 
+const PreviewButton = () => {
+    const insertDirective = usePublisher(insertDirective$)
+
+    return (
+        <DialogButton
+            tooltipTitle="Insert Link Preview"
+            submitButtonTitle="Insert preview"
+            dialogInputPlaceholder="Paste the URL to preview"
+            buttonContent="Preview"
+            onSubmit={(url) => {
+                try {
+                    // basic validation
+                    const u = new URL(url)
+                    if (!/^https?:/.test(u.protocol)) throw new Error('Invalid scheme')
+                } catch {
+                    alert('Please enter a valid http(s) URL')
+                    return
+                }
+
+                insertDirective({
+                    name: 'preview',
+                    type: 'leafDirective',
+                    attributes: { url },
+                    children: [],
+                } as LeafDirective)
+            }}
+        />
+    )
+}
+
 interface YoutubeDirectiveNode extends LeafDirective {
-	name: 'youtube'
-	attributes: { id: string }
+    name: 'youtube'
+    attributes: { id: string }
 }
 
 const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
@@ -231,4 +264,39 @@ const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
 			</div>
 		)
 	},
+}
+
+interface PreviewDirectiveNode extends LeafDirective {
+    name: 'preview'
+    attributes: { url: string }
+}
+
+const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
+    name: 'preview',
+    type: 'leafDirective',
+    testNode(node) {
+        return node.name === 'preview'
+    },
+    attributes: ['url'],
+    hasChildren: false,
+    Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
+        const url = mdastNode.attributes.url
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                <button
+                    onClick={() => {
+                        parentEditor.update(() => {
+                            lexicalNode.selectNext()
+                            lexicalNode.remove()
+                        })
+                    }}
+                >
+                    delete
+                </button>
+                <div style={{ maxWidth: 640 }}>
+                    <LinkPreview url={url} />
+                </div>
+            </div>
+        )
+    },
 }
