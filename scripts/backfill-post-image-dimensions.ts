@@ -1,5 +1,9 @@
 #!/usr/bin/env -S tsx
-import 'dotenv/config'
+// Load local .env only during development so production
+// environments (like Fly) don't require the dotenv package.
+if (process.env.NODE_ENV !== 'production') {
+  await import('dotenv/config')
+}
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { prisma } from '../app/utils/db.server.ts'
