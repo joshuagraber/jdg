@@ -21,14 +21,15 @@ async function uploadToS3(filepath: string, contentType: string) {
 	const key = `seed/${Date.now()}-${filename}`
 	const fileBuffer = await fs.readFile(filepath)
 
-	await s3.send(
-		new PutObjectCommand({
-			Bucket: process.env.AWS_BUCKET_NAME,
-			Key: key,
-			Body: fileBuffer,
-			ContentType: contentType,
-		}),
-	)
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: contentType,
+      CacheControl: 'public, max-age=31536000, immutable',
+    }),
+  )
 
 	return key
 }

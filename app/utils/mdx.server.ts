@@ -1,5 +1,5 @@
-import { type MdxJsxFlowElement } from 'mdast-util-mdx'
 import crypto from 'node:crypto'
+import { type MdxJsxFlowElement } from 'mdast-util-mdx'
 import { bundleMDX } from 'mdx-bundler'
 import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
@@ -7,6 +7,7 @@ import { type Plugin, type Data } from 'unified'
 import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
+import { prisma } from './db.server.ts'
 import { getOpenGraphData } from './link-preview.server.ts'
 
 interface DirectiveNode extends Node {
@@ -22,11 +23,12 @@ interface ImageNode extends Node {
 	title?: string
 }
 
-export async function compileMDX(source: string) {
+export async function compileMDX(source: string, opts?: { title?: string }) {
 	if (!source) throw new Error('Source is required')
 
 	const hash = crypto.createHash('sha1').update(source).digest('hex')
-	const key = `mdx:bundle:v1:${hash}`
+	const titlePart = opts?.title?.trim() ? opts.title.trim() : 'untitled'
+    const key = `mdx:bundle:${titlePart}:${hash}`
 
 	return cachified({
 		key,
@@ -152,41 +154,62 @@ const remarkInlinePreviewData: Plugin = () => {
 }
 
 const remarkClientOnlyImages: Plugin = () => {
-	return (tree) => {
-		visit(tree, 'image', (node: ImageNode) => {
-			const mdxNode = node as unknown as MdxJsxFlowElement
-			mdxNode.type = 'mdxJsxFlowElement'
-			mdxNode.name = 'ClientOnlyImage'
-			mdxNode.attributes = [
-				{
-					type: 'mdxJsxAttribute',
-					name: 'src',
-					value: node.url,
-				},
-				{
-					type: 'mdxJsxAttribute',
-					name: 'alt',
-					value: node.alt || '',
-				},
-			]
+    return async (tree) => {
+        const tasks: Array<Promise<void>> = []
+        visit(tree, 'image', (node: ImageNode) => {
+            const match = node.url.match(/\/resources\/post-images\/(\w+)/)
+            const id = match?.[1]
+            const mdxNode = node as unknown as MdxJsxFlowElement
+            mdxNode.type = 'mdxJsxFlowElement'
+            mdxNode.name = 'MdxImage'
+            // Base attributes
+            const attrs: MdxJsxFlowElement['attributes'] = [
+                { type: 'mdxJsxAttribute', name: 'src', value: node.url },
+                { type: 'mdxJsxAttribute', name: 'alt', value: node.alt || '' },
+            ]
+            if (node.title) attrs.push({ type: 'mdxJsxAttribute', name: 'title', value: node.title })
 
-			// Add title attribute if it exists
-			if (node.title) {
-				mdxNode.attributes.push({
-					type: 'mdxJsxAttribute',
-					name: 'title',
-					value: node.title,
-				})
-			}
+            // Enrich with dimensions if we can look them up
+            if (id) {
+                tasks.push(
+                    (async () => {
+                        try {
+                            const img = await prisma.postImage.findUnique({
+                                where: { id },
+                                select: { width: true, height: true, s3Key: true },
+                            })
+                            if (img?.width && img?.height) {
+                                attrs.push({ type: 'mdxJsxAttribute', name: 'width', value: String(img.width) })
+                                attrs.push({ type: 'mdxJsxAttribute', name: 'height', value: String(img.height) })
+                            }
 
-			// Add default className for styling
-			mdxNode.attributes.push({
-				type: 'mdxJsxAttribute',
-				name: 'className',
-				value: 'rounded-md max-w-full h-auto',
-			})
-		})
-	}
+                            // If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
+                            const assetBase = process.env.ASSET_BASE_URL?.trim()
+                            if (assetBase && img?.s3Key) {
+                                const base = assetBase.replace(/\/$/, '')
+                                const absolute = `${base}/${img.s3Key}`
+                                const srcAttr = attrs.find(
+                                    (a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
+                                ) as any
+                                if (srcAttr) srcAttr.value = absolute
+                            }
+                        } catch {
+                            // ignore
+                        }
+                    })(),
+                )
+            }
+
+            // Default class
+            attrs.push({
+                type: 'mdxJsxAttribute',
+                name: 'className',
+                value: 'rounded-md max-w-full',
+            })
+            mdxNode.attributes = attrs
+        })
+        await Promise.all(tasks)
+    }
 }
 
 function isDirectiveNode(node: Node<Data>): node is DirectiveNode {

@@ -3,7 +3,7 @@ import { prisma } from '#app/utils/db.server.ts'
 import { getPostVideoSource } from '#app/utils/misc.tsx'
 import { requireUserWithRole } from '#app/utils/permissions.server.ts'
 import { fileToBlob } from '#app/utils/post-images.server'
-import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
+import { getSignedUploadUrl, IMMUTABLE_CACHE_CONTROL } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/videos.create'
 
 export async function action({ request }: Route.ActionArgs) {
@@ -32,13 +32,14 @@ export async function action({ request }: Route.ActionArgs) {
 		})
 
 		if (video) {
-			await fetch(uploadUrl, {
-				method: 'PUT',
-				body: file,
-				headers: {
-					'Content-Type': file.type,
-				},
-			})
+        await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': file.type,
+                'Cache-Control': IMMUTABLE_CACHE_CONTROL,
+            },
+        })
 		}
 
 		return getPostVideoSource(video.id)

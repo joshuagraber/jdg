@@ -53,6 +53,8 @@ model PostImage {
   title       String?
   contentType String
   s3Key       String
+  width       Int?
+  height      Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

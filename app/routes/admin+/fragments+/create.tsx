@@ -22,6 +22,7 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
+import { compileMDX } from '#app/utils/mdx.server.ts'
 import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
@@ -84,17 +85,20 @@ export async function action({ request }: Route.ActionArgs) {
 		? fromZonedTime(publishAt, timeZone)
 		: null
 
-	try {
-		await prisma.post.create({
-			data: {
-				title,
-				content,
-				description,
-				slug: makePostSlug(title, slug),
-				publishAt: publishAtWithTimezone,
-				authorId,
-			},
-		})
+    try {
+        const created = await prisma.post.create({
+            data: {
+                title,
+                content,
+                description,
+                slug: makePostSlug(title, slug),
+                publishAt: publishAtWithTimezone,
+                authorId,
+            },
+        })
+
+        // Warm compiled MDX & inline previews (non-blocking)
+        void compileMDX(content, { title })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post created',

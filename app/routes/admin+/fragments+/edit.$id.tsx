@@ -22,8 +22,10 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints, useHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
+import { compileMDX } from '#app/utils/mdx.server.ts'
 import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
+import { invalidatePostCaches } from '#app/utils/preview-utils.server.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/edit.$id'
 import { PostImageManager } from './__image-manager'
@@ -101,22 +103,32 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 	const published = publishAtWithTimezone ?? existingPost?.publishAt ?? null
 
-	try {
-		await prisma.post.update({
-			where: { id: params.id },
-			data: {
-				title,
-				content,
-				description,
-				slug,
-				publishAt: published,
-			},
-		})
+    try {
+        await prisma.post.update({
+            where: { id: params.id },
+            data: {
+                title,
+                content,
+                description,
+                slug,
+                publishAt: published,
+            },
+        })
 
-		return redirectWithToast('/admin/fragments', {
-			title: 'Post updated',
-			description: `Post "${title}" updated successfully.`,
-		})
+        // Invalidate caches related to this post (old content and new content URLs)
+        await invalidatePostCaches(
+            existingPost?.content ?? undefined,
+            content,
+            existingPost?.title ?? undefined,
+            title,
+        )
+        // Warm new compiled MDX & inline previews (non-blocking)
+        void compileMDX(content, { title })
+
+        return redirectWithToast('/admin/fragments', {
+            title: 'Post updated',
+            description: `Post "${title}" updated successfully.`,
+        })
 	} catch {
 		return data(
 			{ result: submission.reply({ formErrors: ['Failed to update post'] }) },
