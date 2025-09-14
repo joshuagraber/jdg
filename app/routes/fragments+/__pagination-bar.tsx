@@ -54,7 +54,6 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: 0,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
@@ -71,7 +70,6 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: Math.max(skip - top, 0),
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
@@ -106,7 +104,6 @@ export function PaginationBar({ total }: { total: number }) {
 									skip: pageSkip,
 								}),
 							}}
-							preventScrollReset
 							prefetch="intent"
 							className={paginationButtonClasses}
 						>
@@ -121,7 +118,6 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: skip + top,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
@@ -137,7 +133,6 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: (totalPages - 1) * top,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
