@@ -176,11 +176,22 @@ const remarkClientOnlyImages: Plugin = () => {
                         try {
                             const img = await prisma.postImage.findUnique({
                                 where: { id },
-                                select: { width: true, height: true },
+                                select: { width: true, height: true, s3Key: true },
                             })
                             if (img?.width && img?.height) {
                                 attrs.push({ type: 'mdxJsxAttribute', name: 'width', value: String(img.width) })
                                 attrs.push({ type: 'mdxJsxAttribute', name: 'height', value: String(img.height) })
+                            }
+
+                            // If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
+                            const assetBase = process.env.ASSET_BASE_URL?.trim()
+                            if (assetBase && img?.s3Key) {
+                                const base = assetBase.replace(/\/$/, '')
+                                const absolute = `${base}/${img.s3Key}`
+                                const srcAttr = attrs.find(
+                                    (a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
+                                ) as any
+                                if (srcAttr) srcAttr.value = absolute
                             }
                         } catch {
                             // ignore

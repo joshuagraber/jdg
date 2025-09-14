@@ -5,7 +5,7 @@ import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
 import { getImageDimensions, resizeImage } from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
-import { getSignedUploadUrl } from '#app/utils/s3.server.ts'
+import { getSignedUploadUrl, IMMUTABLE_CACHE_CONTROL } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 10 // 10MB
@@ -79,13 +79,14 @@ export async function action({ request }: Route.ActionArgs) {
         })
 
 		if (image) {
-			await fetch(uploadUrl, {
-				method: 'PUT',
-				body: file,
-				headers: {
-					'Content-Type': file.type,
-				},
-			})
+            await fetch(uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                    'Cache-Control': IMMUTABLE_CACHE_CONTROL,
+                },
+            })
 		}
 
 		return getPostImageSource(image.id)

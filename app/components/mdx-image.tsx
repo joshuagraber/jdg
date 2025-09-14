@@ -21,10 +21,7 @@ export function MdxImage({ src, alt = '', title, className, width, height }: Mdx
   const [loaded, setLoaded] = useState(false)
 
   // Optionally prefix with ASSET_BASE_URL on the client; on the server, keep relative
-  const resolvedSrc =
-    typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL
-      ? `${window.ENV.ASSET_BASE_URL.replace(/\/$/, '')}${src.startsWith('/') ? '' : '/'}${src}`
-      : src
+  const resolvedSrc = src
 
   return (
     <div
