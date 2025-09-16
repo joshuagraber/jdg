@@ -17,13 +17,13 @@ export const s3 = new S3Client({
 })
 
 export async function getSignedUploadUrl(key: string, contentType: string) {
-    const command = new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: key,
-        ContentType: contentType,
-        CacheControl: IMMUTABLE_CACHE_CONTROL,
-    })
-    return getSignedUrl(s3, command, { expiresIn: 3600 })
+	const command = new PutObjectCommand({
+		Bucket: process.env.AWS_BUCKET_NAME,
+		Key: key,
+		ContentType: contentType,
+		CacheControl: IMMUTABLE_CACHE_CONTROL,
+	})
+	return getSignedUrl(s3, command, { expiresIn: 3600 })
 }
 
 export async function getSignedGetUrl(key: string) {

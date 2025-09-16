@@ -1,6 +1,6 @@
 import { getMDXComponent } from 'mdx-bundler/client'
-import { useMemo } from 'react'
-import { Link, useLoaderData } from 'react-router'
+import { useEffect, useMemo, useRef } from 'react'
+import { Link, useLoaderData, useLocation } from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { prisma } from '#app/utils/db.server'
@@ -41,7 +41,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 	// Bundle MDX for each post
 	const postsWithMDX = await Promise.all(
 		posts.map(async (post) => {
-			const { code, frontmatter } = await compileMDX(post.content, { title: post.title })
+			const { code, frontmatter } = await compileMDX(post.content, {
+				title: post.title,
+			})
 			return {
 				...post,
 				code,
@@ -89,6 +91,17 @@ function PostContent({ code }: { code: string }) {
 
 export default function Fragments() {
 	const { posts, total } = useLoaderData<typeof loader>()
+	const location = useLocation()
+	const isFirstRender = useRef(true)
+
+	// Ensure we scroll to the top whenever pagination (query) changes
+	useEffect(() => {
+		if (isFirstRender.current) {
+			isFirstRender.current = false
+			return
+		}
+		window.scrollTo({ top: 0, behavior: 'auto' })
+	}, [location.search])
 
 	return (
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">

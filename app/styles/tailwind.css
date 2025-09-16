@@ -299,6 +299,160 @@
 	--baseTextContrast: var(var(--neutral-4));
 }
 
+/* MDX Editor Toolbar Styling */
+.mdx-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem;
+	background: hsl(var(--muted) / 0.5);
+	border-bottom: 1px solid hsl(var(--border));
+	border-radius: 0.5rem 0.5rem 0 0;
+	backdrop-filter: blur(8px);
+}
+
+.mdx-toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.25rem;
+	background: hsl(var(--background) / 0.8);
+	border-radius: 0.375rem;
+	border: 1px solid hsl(var(--border) / 0.5);
+	transition: all 0.2s ease-in-out;
+}
+
+.mdx-toolbar-group:hover {
+	background: hsl(var(--background));
+	border-color: hsl(var(--border));
+	box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+}
+
+/* Improve button spacing within groups */
+.mdx-toolbar-group button {
+	margin: 0 0.125rem;
+}
+
+/* Better separator styling */
+.mdx-toolbar .mdxeditor-toolbar-separator {
+	width: 1px;
+	height: 1.5rem;
+	background: hsl(var(--border));
+	margin: 0 0.25rem;
+}
+
+/* Force MDX Editor toggle groups to be horizontal - target by data attributes */
+.mdx-toolbar-group > div[data-toolbar-item] {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+/* Alternative approach - target any div that contains multiple toolbar items */
+.mdx-toolbar-group > div:has([data-toolbar-item]) {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+/* MDX Directive Container Styling */
+.mdx-directive-container {
+	position: relative;
+	margin: 1rem 0;
+	background: hsl(var(--card));
+	overflow: hidden;
+}
+
+.mdx-directive-controls {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	z-index: 10;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+}
+
+.mdx-directive-container:hover .mdx-directive-controls {
+	opacity: 1;
+}
+
+.mdx-delete-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	background: hsl(var(--destructive));
+	color: hsl(var(--destructive-foreground));
+	border: none;
+	border-radius: 0.375rem;
+	cursor: pointer;
+	font-size: 0.875rem;
+	transition: all 0.2s ease-in-out;
+}
+
+.mdx-delete-button:hover {
+	background: hsl(var(--destructive) / 0.9);
+	transform: scale(1.05);
+}
+
+.mdx-delete-button:active {
+	transform: scale(0.95);
+}
+
+/* .mdx-directive-content {
+	padding: 1rem;
+} */
+
+.mdx-link-preview-container {
+	width: auto;
+	max-width: 100%;
+	margin: 0 auto;
+}
+
+/* Ensure proper spacing for directives in content */
+/* .jdg_typography .mdx-directive-container {
+	@apply my-6;
+} */
+
+/* Additional toolbar button styling */
+.mdx-toolbar button {
+	position: relative;
+	transition: all 0.2s ease-in-out;
+	border-radius: 0.25rem;
+}
+
+.mdx-toolbar button:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+}
+
+.mdx-toolbar button:active {
+	transform: translateY(0);
+}
+
+/* Style the toolbar buttons more consistently */
+.mdx-toolbar [data-orientation='vertical'] {
+	display: none; /* Hide vertical separators in our custom layout */
+}
+
+/* Improve dropdown styling */
+.mdx-toolbar select {
+	background: hsl(var(--background));
+	border: 1px solid hsl(var(--border));
+	border-radius: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.875rem;
+}
+
+.mdxeditor-diff-source-wrapper {
+	padding: 24px;
+}
+
 /* MDX editor vars https://github.com/mdx-editor/editor/blob/main/src/examples/dark-editor.css */
 /* .dark {
   --accentBase: var(--tomato-1);

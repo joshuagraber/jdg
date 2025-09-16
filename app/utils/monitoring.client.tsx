@@ -11,6 +11,7 @@ export function init() {
 	sentryInit({
 		dsn: ENV.SENTRY_DSN,
 		environment: ENV.MODE,
+		release: ENV.COMMIT_SHA,
 		beforeSend(event) {
 			try {
 				const maybeUrl = event.request?.url
@@ -43,7 +44,10 @@ export function init() {
 		// Set tracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production
-		tracesSampleRate: 1.0,
+		tracesSampleRate: 0.1,
+
+		// Enable browser profiling (percentage of sampled traces)
+		profilesSampleRate: 0.1,
 
 		// Capture Replay for 10% of all sessions,
 		// plus for 100% of sessions with an error

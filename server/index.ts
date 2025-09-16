@@ -18,14 +18,14 @@ const IS_DEV = MODE === 'development'
 const ALLOW_INDEXING = process.env.ALLOW_INDEXING !== 'false'
 const SENTRY_ENABLED = IS_PROD && process.env.SENTRY_DSN
 const ASSET_ORIGIN = (() => {
-  const raw = process.env.ASSET_BASE_URL?.trim()
-  if (!raw) return null
-  try {
-    const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
-    return `${url.protocol}//${url.host}`
-  } catch {
-    return null
-  }
+	const raw = process.env.ASSET_BASE_URL?.trim()
+	if (!raw) return null
+	try {
+		const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+		return `${url.protocol}//${url.host}`
+	} catch {
+		return null
+	}
 })()
 
 if (SENTRY_ENABLED) {
@@ -119,7 +119,7 @@ app.use(
 		xPoweredBy: false,
 		referrerPolicy: { policy: 'same-origin' },
 		crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
+		contentSecurityPolicy: {
 			// NOTE: Remove reportOnly when you're ready to enforce this CSP
 			reportOnly: true,
 			directives: {
@@ -130,12 +130,14 @@ app.use(
 				].filter(Boolean),
 				'font-src': ["'self'"],
 				'frame-src': ["'self'", 'https://www.youtube.com/'],
-        'img-src': ["'self'", 'data:', ASSET_ORIGIN].filter(Boolean) as string[],
-        'media-src': [
-          "'self'",
-          'https://jdg-media.s3.us-east-2.amazonaws.com',
-          ASSET_ORIGIN,
-        ].filter(Boolean) as string[],
+				'img-src': ["'self'", 'data:', ASSET_ORIGIN].filter(
+					Boolean,
+				) as string[],
+				'media-src': [
+					"'self'",
+					'https://jdg-media.s3.us-east-2.amazonaws.com',
+					ASSET_ORIGIN,
+				].filter(Boolean) as string[],
 				'script-src': [
 					"'strict-dynamic'",
 					"'self'",
@@ -324,29 +326,31 @@ async function prewarmPublishedFragments() {
 
 // Wait for readiness, then kick off prewarm in background
 async function waitForReadiness(origin: string, timeoutMs = 60000) {
-    const start = Date.now()
-    const url = `${origin}/resources/readiness`
-    let attempt = 0
-    while (Date.now() - start < timeoutMs) {
-        attempt++
-        try {
-            const res = await fetch(url, { headers: { 'X-Healthcheck': 'true' } })
-            if (res.ok) return true
-        } catch {
-            // ignore
-        }
-        await new Promise((r) => setTimeout(r, Math.min(500 + attempt * 250, 3000)))
-    }
-    return false
+	const start = Date.now()
+	const url = `${origin}/resources/readiness`
+	let attempt = 0
+	while (Date.now() - start < timeoutMs) {
+		attempt++
+		try {
+			const res = await fetch(url, { headers: { 'X-Healthcheck': 'true' } })
+			if (res.ok) return true
+		} catch {
+			// ignore
+		}
+		await new Promise((r) => setTimeout(r, Math.min(500 + attempt * 250, 3000)))
+	}
+	return false
 }
 
 void (async () => {
-    const origin = `http://127.0.0.1:${portToUse}`
-    const ready = await waitForReadiness(origin)
-    if (!ready) {
-        console.info('🧯 Prewarm: readiness not confirmed after timeout; proceeding anyway')
-    }
-    void prewarmPublishedFragments()
+	const origin = `http://127.0.0.1:${portToUse}`
+	const ready = await waitForReadiness(origin)
+	if (!ready) {
+		console.info(
+			'🧯 Prewarm: readiness not confirmed after timeout; proceeding anyway',
+		)
+	}
+	void prewarmPublishedFragments()
 })()
 
 closeWithGrace(async ({ err }) => {

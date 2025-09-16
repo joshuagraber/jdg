@@ -85,20 +85,20 @@ export async function action({ request }: Route.ActionArgs) {
 		? fromZonedTime(publishAt, timeZone)
 		: null
 
-    try {
-        const created = await prisma.post.create({
-            data: {
-                title,
-                content,
-                description,
-                slug: makePostSlug(title, slug),
-                publishAt: publishAtWithTimezone,
-                authorId,
-            },
-        })
+	try {
+		const created = await prisma.post.create({
+			data: {
+				title,
+				content,
+				description,
+				slug: makePostSlug(title, slug),
+				publishAt: publishAtWithTimezone,
+				authorId,
+			},
+		})
 
-        // Warm compiled MDX & inline previews (non-blocking)
-        void compileMDX(content, { title })
+		// Warm compiled MDX & inline previews (non-blocking)
+		void compileMDX(content, { title })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post created',
@@ -143,92 +143,105 @@ export default function NewPost() {
 	}, [content])
 
 	return (
-		<div className="p-8">
-			<h1 className="mb-6 text-2xl font-bold">New Post</h1>
-
-			<Form method="post" {...getFormProps(form)} className="mb-12 space-y-6">
-				<Field
-					labelProps={{
-						htmlFor: fields.title.id,
-						children: 'Title',
-					}}
-					inputProps={{
-						...getInputProps(fields.title, { type: 'text' }),
-					}}
-					errors={fields.title.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.description.id,
-						children: 'Description',
-					}}
-					inputProps={{
-						...getInputProps(fields.description, { type: 'text' }),
-					}}
-					errors={fields.description.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.slug.id,
-						children: 'Slug (optional - defaults to kebab-cased title)',
-					}}
-					inputProps={{
-						...getInputProps(fields.slug, { type: 'text' }),
-					}}
-					errors={fields.slug.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.publishAt.id,
-						children:
-							'When should this post be published? (optional - defaults to now)',
-					}}
-					inputProps={{
-						...getInputProps(fields.publishAt, { type: 'datetime-local' }),
-					}}
-					errors={fields.publishAt.errors}
-				/>
-
-				<div>
-					<label className="mb-1 block text-sm font-medium">Content</label>
-					<div className="rounded-md border">
-						<MDXEditorComponent
-							images={images.map((image) => getPostImageSource(image.id))}
-							imageUploadHandler={handleImageUpload}
-							markdown={content}
-							onChange={setContent}
-							className="min-h-[400px]"
-						/>
-					</div>
-					<textarea
-						ref={contentRef}
-						{...getTextareaProps(fields.content)}
-						className="hidden"
-					/>
-					{fields.content.errors ? (
-						<div className="text-sm text-destructive">
-							{fields.content.errors}
-						</div>
-					) : null}
+		<div className="min-h-screen bg-background">
+			<div className="container mx-auto max-w-4xl space-y-8 p-6">
+				<div className="space-y-2">
+					<h1 className="text-3xl font-bold">New Post</h1>
+					<p className="text-muted-foreground">
+						Create a new blog post or fragment
+					</p>
 				</div>
 
-				<ErrorList errors={form.errors} id={form.errorId} />
+				<Form method="post" {...getFormProps(form)} className="space-y-8">
+					<Field
+						labelProps={{
+							htmlFor: fields.title.id,
+							children: 'Title',
+						}}
+						inputProps={{
+							...getInputProps(fields.title, { type: 'text' }),
+						}}
+						errors={fields.title.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.description.id,
+							children: 'Description',
+						}}
+						inputProps={{
+							...getInputProps(fields.description, { type: 'text' }),
+						}}
+						errors={fields.description.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.slug.id,
+							children: 'Slug (optional - defaults to kebab-cased title)',
+						}}
+						inputProps={{
+							...getInputProps(fields.slug, { type: 'text' }),
+						}}
+						errors={fields.slug.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.publishAt.id,
+							children:
+								'When should this post be published? (optional - defaults to now)',
+						}}
+						inputProps={{
+							...getInputProps(fields.publishAt, { type: 'datetime-local' }),
+						}}
+						errors={fields.publishAt.errors}
+					/>
 
-				<StatusButton
-					type="submit"
-					status={isPending ? 'pending' : (form.status ?? 'idle')}
-					disabled={isPending}
-					className="w-full"
-				>
-					Create Post
-				</StatusButton>
-			</Form>
+					<div className="space-y-3">
+						<label className="block text-sm font-medium">Content</label>
+						<div className="rounded-lg border border-input bg-background shadow-sm">
+							<MDXEditorComponent
+								images={images.map((image) => getPostImageSource(image.id))}
+								imageUploadHandler={handleImageUpload}
+								markdown={content}
+								onChange={setContent}
+								className="min-h-[500px]"
+							/>
+						</div>
+						<textarea
+							ref={contentRef}
+							{...getTextareaProps(fields.content)}
+							className="hidden"
+						/>
+						{fields.content.errors ? (
+							<div className="text-sm text-destructive">
+								{fields.content.errors}
+							</div>
+						) : null}
+					</div>
 
-			<h2>Manage post images</h2>
-			<PostImageManager images={images} />
+					<ErrorList errors={form.errors} id={form.errorId} />
 
-			<h2>Manage post videos</h2>
-			<PostVideoManager videos={videos} />
+					<StatusButton
+						type="submit"
+						status={isPending ? 'pending' : (form.status ?? 'idle')}
+						disabled={isPending}
+						className="w-full"
+					>
+						Create Post
+					</StatusButton>
+				</Form>
+
+				<div className="space-y-6">
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Manage Images</h2>
+						<PostImageManager images={images} />
+					</div>
+
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Manage Videos</h2>
+						<PostVideoManager videos={videos} />
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }

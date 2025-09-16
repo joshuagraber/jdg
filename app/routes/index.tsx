@@ -16,7 +16,7 @@ export const RECENT_PUBLICATIONS = [
 ]
 
 export async function loader() {
-    const recentFragments = await prisma.post.findMany({
+	const recentFragments = await prisma.post.findMany({
 		where: {
 			publishAt: {
 				not: null,
@@ -41,7 +41,9 @@ export async function loader() {
 					return await getOpenGraphData(url)
 				},
 			})
-			const domain = url.startsWith('data:') ? 'data-url' : new URL(url).hostname
+			const domain = url.startsWith('data:')
+				? 'data-url'
+				: new URL(url).hostname
 			return {
 				url,
 				title: og.title,
@@ -52,7 +54,11 @@ export async function loader() {
 		}),
 	)
 
-	return { fragments: recentFragments, recentPubs: RECENT_PUBLICATIONS, previews }
+	return {
+		fragments: recentFragments,
+		recentPubs: RECENT_PUBLICATIONS,
+		previews,
+	}
 }
 
 export default function Index() {

@@ -28,7 +28,7 @@ export async function compileMDX(source: string, opts?: { title?: string }) {
 
 	const hash = crypto.createHash('sha1').update(source).digest('hex')
 	const titlePart = opts?.title?.trim() ? opts.title.trim() : 'untitled'
-    const key = `mdx:bundle:${titlePart}:${hash}`
+	const key = `mdx:bundle:${titlePart}:${hash}`
 
 	return cachified({
 		key,
@@ -82,134 +82,160 @@ const remarkYoutube: Plugin = () => {
 }
 
 const remarkInlinePreviewData: Plugin = () => {
-    return async (tree) => {
-        const tasks: Array<Promise<void>> = []
-        visit(tree, (node: Node<Data>) => {
-            if (!(isDirectiveNode(node) && node.name === 'preview')) return
+	return async (tree) => {
+		const tasks: Array<Promise<void>> = []
+		visit(tree, (node: Node<Data>) => {
+			if (!(isDirectiveNode(node) && node.name === 'preview')) return
 
-            const url = node.attributes?.url || node.attributes?.['#']
-            if (!url || typeof url !== 'string') return
+			const url = node.attributes?.url || node.attributes?.['#']
+			if (!url || typeof url !== 'string') return
 
-            tasks.push(
-                (async () => {
-                    try {
-                        const og = await cachified({
-                            key: `link-preview:${url}`,
-                            cache,
-                            ttl: 1000 * 60 * 60 * 24, // 24h
-                            swr: 1000 * 60 * 60 * 24 * 7, // 7d
-                            async getFreshValue() {
-                                return await getOpenGraphData(url)
-                            },
-                        })
+			tasks.push(
+				(async () => {
+					try {
+						const og = await cachified({
+							key: `link-preview:${url}`,
+							cache,
+							ttl: 1000 * 60 * 60 * 24, // 24h
+							swr: 1000 * 60 * 60 * 24 * 7, // 7d
+							async getFreshValue() {
+								return await getOpenGraphData(url)
+							},
+						})
 
-                        const domainFromUrl = url.startsWith('data:')
-                            ? 'data-url'
-                            : new URL(url).hostname
+						const domainFromUrl = url.startsWith('data:')
+							? 'data-url'
+							: new URL(url).hostname
 
-                        const attrTitle = node.attributes?.title
-                        const attrDescription = node.attributes?.description
-                        const attrImage = node.attributes?.image
-                        const attrDomain = node.attributes?.domain
+						const attrTitle = node.attributes?.title
+						const attrDescription = node.attributes?.description
+						const attrImage = node.attributes?.image
+						const attrDomain = node.attributes?.domain
 
-                        const title = typeof attrTitle === 'string' && attrTitle.length ? attrTitle : og.title
-                        const description =
-                            typeof attrDescription === 'string' && attrDescription.length
-                                ? attrDescription
-                                : og.description
-                        const image = typeof attrImage === 'string' && attrImage.length ? attrImage : og.image
-                        const domain = typeof attrDomain === 'string' && attrDomain.length ? attrDomain : domainFromUrl
+						const title =
+							typeof attrTitle === 'string' && attrTitle.length
+								? attrTitle
+								: og.title
+						const description =
+							typeof attrDescription === 'string' && attrDescription.length
+								? attrDescription
+								: og.description
+						const image =
+							typeof attrImage === 'string' && attrImage.length
+								? attrImage
+								: og.image
+						const domain =
+							typeof attrDomain === 'string' && attrDomain.length
+								? attrDomain
+								: domainFromUrl
 
-                        const previewNode = node as unknown as MdxJsxFlowElement
-                        previewNode.type = 'mdxJsxFlowElement'
-                        previewNode.name = 'LinkPreviewStatic'
-                        previewNode.attributes = [
-                            { type: 'mdxJsxAttribute', name: 'url', value: url },
-                            title
-                                ? { type: 'mdxJsxAttribute', name: 'title', value: title }
-                                : undefined,
-                            description
-                                ? { type: 'mdxJsxAttribute', name: 'description', value: description }
-                                : undefined,
-                            image
-                                ? { type: 'mdxJsxAttribute', name: 'image', value: image }
-                                : undefined,
-                            domain
-                                ? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
-                                : undefined,
-                        ].filter(Boolean) as MdxJsxFlowElement['attributes']
-                    } catch {
-                        const previewNode = node as unknown as MdxJsxFlowElement
-                        previewNode.type = 'mdxJsxFlowElement'
-                        previewNode.name = 'LinkPreviewStatic'
-                        previewNode.attributes = [
-                            { type: 'mdxJsxAttribute', name: 'url', value: String(url) },
-                        ]
-                    }
-                })(),
-            )
-        })
-        await Promise.all(tasks)
-    }
+						const previewNode = node as unknown as MdxJsxFlowElement
+						previewNode.type = 'mdxJsxFlowElement'
+						previewNode.name = 'LinkPreviewStatic'
+						previewNode.attributes = [
+							{ type: 'mdxJsxAttribute', name: 'url', value: url },
+							title
+								? { type: 'mdxJsxAttribute', name: 'title', value: title }
+								: undefined,
+							description
+								? {
+										type: 'mdxJsxAttribute',
+										name: 'description',
+										value: description,
+									}
+								: undefined,
+							image
+								? { type: 'mdxJsxAttribute', name: 'image', value: image }
+								: undefined,
+							domain
+								? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
+								: undefined,
+						].filter(Boolean) as MdxJsxFlowElement['attributes']
+					} catch {
+						const previewNode = node as unknown as MdxJsxFlowElement
+						previewNode.type = 'mdxJsxFlowElement'
+						previewNode.name = 'LinkPreviewStatic'
+						previewNode.attributes = [
+							{ type: 'mdxJsxAttribute', name: 'url', value: String(url) },
+						]
+					}
+				})(),
+			)
+		})
+		await Promise.all(tasks)
+	}
 }
 
 const remarkClientOnlyImages: Plugin = () => {
-    return async (tree) => {
-        const tasks: Array<Promise<void>> = []
-        visit(tree, 'image', (node: ImageNode) => {
-            const match = node.url.match(/\/resources\/post-images\/(\w+)/)
-            const id = match?.[1]
-            const mdxNode = node as unknown as MdxJsxFlowElement
-            mdxNode.type = 'mdxJsxFlowElement'
-            mdxNode.name = 'MdxImage'
-            // Base attributes
-            const attrs: MdxJsxFlowElement['attributes'] = [
-                { type: 'mdxJsxAttribute', name: 'src', value: node.url },
-                { type: 'mdxJsxAttribute', name: 'alt', value: node.alt || '' },
-            ]
-            if (node.title) attrs.push({ type: 'mdxJsxAttribute', name: 'title', value: node.title })
+	return async (tree) => {
+		const tasks: Array<Promise<void>> = []
+		visit(tree, 'image', (node: ImageNode) => {
+			const match = node.url.match(/\/resources\/post-images\/(\w+)/)
+			const id = match?.[1]
+			const mdxNode = node as unknown as MdxJsxFlowElement
+			mdxNode.type = 'mdxJsxFlowElement'
+			mdxNode.name = 'MdxImage'
+			// Base attributes
+			const attrs: MdxJsxFlowElement['attributes'] = [
+				{ type: 'mdxJsxAttribute', name: 'src', value: node.url },
+				{ type: 'mdxJsxAttribute', name: 'alt', value: node.alt || '' },
+			]
+			if (node.title)
+				attrs.push({
+					type: 'mdxJsxAttribute',
+					name: 'title',
+					value: node.title,
+				})
 
-            // Enrich with dimensions if we can look them up
-            if (id) {
-                tasks.push(
-                    (async () => {
-                        try {
-                            const img = await prisma.postImage.findUnique({
-                                where: { id },
-                                select: { width: true, height: true, s3Key: true },
-                            })
-                            if (img?.width && img?.height) {
-                                attrs.push({ type: 'mdxJsxAttribute', name: 'width', value: String(img.width) })
-                                attrs.push({ type: 'mdxJsxAttribute', name: 'height', value: String(img.height) })
-                            }
+			// Enrich with dimensions if we can look them up
+			if (id) {
+				tasks.push(
+					(async () => {
+						try {
+							const img = await prisma.postImage.findUnique({
+								where: { id },
+								select: { width: true, height: true, s3Key: true },
+							})
+							if (img?.width && img?.height) {
+								attrs.push({
+									type: 'mdxJsxAttribute',
+									name: 'width',
+									value: String(img.width),
+								})
+								attrs.push({
+									type: 'mdxJsxAttribute',
+									name: 'height',
+									value: String(img.height),
+								})
+							}
 
-                            // If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
-                            const assetBase = process.env.ASSET_BASE_URL?.trim()
-                            if (assetBase && img?.s3Key) {
-                                const base = assetBase.replace(/\/$/, '')
-                                const absolute = `${base}/${img.s3Key}`
-                                const srcAttr = attrs.find(
-                                    (a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
-                                ) as any
-                                if (srcAttr) srcAttr.value = absolute
-                            }
-                        } catch {
-                            // ignore
-                        }
-                    })(),
-                )
-            }
+							// If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
+							const assetBase = process.env.ASSET_BASE_URL?.trim()
+							if (assetBase && img?.s3Key) {
+								const base = assetBase.replace(/\/$/, '')
+								const absolute = `${base}/${img.s3Key}`
+								const srcAttr = attrs.find(
+									(a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
+								) as any
+								if (srcAttr) srcAttr.value = absolute
+							}
+						} catch {
+							// ignore
+						}
+					})(),
+				)
+			}
 
-            // Default class
-            attrs.push({
-                type: 'mdxJsxAttribute',
-                name: 'className',
-                value: 'rounded-md max-w-full',
-            })
-            mdxNode.attributes = attrs
-        })
-        await Promise.all(tasks)
-    }
+			// Default class
+			attrs.push({
+				type: 'mdxJsxAttribute',
+				name: 'className',
+				value: 'rounded-md max-w-full',
+			})
+			mdxNode.attributes = attrs
+		})
+		await Promise.all(tasks)
+	}
 }
 
 function isDirectiveNode(node: Node<Data>): node is DirectiveNode {

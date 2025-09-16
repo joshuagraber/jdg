@@ -31,13 +31,13 @@ RUN npm prune --omit=dev
 # Build the app
 FROM base as build
 
+# Build args for build-time Sentry uploads 
 ARG COMMIT_SHA
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
 ENV COMMIT_SHA=$COMMIT_SHA
-
-# Use the following environment variables to configure Sentry
-# ENV SENTRY_ORG=
-# ENV SENTRY_PROJECT=
-
+ENV SENTRY_ORG=$SENTRY_ORG
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
 
 WORKDIR /myapp
 
