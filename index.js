@@ -17,32 +17,32 @@ sourceMapSupport.install({
 
 // Load .env early in non-production environments. On Fly, use real env vars.
 if (process.env.NODE_ENV !== 'production') {
-    try {
-        await import('dotenv/config')
-    } catch {
-        // ignore if dotenv is not installed
-    }
+	try {
+		await import('dotenv/config')
+	} catch {
+		// ignore if dotenv is not installed
+	}
 }
 
 // In production, ensure INTERNAL_COMMAND_TOKEN is available. Dockerfile writes it to /myapp/.env.
 if (
-    process.env.NODE_ENV === 'production' &&
-    !process.env.INTERNAL_COMMAND_TOKEN
+	process.env.NODE_ENV === 'production' &&
+	!process.env.INTERNAL_COMMAND_TOKEN
 ) {
-    try {
-        const envPath = new URL('./.env', import.meta.url)
-        const raw = fs.readFileSync(envPath, 'utf8')
-        for (const line of raw.split('\n')) {
-            const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
-            if (!m) continue
-            const key = m[1]
-            let val = m[2]
-            val = val.replace(/^['"]|['"]$/g, '')
-            if (!(key in process.env)) process.env[key] = val
-        }
-    } catch {
-        // ignore if file missing
-    }
+	try {
+		const envPath = new URL('./.env', import.meta.url)
+		const raw = fs.readFileSync(envPath, 'utf8')
+		for (const line of raw.split('\n')) {
+			const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+			if (!m) continue
+			const key = m[1]
+			let val = m[2]
+			val = val.replace(/^['"]|['"]$/g, '')
+			if (!(key in process.env)) process.env[key] = val
+		}
+	} catch {
+		// ignore if file missing
+	}
 }
 
 if (process.env.MOCKS === 'true') {

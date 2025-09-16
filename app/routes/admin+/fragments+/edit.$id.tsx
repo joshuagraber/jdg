@@ -103,32 +103,32 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 	const published = publishAtWithTimezone ?? existingPost?.publishAt ?? null
 
-    try {
-        await prisma.post.update({
-            where: { id: params.id },
-            data: {
-                title,
-                content,
-                description,
-                slug,
-                publishAt: published,
-            },
-        })
+	try {
+		await prisma.post.update({
+			where: { id: params.id },
+			data: {
+				title,
+				content,
+				description,
+				slug,
+				publishAt: published,
+			},
+		})
 
-        // Invalidate caches related to this post (old content and new content URLs)
-        await invalidatePostCaches(
-            existingPost?.content ?? undefined,
-            content,
-            existingPost?.title ?? undefined,
-            title,
-        )
-        // Warm new compiled MDX & inline previews (non-blocking)
-        void compileMDX(content, { title })
+		// Invalidate caches related to this post (old content and new content URLs)
+		await invalidatePostCaches(
+			existingPost?.content ?? undefined,
+			content,
+			existingPost?.title ?? undefined,
+			title,
+		)
+		// Warm new compiled MDX & inline previews (non-blocking)
+		void compileMDX(content, { title })
 
-        return redirectWithToast('/admin/fragments', {
-            title: 'Post updated',
-            description: `Post "${title}" updated successfully.`,
-        })
+		return redirectWithToast('/admin/fragments', {
+			title: 'Post updated',
+			description: `Post "${title}" updated successfully.`,
+		})
 	} catch {
 		return data(
 			{ result: submission.reply({ formErrors: ['Failed to update post'] }) },
@@ -183,102 +183,104 @@ export default function EditPost() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<div className="container mx-auto max-w-4xl p-6 space-y-8">
+			<div className="container mx-auto max-w-4xl space-y-8 p-6">
 				<div className="space-y-2">
 					<h1 className="text-3xl font-bold">Edit Post</h1>
-					<p className="text-muted-foreground">Update your blog post or fragment</p>
+					<p className="text-muted-foreground">
+						Update your blog post or fragment
+					</p>
 				</div>
 
 				<Form method="post" {...getFormProps(form)} className="space-y-8">
-				<Field
-					labelProps={{
-						htmlFor: fields.title.id,
-						children: 'Title',
-					}}
-					inputProps={{
-						...getInputProps(fields.title, { type: 'text' }),
-					}}
-					errors={fields.title.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.description.id,
-						children: 'Description',
-					}}
-					inputProps={{
-						...getInputProps(fields.description, { type: 'text' }),
-					}}
-					errors={fields.description.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.slug.id,
-						children: 'Slug',
-					}}
-					inputProps={{
-						...getInputProps(fields.slug, { type: 'text' }),
-					}}
-					errors={fields.slug.errors}
-				/>
-				{post.publishAt && !showDateField && (
-					<Button
-						variant="outline"
-						type="button"
-						onClick={() => setShowDateField(true)}
-					>
-						Post is published. Edit the publish date?
-					</Button>
-				)}
-				{(showDateField || !post.publishAt) && (
 					<Field
 						labelProps={{
-							htmlFor: fields.publishAt.id,
-							children: 'Update publish date',
+							htmlFor: fields.title.id,
+							children: 'Title',
 						}}
 						inputProps={{
-							...getInputProps(fields.publishAt, { type: 'datetime-local' }),
+							...getInputProps(fields.title, { type: 'text' }),
 						}}
-						errors={fields.publishAt.errors}
+						errors={fields.title.errors}
 					/>
-				)}
-
-				<div className="space-y-3">
-					<label className="block text-sm font-medium">Content</label>
-					<div className="rounded-lg border border-input bg-background shadow-sm">
-						<MDXEditorComponent
-							imageUploadHandler={handleImageUpload}
-							images={images.map((image) => getPostImageSource(image.id))}
-							markdown={content}
-							onChange={setContent}
-							diffSource={post.content}
-							className="min-h-[500px]"
+					<Field
+						labelProps={{
+							htmlFor: fields.description.id,
+							children: 'Description',
+						}}
+						inputProps={{
+							...getInputProps(fields.description, { type: 'text' }),
+						}}
+						errors={fields.description.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.slug.id,
+							children: 'Slug',
+						}}
+						inputProps={{
+							...getInputProps(fields.slug, { type: 'text' }),
+						}}
+						errors={fields.slug.errors}
+					/>
+					{post.publishAt && !showDateField && (
+						<Button
+							variant="outline"
+							type="button"
+							onClick={() => setShowDateField(true)}
+						>
+							Post is published. Edit the publish date?
+						</Button>
+					)}
+					{(showDateField || !post.publishAt) && (
+						<Field
+							labelProps={{
+								htmlFor: fields.publishAt.id,
+								children: 'Update publish date',
+							}}
+							inputProps={{
+								...getInputProps(fields.publishAt, { type: 'datetime-local' }),
+							}}
+							errors={fields.publishAt.errors}
 						/>
-					</div>
-					<textarea
-						ref={contentRef}
-						{...getTextareaProps(fields.content)}
-						className="hidden"
-					/>
-					{fields.content.errors ? (
-						<div className="text-sm text-destructive">
-							{fields.content.errors}
+					)}
+
+					<div className="space-y-3">
+						<label className="block text-sm font-medium">Content</label>
+						<div className="rounded-lg border border-input bg-background shadow-sm">
+							<MDXEditorComponent
+								imageUploadHandler={handleImageUpload}
+								images={images.map((image) => getPostImageSource(image.id))}
+								markdown={content}
+								onChange={setContent}
+								diffSource={post.content}
+								className="min-h-[500px]"
+							/>
 						</div>
-					) : null}
-				</div>
+						<textarea
+							ref={contentRef}
+							{...getTextareaProps(fields.content)}
+							className="hidden"
+						/>
+						{fields.content.errors ? (
+							<div className="text-sm text-destructive">
+								{fields.content.errors}
+							</div>
+						) : null}
+					</div>
 
-				<ErrorList errors={form.errors} id={form.errorId} />
+					<ErrorList errors={form.errors} id={form.errorId} />
 
-				<div className="flex gap-4">
-					<StatusButton
-						type="submit"
-						status={isPending ? 'pending' : (form.status ?? 'idle')}
-						disabled={isPending}
-						className="w-full"
-					>
-						Save Changes
-					</StatusButton>
-				</div>
-			</Form>
+					<div className="flex gap-4">
+						<StatusButton
+							type="submit"
+							status={isPending ? 'pending' : (form.status ?? 'idle')}
+							disabled={isPending}
+							className="w-full"
+						>
+							Save Changes
+						</StatusButton>
+					</div>
+				</Form>
 
 				<div className="space-y-6">
 					<div className="space-y-4">

@@ -85,20 +85,20 @@ export async function action({ request }: Route.ActionArgs) {
 		? fromZonedTime(publishAt, timeZone)
 		: null
 
-    try {
-        const created = await prisma.post.create({
-            data: {
-                title,
-                content,
-                description,
-                slug: makePostSlug(title, slug),
-                publishAt: publishAtWithTimezone,
-                authorId,
-            },
-        })
+	try {
+		const created = await prisma.post.create({
+			data: {
+				title,
+				content,
+				description,
+				slug: makePostSlug(title, slug),
+				publishAt: publishAtWithTimezone,
+				authorId,
+			},
+		})
 
-        // Warm compiled MDX & inline previews (non-blocking)
-        void compileMDX(content, { title })
+		// Warm compiled MDX & inline previews (non-blocking)
+		void compileMDX(content, { title })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post created',
@@ -144,89 +144,91 @@ export default function NewPost() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<div className="container mx-auto max-w-4xl p-6 space-y-8">
+			<div className="container mx-auto max-w-4xl space-y-8 p-6">
 				<div className="space-y-2">
 					<h1 className="text-3xl font-bold">New Post</h1>
-					<p className="text-muted-foreground">Create a new blog post or fragment</p>
+					<p className="text-muted-foreground">
+						Create a new blog post or fragment
+					</p>
 				</div>
 
 				<Form method="post" {...getFormProps(form)} className="space-y-8">
-				<Field
-					labelProps={{
-						htmlFor: fields.title.id,
-						children: 'Title',
-					}}
-					inputProps={{
-						...getInputProps(fields.title, { type: 'text' }),
-					}}
-					errors={fields.title.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.description.id,
-						children: 'Description',
-					}}
-					inputProps={{
-						...getInputProps(fields.description, { type: 'text' }),
-					}}
-					errors={fields.description.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.slug.id,
-						children: 'Slug (optional - defaults to kebab-cased title)',
-					}}
-					inputProps={{
-						...getInputProps(fields.slug, { type: 'text' }),
-					}}
-					errors={fields.slug.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.publishAt.id,
-						children:
-							'When should this post be published? (optional - defaults to now)',
-					}}
-					inputProps={{
-						...getInputProps(fields.publishAt, { type: 'datetime-local' }),
-					}}
-					errors={fields.publishAt.errors}
-				/>
-
-				<div className="space-y-3">
-					<label className="block text-sm font-medium">Content</label>
-					<div className="rounded-lg border border-input bg-background shadow-sm">
-						<MDXEditorComponent
-							images={images.map((image) => getPostImageSource(image.id))}
-							imageUploadHandler={handleImageUpload}
-							markdown={content}
-							onChange={setContent}
-							className="min-h-[500px]"
-						/>
-					</div>
-					<textarea
-						ref={contentRef}
-						{...getTextareaProps(fields.content)}
-						className="hidden"
+					<Field
+						labelProps={{
+							htmlFor: fields.title.id,
+							children: 'Title',
+						}}
+						inputProps={{
+							...getInputProps(fields.title, { type: 'text' }),
+						}}
+						errors={fields.title.errors}
 					/>
-					{fields.content.errors ? (
-						<div className="text-sm text-destructive">
-							{fields.content.errors}
+					<Field
+						labelProps={{
+							htmlFor: fields.description.id,
+							children: 'Description',
+						}}
+						inputProps={{
+							...getInputProps(fields.description, { type: 'text' }),
+						}}
+						errors={fields.description.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.slug.id,
+							children: 'Slug (optional - defaults to kebab-cased title)',
+						}}
+						inputProps={{
+							...getInputProps(fields.slug, { type: 'text' }),
+						}}
+						errors={fields.slug.errors}
+					/>
+					<Field
+						labelProps={{
+							htmlFor: fields.publishAt.id,
+							children:
+								'When should this post be published? (optional - defaults to now)',
+						}}
+						inputProps={{
+							...getInputProps(fields.publishAt, { type: 'datetime-local' }),
+						}}
+						errors={fields.publishAt.errors}
+					/>
+
+					<div className="space-y-3">
+						<label className="block text-sm font-medium">Content</label>
+						<div className="rounded-lg border border-input bg-background shadow-sm">
+							<MDXEditorComponent
+								images={images.map((image) => getPostImageSource(image.id))}
+								imageUploadHandler={handleImageUpload}
+								markdown={content}
+								onChange={setContent}
+								className="min-h-[500px]"
+							/>
 						</div>
-					) : null}
-				</div>
+						<textarea
+							ref={contentRef}
+							{...getTextareaProps(fields.content)}
+							className="hidden"
+						/>
+						{fields.content.errors ? (
+							<div className="text-sm text-destructive">
+								{fields.content.errors}
+							</div>
+						) : null}
+					</div>
 
-				<ErrorList errors={form.errors} id={form.errorId} />
+					<ErrorList errors={form.errors} id={form.errorId} />
 
-				<StatusButton
-					type="submit"
-					status={isPending ? 'pending' : (form.status ?? 'idle')}
-					disabled={isPending}
-					className="w-full"
-				>
-					Create Post
-				</StatusButton>
-			</Form>
+					<StatusButton
+						type="submit"
+						status={isPending ? 'pending' : (form.status ?? 'idle')}
+						disabled={isPending}
+						className="w-full"
+					>
+						Create Post
+					</StatusButton>
+				</Form>
 
 				<div className="space-y-6">
 					<div className="space-y-4">

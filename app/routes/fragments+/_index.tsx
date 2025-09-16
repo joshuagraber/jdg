@@ -41,7 +41,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 	// Bundle MDX for each post
 	const postsWithMDX = await Promise.all(
 		posts.map(async (post) => {
-			const { code, frontmatter } = await compileMDX(post.content, { title: post.title })
+			const { code, frontmatter } = await compileMDX(post.content, {
+				title: post.title,
+			})
 			return {
 				...post,
 				code,

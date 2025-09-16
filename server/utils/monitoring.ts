@@ -24,7 +24,7 @@ export function init() {
 			nodeProfilingIntegration(),
 		],
 		// Enable Node.js profiling (percentage of sampled traces)
-		profilesSampleRate: .1,
+		profilesSampleRate: 0.1,
 		tracesSampler(samplingContext) {
 			// ignore healthcheck transactions by other services (consul, etc.)
 			if (samplingContext.request?.url?.includes('/resources/healthcheck')) {

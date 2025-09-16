@@ -44,10 +44,10 @@ export function init() {
 		// Set tracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production
-		tracesSampleRate: .1,
+		tracesSampleRate: 0.1,
 
 		// Enable browser profiling (percentage of sampled traces)
-		profilesSampleRate: .1,
+		profilesSampleRate: 0.1,
 
 		// Capture Replay for 10% of all sessions,
 		// plus for 100% of sessions with an error

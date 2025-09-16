@@ -30,7 +30,8 @@ export default defineConfig({
 
 		// Generate sourcemaps for development; use hidden maps in production
 		// so the sourceMappingURL comment is omitted from built files.
-		sourcemap: MODE === 'production' ? 'hidden' : MODE === 'test' ? false : true,
+		sourcemap:
+			MODE === 'production' ? 'hidden' : MODE === 'test' ? false : true,
 	},
 	server: {
 		watch: {
@@ -58,9 +59,7 @@ export default defineConfig({
 						},
 					},
 					sourcemaps: {
-						filesToDeleteAfterUpload: await glob([
-							'./build/client/**/*.map',
-						]),
+						filesToDeleteAfterUpload: await glob(['./build/client/**/*.map']),
 					},
 				})
 			: null,

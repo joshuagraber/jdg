@@ -436,7 +436,7 @@
 }
 
 /* Style the toolbar buttons more consistently */
-.mdx-toolbar [data-orientation="vertical"] {
+.mdx-toolbar [data-orientation='vertical'] {
 	display: none; /* Hide vertical separators in our custom layout */
 }
 
