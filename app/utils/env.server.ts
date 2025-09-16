@@ -9,6 +9,7 @@ const schema = z.object({
 	HONEYPOT_SECRET: z.string(),
 	CACHE_DATABASE_PATH: z.string(),
 	SENTRY_DSN: z.string(),
+	COMMIT_SHA: z.string().optional(),
 	RESEND_API_KEY: z.string(),
 	// If you plan to use GitHub auth, remove the default:
 	GITHUB_CLIENT_ID: z.string().default('MOCK_GITHUB_CLIENT_ID'),
@@ -53,6 +54,7 @@ export function getEnv() {
 	return {
 		MODE: process.env.NODE_ENV,
 		SENTRY_DSN: process.env.SENTRY_DSN ?? '',
+		COMMIT_SHA: process.env.COMMIT_SHA ?? '',
 		ALLOW_INDEXING: process.env.ALLOW_INDEXING ?? 'true',
 		ASSET_BASE_URL: process.env.ASSET_BASE_URL ?? '',
 	}

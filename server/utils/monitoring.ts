@@ -5,6 +5,7 @@ export function init() {
 	Sentry.init({
 		dsn: process.env.SENTRY_DSN,
 		environment: process.env.NODE_ENV,
+		release: process.env.COMMIT_SHA,
 		tracesSampleRate: process.env.NODE_ENV === 'production' ? 1 : 0,
 		autoInstrumentRemix: true,
 		denyUrls: [
@@ -22,6 +23,8 @@ export function init() {
 			Sentry.prismaIntegration(),
 			nodeProfilingIntegration(),
 		],
+		// Enable Node.js profiling (percentage of sampled traces)
+		profilesSampleRate: .1,
 		tracesSampler(samplingContext) {
 			// ignore healthcheck transactions by other services (consul, etc.)
 			if (samplingContext.request?.url?.includes('/resources/healthcheck')) {
