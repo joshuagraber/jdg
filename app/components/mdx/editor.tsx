@@ -39,10 +39,10 @@ import {
 import { type LeafDirective } from 'mdast-util-directive'
 import { useRef } from 'react'
 import { ClientOnly } from 'remix-utils/client-only'
+import { LinkPreviewStatic } from '#app/components/link-preview-static.tsx'
+import { LinkPreview } from '#app/components/link-preview.tsx'
 import { useTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { cn } from '#app/utils/misc.tsx'
-import { LinkPreview } from '#app/components/link-preview.tsx'
-import { LinkPreviewStatic } from '#app/components/link-preview-static.tsx'
 
 type MDXEditorProps = {
 	markdown: string
@@ -63,29 +63,54 @@ const Toolbar = () => (
 				},
 				{
 					fallback: () => (
-						<>
-							<UndoRedo />
+						<div className="mdx-toolbar">
+							{/* History Controls */}
+							<div className="mdx-toolbar-group">
+								<UndoRedo />
+							</div>
 							<Separator />
-							<BoldItalicUnderlineToggles />
-							<CodeToggle />
+							
+							{/* Text Formatting */}
+							<div className="mdx-toolbar-group">
+								<BoldItalicUnderlineToggles />
+								<CodeToggle />
+								<StrikeThroughSupSubToggles />
+							</div>
 							<Separator />
-							<InsertCodeBlock />
+							
+							{/* Block Formatting */}
+							<div className="mdx-toolbar-group">
+								<BlockTypeSelect />
+								<ListsToggle />
+							</div>
 							<Separator />
-							<StrikeThroughSupSubToggles />
+							
+							{/* Code & Structure */}
+							<div className="mdx-toolbar-group">
+								<InsertCodeBlock />
+								<InsertThematicBreak />
+							</div>
 							<Separator />
-							<ListsToggle />
-							<Separator />
-							<BlockTypeSelect />
-							<Separator />
+							
+							{/* Media & Links */}
+							<div className="mdx-toolbar-group">
 								<CreateLink />
 								<InsertImage />
+							</div>
+							<Separator />
+							
+							{/* Rich Content */}
+							<div className="mdx-toolbar-group">
 								<PreviewButton />
 								<YouTubeButton />
-								<Separator />
-								<InsertTable />
-							<InsertThematicBreak />
+							</div>
 							<Separator />
-						</>
+							
+							{/* Tables */}
+							<div className="mdx-toolbar-group">
+								<InsertTable />
+							</div>
+						</div>
 					),
 				},
 			]}
@@ -268,31 +293,31 @@ const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
 	hasChildren: false,
 	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
 		return (
-			<div
-				style={{
-					display: 'flex',
-					flexDirection: 'column',
-					alignItems: 'flex-start',
-				}}
-			>
-				<button
-					onClick={() => {
-						parentEditor.update(() => {
-							lexicalNode.selectNext()
-							lexicalNode.remove()
-						})
-					}}
-				>
-					delete
-				</button>
-				<iframe
-					width="560"
-					height="315"
-					src={`https://www.youtube.com/embed/${mdastNode.attributes.id}`}
-					title="YouTube video player"
-					frameBorder="0"
-					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-				></iframe>
+			<div className="mdx-directive-container">
+				<div className="mdx-directive-controls">
+					<button
+						className="mdx-delete-button"
+						onClick={() => {
+							parentEditor.update(() => {
+								lexicalNode.selectNext()
+								lexicalNode.remove()
+							})
+						}}
+						title="Delete YouTube video"
+					>
+						🗑️
+					</button>
+				</div>
+				<div className="mdx-directive-content">
+					<iframe
+						width="560"
+						height="315"
+						src={`https://www.youtube.com/embed/${mdastNode.attributes.id}`}
+						title="YouTube video player"
+						frameBorder="0"
+						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+					></iframe>
+				</div>
 			</div>
 		)
 	},
@@ -318,23 +343,29 @@ const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
         const image = (mdastNode as any).attributes?.image as string | undefined
         const domain = (mdastNode as any).attributes?.domain as string | undefined
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <button
-                    onClick={() => {
-                        parentEditor.update(() => {
-                            lexicalNode.selectNext()
-                            lexicalNode.remove()
-                        })
-                    }}
-                >
-                    delete
-                </button>
-                <div style={{ maxWidth: 640 }}>
-                    {title || description || image || domain ? (
-                        <LinkPreviewStatic url={url} title={title} description={description} image={image} domain={domain} />
-                    ) : (
-                        <LinkPreview url={url} />
-                    )}
+            <div className="mdx-directive-container">
+                <div className="mdx-directive-controls">
+                    <button
+                        className="mdx-delete-button"
+                        onClick={() => {
+                            parentEditor.update(() => {
+                                lexicalNode.selectNext()
+                                lexicalNode.remove()
+                            })
+                        }}
+                        title="Delete link preview"
+                    >
+                        🗑️
+                    </button>
+                </div>
+                <div className="mdx-directive-content">
+                    <div className="mdx-link-preview-container">
+                        {title || description || image || domain ? (
+                            <LinkPreviewStatic url={url} title={title} description={description} image={image} domain={domain} />
+                        ) : (
+                            <LinkPreview url={url} />
+                        )}
+                    </div>
                 </div>
             </div>
         )

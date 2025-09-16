@@ -143,10 +143,14 @@ export default function NewPost() {
 	}, [content])
 
 	return (
-		<div className="p-8">
-			<h1 className="mb-6 text-2xl font-bold">New Post</h1>
+		<div className="min-h-screen bg-background">
+			<div className="container mx-auto max-w-4xl p-6 space-y-8">
+				<div className="space-y-2">
+					<h1 className="text-3xl font-bold">New Post</h1>
+					<p className="text-muted-foreground">Create a new blog post or fragment</p>
+				</div>
 
-			<Form method="post" {...getFormProps(form)} className="mb-12 space-y-6">
+				<Form method="post" {...getFormProps(form)} className="space-y-8">
 				<Field
 					labelProps={{
 						htmlFor: fields.title.id,
@@ -189,15 +193,15 @@ export default function NewPost() {
 					errors={fields.publishAt.errors}
 				/>
 
-				<div>
-					<label className="mb-1 block text-sm font-medium">Content</label>
-					<div className="rounded-md border">
+				<div className="space-y-3">
+					<label className="block text-sm font-medium">Content</label>
+					<div className="rounded-lg border border-input bg-background shadow-sm">
 						<MDXEditorComponent
 							images={images.map((image) => getPostImageSource(image.id))}
 							imageUploadHandler={handleImageUpload}
 							markdown={content}
 							onChange={setContent}
-							className="min-h-[400px]"
+							className="min-h-[500px]"
 						/>
 					</div>
 					<textarea
@@ -224,11 +228,18 @@ export default function NewPost() {
 				</StatusButton>
 			</Form>
 
-			<h2>Manage post images</h2>
-			<PostImageManager images={images} />
+				<div className="space-y-6">
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Manage Images</h2>
+						<PostImageManager images={images} />
+					</div>
 
-			<h2>Manage post videos</h2>
-			<PostVideoManager videos={videos} />
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Manage Videos</h2>
+						<PostVideoManager videos={videos} />
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }
