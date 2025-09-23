@@ -12,7 +12,10 @@ import { z } from 'zod'
 import { TextareaField, Field } from '#app/components/forms'
 import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { sendEmail } from '#app/utils/email.server.ts'
+import { checkHoneypot } from '#app/utils/honeypot.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { assertRateLimit } from '#app/utils/rate-limit.server.ts'
+import { getClientIPAddress } from '#app/utils/request.server.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/contact'
 
@@ -24,6 +27,19 @@ const ContactFormSchema = z.object({
 
 export async function action({ request }: Route.ActionArgs) {
 	const formData = await request.formData()
+	checkHoneypot(formData)
+
+	const clientIp = getClientIPAddress(request) ?? 'unknown'
+	const maxAttempts = Number(process.env.CONTACT_RATE_LIMIT_MAX ?? '0')
+	const windowMinutes = Number(
+		process.env.CONTACT_RATE_LIMIT_WINDOW_MINUTES ?? '15',
+	)
+	if (maxAttempts > 0) {
+		assertRateLimit(`contact:${clientIp}`, {
+			max: maxAttempts,
+			windowMs: windowMinutes > 0 ? windowMinutes * 60 * 1000 : undefined,
+		})
+	}
 	const submission = parseWithZod(formData, { schema: ContactFormSchema })
 
 	if (submission.status !== 'success') {
@@ -34,6 +50,9 @@ export async function action({ request }: Route.ActionArgs) {
 	}
 
 	const { name, email, message } = submission.value
+	if (containsSuspiciousContent(message)) {
+		throw new Response('Message rejected', { status: 400 })
+	}
 	const to = process.env.JDG_CONTACT_SEND_TO
 
 	if (!to) {
@@ -52,6 +71,18 @@ export async function action({ request }: Route.ActionArgs) {
 		description:
 			"Thank you for saying hello. I'll get back to you as quickly as possible.",
 	})
+}
+
+const suspiciousPatterns = [
+	/(https?:\/\/){2,}/i,
+	/(<\/?(script|iframe|object)[^>]*>)/i,
+	/\[url=/i,
+]
+
+function containsSuspiciousContent(message: string) {
+	const normalized = message.trim()
+	if (normalized.length === 0) return true
+	return suspiciousPatterns.some((pattern) => pattern.test(normalized))
 }
 
 export default function ContactRoute() {

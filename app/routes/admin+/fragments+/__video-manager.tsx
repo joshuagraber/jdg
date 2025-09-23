@@ -19,7 +19,7 @@ export function PostVideoManager({ videos }: PostVideoManagerProps) {
 	const videoCreateFetcher = useFetcher()
 
 	const handleCopyMarkdown = async (video: Video) => {
-		const path = getPostVideoSource(video.id)
+		const path = getPostVideoSource(video.id, { relative: true })
 		const markdown = `<video controls src="${path}" title="${video.title ?? ''}" width="100%" height="auto">${
 			video.altText ?? ''
 		}</video>`
@@ -87,7 +87,7 @@ export function PostVideoManager({ videos }: PostVideoManagerProps) {
 					<div key={video.id} className="space-y-4 rounded-lg border p-4">
 						<div>
 							<video
-								src={getPostVideoSource(video.id)}
+								src={getPostVideoSource(video.id, { relative: true })}
 								controls
 								className="h-auto w-full rounded-lg object-cover"
 							/>

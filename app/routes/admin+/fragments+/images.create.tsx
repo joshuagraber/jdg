@@ -77,8 +77,8 @@ export async function action({ request }: Route.ActionArgs) {
 			data: {
 				s3Key: key,
 				contentType: file.type,
-				altText: formData.get('altText') as string,
-				title: formData.get('title') as string,
+				altText,
+				title,
 				width: width ?? null,
 				height: height ?? null,
 			},
@@ -95,7 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
 			})
 		}
 
-		return getPostImageSource(image.id)
+		return getPostImageSource(image.id, { relative: true })
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

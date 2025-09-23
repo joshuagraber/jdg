@@ -1,9 +1,15 @@
-import { useLoaderData, Link } from 'react-router'
+import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
+import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
-import { getOpenGraphData } from '#app/utils/link-preview.server.ts'
+import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
+import {
+	getOpenGraphData,
+	hasPreviewData,
+	type OpenGraphData,
+} from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
 export const RECENT_PUBLICATIONS = [
@@ -15,7 +21,7 @@ export const RECENT_PUBLICATIONS = [
 	'https://www.mrbullbull.com/newbull/fiction/metaphors-toward-__________________',
 ]
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const recentFragments = await prisma.post.findMany({
 		where: {
 			publishAt: {
@@ -26,30 +32,61 @@ export async function loader() {
 		orderBy: {
 			publishAt: 'desc',
 		},
-		take: 3,
+		take: 4,
 	})
+
+	const fragmentPaths = recentFragments.map(
+		(fragment) => `/fragments/${fragment.slug}`,
+	)
+	const fragmentLinkPreviews = await getInternalLinkPreviews(
+		fragmentPaths,
+		request,
+	)
+	const siteHostname = new URL(request.url).hostname
 
 	// Fetch and cache link previews server-side for homepage
 	const previews = await Promise.all(
 		RECENT_PUBLICATIONS.map(async (url) => {
-			const og = await cachified({
-				key: `link-preview:${url}`,
-				cache,
-				ttl: 1000 * 60 * 10, // 10 minutes
-				swr: 1000 * 60 * 60 * 24, // 24 hours
-				async getFreshValue() {
-					return await getOpenGraphData(url)
-				},
-			})
 			const domain = url.startsWith('data:')
 				? 'data-url'
 				: new URL(url).hostname
-			return {
-				url,
-				title: og.title,
-				description: og.description,
-				image: og.image,
-				domain,
+			try {
+				const og = await cachified<OpenGraphData>({
+					key: `link-preview:${url}`,
+					cache,
+					ttl: 1000 * 60 * 10, // 10 minutes
+					swr: 1000 * 60 * 60 * 24, // 24 hours
+					fallbackToCache: 1000 * 60 * 60,
+					checkValue(value) {
+						return hasPreviewData(value)
+							? true
+							: 'Link preview missing essential fields'
+					},
+					async getFreshValue(context) {
+						const result = await getOpenGraphData(url)
+						if (!hasPreviewData(result)) {
+							context.metadata.ttl = 0
+							throw new Error('No preview data available')
+						}
+						return result
+					},
+				})
+				return {
+					url,
+					title: og.title,
+					description: og.description,
+					image: og.image,
+					domain,
+				}
+			} catch (error) {
+				console.warn('Falling back to minimal link preview', { url, error })
+				return {
+					url,
+					title: undefined,
+					description: undefined,
+					image: undefined,
+					domain,
+				}
 			}
 		}),
 	)
@@ -58,6 +95,8 @@ export async function loader() {
 		fragments: recentFragments,
 		recentPubs: RECENT_PUBLICATIONS,
 		previews,
+		fragmentLinkPreviews,
+		siteHostname,
 	}
 }
 
@@ -71,11 +110,10 @@ export default function Index() {
 			<Spacer size="4xs" />
 			<p>
 				Hi I&apos;m Joshua. I currently work as a writer, editor, and software
-				engineer, with a career that spans storytelling, tech, and education.
+				engineer, with a career that has spanned writing, tech, and education.
 				Along the way, I&apos;ve also worked as a professor, activist, tutor,
-				bartender, landscaper, farmhand, and dishwasher, amongst other things. I
-				like to think all of this experience informs the work I do today.
-				<Spacer size="4xs" />
+				bartender, landscaper, farm worker, and dishwasher. 
+			<Spacer size="4xs" />
 			</p>
 			<Spacer size="2xs" />
 			{/* Writing */}
@@ -109,26 +147,33 @@ export default function Index() {
 			<Spacer size="3xs" />
 			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
-
-			<ol className="my-4 grid list-decimal grid-cols-1 gap-x-2 space-y-2 pl-6 md:grid-cols-2 md:gap-x-8 lg:grid-cols-3">
-				{data.fragments.map(({ title, description, slug, publishAt }) => {
+			<ul className="my-4 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
+				{data.fragments.map((fragment) => {
+					const path = `/fragments/${fragment.slug}`
+					const preview = data.fragmentLinkPreviews[path] ?? {
+						url: path,
+						title: fragment.title,
+						description: fragment.description,
+						domain: data.siteHostname,
+					}
+					const publishMeta = fragment.publishAt ? (
+						<Time time={fragment.publishAt.toDateString()} />
+					) : null
 					return (
-						<li key={title + slug} className="display-list-item">
-							<Link
-								prefetch="intent"
-								to={`/fragments/${slug}`}
-								className="flex flex-col no-underline hover:underline"
-							>
-								<h4>{title}</h4>
-								{description && <p>{description}</p>}
-								{publishAt && <Time time={publishAt.toDateString()} />}
-							</Link>
+						<li key={fragment.title + fragment.slug}>
+							<InternalLinkPreview
+								to={path}
+								data={preview}
+								className="max-w-3xl"
+								meta={publishMeta}
+							/>
 						</li>
 					)
 				})}
-			</ol>
+			</ul>
 			<Spacer size="3xs" />
-			<h3>Some recent publications</h3>
+			<h3>Recent publications</h3>
+				<Spacer size="5xs" />
 			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
 				{data.previews.map((p) => (
 					<li key={p.url}>
@@ -145,7 +190,7 @@ export default function Index() {
 				<a href="https://www.aura.com" rel="noreferrer noopener" target="blank">
 					Aura
 				</a>
-				, a consumer digital security company.
+				, a consumer digital safety company.
 				<Spacer size="4xs" />I also maintain the open-source client applications
 				for the{' '}
 				<a href="https://www.pdap.io" rel="noreferrer noopener" target="blank">

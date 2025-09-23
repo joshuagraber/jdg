@@ -13,7 +13,15 @@ const ogSchema = z.object({
 
 export type OpenGraphData = z.infer<typeof ogSchema>
 
-const fetchWithTimeout = async (url: string, timeout = 5000) => {
+const DEFAULT_FETCH_TIMEOUT_MS = 15000
+const READ_TIMEOUT_MS = 10000
+const MAX_FETCH_ATTEMPTS = 2
+const RETRY_DELAY_BASE_MS = 500
+
+const fetchWithTimeout = async (
+	url: string,
+	timeout = DEFAULT_FETCH_TIMEOUT_MS,
+) => {
 	const controller = new AbortController()
 	const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -34,6 +42,60 @@ const fetchWithTimeout = async (url: string, timeout = 5000) => {
 	}
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function fetchHtml(url: string): Promise<string> {
+	let lastError: unknown
+	for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+		try {
+			const response = await fetchWithTimeout(url)
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch ${url}: ${response.status} ${response.statusText}`,
+				)
+			}
+			let readTimeoutId: ReturnType<typeof setTimeout> | null = null
+			try {
+				const readTimeoutPromise = new Promise<string>((_, reject) => {
+					readTimeoutId = setTimeout(
+						() => reject(new Error('Response body read timeout')),
+						READ_TIMEOUT_MS,
+					)
+				})
+				const html = await Promise.race([response.text(), readTimeoutPromise])
+				if (readTimeoutId) clearTimeout(readTimeoutId)
+				return html as string
+			} catch (error) {
+				if (readTimeoutId) clearTimeout(readTimeoutId)
+				throw error
+			}
+		} catch (error) {
+			lastError = error
+			if (attempt < MAX_FETCH_ATTEMPTS) {
+				await sleep(RETRY_DELAY_BASE_MS * attempt)
+				continue
+			}
+			throw error
+		}
+	}
+	throw lastError instanceof Error
+		? lastError
+		: new Error('Unknown error fetching HTML')
+}
+
+export function hasPreviewData(data: unknown): data is OpenGraphData {
+	if (!data || typeof data !== 'object') return false
+	const candidate = data as Partial<OpenGraphData>
+	const hasTitle =
+		typeof candidate.title === 'string' && candidate.title.trim() !== ''
+	const hasDescription =
+		typeof candidate.description === 'string' &&
+		candidate.description.trim() !== ''
+	const hasImage =
+		typeof candidate.image === 'string' && candidate.image.trim() !== ''
+	return hasTitle || hasDescription || hasImage
+}
+
 export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 	try {
 		let html: string
@@ -46,29 +108,7 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 			}
 			html = Buffer.from(base64Data, 'base64').toString('utf-8')
 		} else {
-			try {
-				const response = await fetchWithTimeout(url)
-
-				if (!response.ok) {
-					console.error(
-						`Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-					)
-					return {}
-				}
-
-				// Enforce a read timeout for slow bodies to avoid upstream 503s
-				const READ_TIMEOUT_MS = 4000
-				const readTimeout = new Promise<string>((_, reject) =>
-					setTimeout(
-						() => reject(new Error('Response body read timeout')),
-						READ_TIMEOUT_MS,
-					),
-				)
-				html = (await Promise.race([response.text(), readTimeout])) as string
-			} catch (error) {
-				console.error(`Error fetching ${url}:`, error)
-				return {}
-			}
+			html = await fetchHtml(url)
 		}
 
 		const root = parse(html)
@@ -138,9 +178,20 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 			console.error('Error getting site name:', e)
 		}
 
-		return ogSchema.parse(ogData)
+		const parsed = ogSchema.parse(ogData)
+		const sanitized: OpenGraphData = {}
+		if (parsed.title?.trim()) sanitized.title = parsed.title.trim()
+		if (parsed.description?.trim())
+			sanitized.description = parsed.description.trim()
+		if (parsed.image?.trim()) sanitized.image = parsed.image
+		if (parsed.site_name?.trim()) sanitized.site_name = parsed.site_name.trim()
+		if (parsed.type?.trim()) sanitized.type = parsed.type.trim()
+		if (parsed.url?.trim()) sanitized.url = parsed.url
+		if (parsed['image:alt']?.trim())
+			sanitized['image:alt'] = parsed['image:alt'].trim()
+		return sanitized
 	} catch (e) {
-		console.error('Error in getOpenGraphData:', e)
+		console.error('Error in getOpenGraphData:', { url }, e)
 		return {}
 	}
 }

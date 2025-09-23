@@ -12,6 +12,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			altText: true,
 			createdAt: true,
 			contentType: true,
+			s3Key: true,
 		},
 		orderBy: {
 			createdAt: 'desc',
@@ -24,7 +25,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	return {
 		images: images.map((image) => ({
 			...image,
-			url: getPostImageSource(image.id),
+			url: getPostImageSource(image.id, { s3Key: image.s3Key }),
 		})),
 	}
 }
