@@ -19,7 +19,7 @@ export function getClientIPAddress(request: Request): string | null {
 			.split(',')
 			.map((part) => part.trim())
 			.filter(Boolean)
-		if (parts.length > 0) return parts[0]
+		if (parts.length > 0) return parts[0] ?? null
 	}
 	const remoteAddress = (request as any).socket?.remoteAddress ?? null
 	return remoteAddress ?? null
