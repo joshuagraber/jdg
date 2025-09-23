@@ -32,7 +32,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		orderBy: {
 			publishAt: 'desc',
 		},
-		take: 3,
+		take: 4,
 	})
 
 	const fragmentPaths = recentFragments.map(
@@ -148,7 +148,7 @@ export default function Index() {
 			<Spacer size="3xs" />
 			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
-			<ul className="my-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+			<ul className="my-4 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
 				{data.fragments.map((fragment) => {
 					const path = `/fragments/${fragment.slug}`
 					const preview = data.fragmentLinkPreviews[path] ?? {
@@ -165,6 +165,7 @@ export default function Index() {
 							<InternalLinkPreview
 								to={path}
 								data={preview}
+								className="max-w-3xl"
 								meta={publishMeta}
 							/>
 						</li>
