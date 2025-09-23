@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Link, useLoaderData, useLocation } from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
 import { prisma } from '#app/utils/db.server'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
@@ -120,6 +121,9 @@ export default function Fragments() {
 	return (
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">
 			<h1 className="mb-4 font-bold">Fragments</h1>
+			<p>The closest I'll ever come to blogging.</p>
+			<hr />
+			<Spacer size="xs" />
 			<div className="flex flex-col gap-6">
 				{posts.map((post) => (
 					<article key={post.id} className="max-w-none">

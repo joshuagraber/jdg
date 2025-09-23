@@ -110,11 +110,10 @@ export default function Index() {
 			<Spacer size="4xs" />
 			<p>
 				Hi I&apos;m Joshua. I currently work as a writer, editor, and software
-				engineer, with a career that spans storytelling, tech, and education.
+				engineer, with a career that has spanned writing, tech, and education.
 				Along the way, I&apos;ve also worked as a professor, activist, tutor,
-				bartender, landscaper, farmhand, and dishwasher, amongst other things. I
-				like to think all of this experience informs the work I do today.
-				<Spacer size="4xs" />
+				bartender, landscaper, farm worker, and dishwasher. 
+			<Spacer size="4xs" />
 			</p>
 			<Spacer size="2xs" />
 			{/* Writing */}
@@ -173,7 +172,8 @@ export default function Index() {
 				})}
 			</ul>
 			<Spacer size="3xs" />
-			<h3>Some recent publications</h3>
+			<h3>Recent publications</h3>
+				<Spacer size="5xs" />
 			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
 				{data.previews.map((p) => (
 					<li key={p.url}>
@@ -190,7 +190,7 @@ export default function Index() {
 				<a href="https://www.aura.com" rel="noreferrer noopener" target="blank">
 					Aura
 				</a>
-				, a consumer digital security company.
+				, a consumer digital safety company.
 				<Spacer size="4xs" />I also maintain the open-source client applications
 				for the{' '}
 				<a href="https://www.pdap.io" rel="noreferrer noopener" target="blank">
