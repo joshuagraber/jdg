@@ -45,48 +45,66 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const siteHostname = new URL(request.url).hostname
 
 	// Fetch and cache link previews server-side for homepage
+	const MAX_PREVIEW_WAIT_MS = 2500
 	const previews = await Promise.all(
 		RECENT_PUBLICATIONS.map(async (url) => {
 			const domain = url.startsWith('data:')
 				? 'data-url'
 				: new URL(url).hostname
-			try {
-				const og = await cachified<OpenGraphData>({
-					key: `link-preview:${url}`,
-					cache,
-					ttl: 1000 * 60 * 10, // 10 minutes
-					swr: 1000 * 60 * 60 * 24, // 24 hours
-					fallbackToCache: 1000 * 60 * 60,
-					checkValue(value) {
-						return hasPreviewData(value)
-							? true
-							: 'Link preview missing essential fields'
-					},
-					async getFreshValue(context) {
-						const result = await getOpenGraphData(url)
-						if (!hasPreviewData(result)) {
-							context.metadata.ttl = 0
-							throw new Error('No preview data available')
-						}
-						return result
-					},
-				})
-				return {
+			const fallbackPreview = {
+				url,
+				title: undefined,
+				description: undefined,
+				image: undefined,
+				domain,
+			}
+			const previewPromise = cachified<OpenGraphData>({
+				key: `link-preview:${url}`,
+				cache,
+				ttl: 1000 * 60 * 10, // 10 minutes
+				swr: 1000 * 60 * 60 * 24, // 24 hours
+				fallbackToCache: 1000 * 60 * 60,
+				checkValue(value) {
+					return hasPreviewData(value)
+						? true
+						: 'Link preview missing essential fields'
+				},
+				async getFreshValue(context) {
+					const result = await getOpenGraphData(url)
+					if (!hasPreviewData(result)) {
+						context.metadata.ttl = 0
+						throw new Error('No preview data available')
+					}
+					return result
+				},
+			})
+				.then((og) => ({
 					url,
 					title: og.title,
 					description: og.description,
 					image: og.image,
 					domain,
+				}))
+			let timeoutId: ReturnType<typeof setTimeout> | null = null
+			try {
+				const result = await Promise.race([
+					previewPromise.then((value) => ({ status: 'success' as const, value })),
+					new Promise<{ status: 'timeout' }>((resolve) => {
+						timeoutId = setTimeout(() => resolve({ status: 'timeout' }), MAX_PREVIEW_WAIT_MS)
+					}),
+				])
+				if (timeoutId) clearTimeout(timeoutId)
+				if (result.status === 'success') {
+					return result.value
 				}
+				void previewPromise.catch((error) => {
+					console.warn('Background link preview fetch failed', { url, error })
+				})
+				return fallbackPreview
 			} catch (error) {
+				if (timeoutId) clearTimeout(timeoutId)
 				console.warn('Falling back to minimal link preview', { url, error })
-				return {
-					url,
-					title: undefined,
-					description: undefined,
-					image: undefined,
-					domain,
-				}
+				return fallbackPreview
 			}
 		}),
 	)

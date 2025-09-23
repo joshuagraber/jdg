@@ -20,6 +20,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 		throw new Response('Not found', { status: 404 })
 	}
 
+	const assetBase =
+		process.env.VIDEO_ASSET_BASE_URL?.replace(/\/$/, '') ??
+		process.env.ASSET_BASE_URL?.replace(/\/$/, '')
+	if (assetBase && video.s3Key) {
+		const location = `${assetBase}/${video.s3Key.replace(/^\/+/, '')}`
+		return new Response(null, {
+			status: 307,
+			headers: new Headers({
+				Location: location,
+				'Cache-Control': 'public, max-age=60',
+			}),
+		})
+	}
+
 	// Stream from S3 with Range support
 	const range = request.headers.get('Range') ?? undefined
 	const command = new GetObjectCommand({

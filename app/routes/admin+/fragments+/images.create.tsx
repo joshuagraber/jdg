@@ -95,7 +95,11 @@ export async function action({ request }: Route.ActionArgs) {
 			})
 		}
 
-		return getPostImageSource(image.id, { relative: true })
+		return (
+			getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+			getPostImageSource(image.id, { relative: true }) ??
+			`/resources/post-images/${image.id}`
+		)
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

@@ -19,6 +19,18 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
 	invariantResponse(image, 'Not found', { status: 404 })
 
+	const assetBase = process.env.ASSET_BASE_URL?.replace(/\/$/, '')
+	if (assetBase && image.s3Key) {
+		const location = `${assetBase}/${image.s3Key.replace(/^\/+/, '')}`
+		return new Response(null, {
+			status: 307,
+			headers: new Headers({
+				Location: location,
+				'Cache-Control': 'public, max-age=60',
+			}),
+		})
+	}
+
 	// Stream the object from S3 instead of redirecting to reduce client hops
 	const range = request.headers.get('Range') ?? undefined
 	const command = new GetObjectCommand({

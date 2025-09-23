@@ -23,7 +23,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 		const hostname = url.startsWith('data:')
 			? 'data-url'
 			: new URL(url).hostname
-		const ogData = await cachified<OpenGraphData>({
+		const fallbackBody = {
+			domain: hostname,
+			url,
+		}
+		const MAX_PREVIEW_WAIT_MS = 2500
+		const ogPromise = cachified<OpenGraphData>({
 			key: `link-preview:${url}`,
 			cache,
 			ttl: 1000 * 60 * 10, // 10 minutes
@@ -43,13 +48,33 @@ export async function loader({ request }: Route.LoaderArgs) {
 				return result
 			},
 		})
-		const body = {
-			...ogData,
-			domain: hostname,
-			url,
+		let timeoutId: ReturnType<typeof setTimeout> | null = null
+		const result = await Promise.race([
+			ogPromise.then((data) => ({ status: 'success' as const, data })),
+			new Promise<{ status: 'timeout' }>((resolve) => {
+				timeoutId = setTimeout(() => resolve({ status: 'timeout' }), MAX_PREVIEW_WAIT_MS)
+			}),
+		])
+		if (timeoutId) clearTimeout(timeoutId)
+		if (result.status === 'success') {
+			const body = {
+				...result.data,
+				domain: hostname,
+				url,
+			}
+			return Response.json(body, {
+				headers: { 'Cache-Control': 'public, max-age=600' },
+			})
 		}
-		return Response.json(body, {
-			headers: { 'Cache-Control': 'public, max-age=600' },
+		void ogPromise.catch((error) => {
+			console.warn('Background link preview fetch failed (resource route)', {
+				url,
+				error,
+			})
+		})
+		return Response.json(fallbackBody, {
+			headers: { 'Cache-Control': 'public, max-age=120' },
+			status: 200,
 		})
 	} catch (error) {
 		console.error('Failed to fetch metadata for link preview', { url }, error)

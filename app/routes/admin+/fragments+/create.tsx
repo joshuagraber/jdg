@@ -43,6 +43,7 @@ export async function loader() {
 				id: true,
 				altText: true,
 				title: true,
+				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		}),
@@ -252,8 +253,11 @@ export default function NewPost() {
 						<label className="block text-sm font-medium">Content</label>
 						<div className="rounded-lg border border-input bg-background shadow-sm">
 							<MDXEditorComponent
-								images={images.map((image) =>
-									getPostImageSource(image.id, { relative: true }),
+								images={images.map(
+									(image) =>
+										getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+										getPostImageSource(image.id, { relative: true }) ??
+										`/resources/post-images/${image.id}`,
 								)}
 								imageUploadHandler={handleImageUpload}
 								markdown={content}

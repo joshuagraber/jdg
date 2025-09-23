@@ -37,6 +37,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				id: true,
 				altText: true,
 				title: true,
+				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		}),
