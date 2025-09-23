@@ -15,7 +15,10 @@ export function getClientIPAddress(request: Request): string | null {
 			if (match?.[1]) return match[1]
 			continue
 		}
-		const parts = value.split(',').map((part) => part.trim()).filter(Boolean)
+		const parts = value
+			.split(',')
+			.map((part) => part.trim())
+			.filter(Boolean)
 		if (parts.length > 0) return parts[0]
 	}
 	const remoteAddress = (request as any).socket?.remoteAddress ?? null

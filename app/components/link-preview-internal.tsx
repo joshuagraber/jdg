@@ -26,13 +26,14 @@ export function InternalLinkPreview({
 	if (!domain && !isInternal) {
 		try {
 			const resolved = new URL(url, 'https://example.com')
-			fallbackLabel = resolved.hostname === 'example.com' ? null : resolved.hostname
+			fallbackLabel =
+				resolved.hostname === 'example.com' ? null : resolved.hostname
 		} catch {
 			fallbackLabel = null
 		}
 	}
 
-	const domainLabel = !isInternal ? domain ?? fallbackLabel : null
+	const domainLabel = !isInternal ? (domain ?? fallbackLabel) : null
 
 	return (
 		<Link
@@ -65,9 +66,7 @@ export function InternalLinkPreview({
 					)}
 					<div className="p-4">
 						{domainLabel && (
-							<div className="text-sm text-muted-foreground">
-								{domainLabel}
-							</div>
+							<div className="text-sm text-muted-foreground">{domainLabel}</div>
 						)}
 						{title && (
 							<h4 className="mt-2 text-xl font-semibold text-foreground">

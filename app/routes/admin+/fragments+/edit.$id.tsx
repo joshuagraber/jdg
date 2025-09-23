@@ -229,58 +229,58 @@ export default function EditPost() {
 						}}
 						errors={fields.title.errors}
 					/>
-				<Field
-					labelProps={{
-						htmlFor: fields.description.id,
-						children: 'Description',
-					}}
-					inputProps={{
-						...getInputProps(fields.description, { type: 'text' }),
-					}}
-					errors={fields.description.errors}
-				/>
-				<Field
-					labelProps={{
-						htmlFor: fields.previewTitle.id,
-						children: 'Link preview title (optional)',
-					}}
-					inputProps={{
-						...getInputProps(fields.previewTitle, { type: 'text' }),
-					}}
-					errors={fields.previewTitle.errors}
-				/>
-				<TextareaField
-					labelProps={{
-						htmlFor: fields.previewDescription.id,
-						children: 'Link preview description (optional)',
-					}}
-					textareaProps={getTextareaProps(fields.previewDescription)}
-					errors={fields.previewDescription.errors}
-				/>
-				<div>
 					<Field
 						labelProps={{
-							htmlFor: fields.previewImageId.id,
-							children: 'Link preview image ID (optional)',
+							htmlFor: fields.description.id,
+							children: 'Description',
 						}}
 						inputProps={{
-							...getInputProps(fields.previewImageId, { type: 'text' }),
-							list: 'preview-image-options-edit',
+							...getInputProps(fields.description, { type: 'text' }),
 						}}
-						errors={fields.previewImageId.errors}
+						errors={fields.description.errors}
 					/>
-					<datalist id="preview-image-options-edit">
-						{images.map((image) => (
-							<option key={image.id} value={image.id}>
-								{image.title ?? image.id}
-							</option>
-						))}
-					</datalist>
-				</div>
-				<Field
-					labelProps={{
-						htmlFor: fields.slug.id,
-						children: 'Slug',
+					<Field
+						labelProps={{
+							htmlFor: fields.previewTitle.id,
+							children: 'Link preview title (optional)',
+						}}
+						inputProps={{
+							...getInputProps(fields.previewTitle, { type: 'text' }),
+						}}
+						errors={fields.previewTitle.errors}
+					/>
+					<TextareaField
+						labelProps={{
+							htmlFor: fields.previewDescription.id,
+							children: 'Link preview description (optional)',
+						}}
+						textareaProps={getTextareaProps(fields.previewDescription)}
+						errors={fields.previewDescription.errors}
+					/>
+					<div>
+						<Field
+							labelProps={{
+								htmlFor: fields.previewImageId.id,
+								children: 'Link preview image ID (optional)',
+							}}
+							inputProps={{
+								...getInputProps(fields.previewImageId, { type: 'text' }),
+								list: 'preview-image-options-edit',
+							}}
+							errors={fields.previewImageId.errors}
+						/>
+						<datalist id="preview-image-options-edit">
+							{images.map((image) => (
+								<option key={image.id} value={image.id}>
+									{image.title ?? image.id}
+								</option>
+							))}
+						</datalist>
+					</div>
+					<Field
+						labelProps={{
+							htmlFor: fields.slug.id,
+							children: 'Slug',
 						}}
 						inputProps={{
 							...getInputProps(fields.slug, { type: 'text' }),

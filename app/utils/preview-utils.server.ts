@@ -59,7 +59,9 @@ export async function invalidatePostCaches(
 	if (oldSlug) slugs.add(oldSlug)
 	if (newSlug) slugs.add(newSlug)
 	await Promise.all(
-		Array.from(slugs).map((slug) => cache.delete?.(internalPreviewCacheKey(slug))),
+		Array.from(slugs).map((slug) =>
+			cache.delete?.(internalPreviewCacheKey(slug)),
+		),
 	)
 
 	// Invalidate prior compiled MDX if available

@@ -31,7 +31,9 @@ export async function action({ request }: Route.ActionArgs) {
 
 	const clientIp = getClientIPAddress(request) ?? 'unknown'
 	const maxAttempts = Number(process.env.CONTACT_RATE_LIMIT_MAX ?? '0')
-	const windowMinutes = Number(process.env.CONTACT_RATE_LIMIT_WINDOW_MINUTES ?? '15')
+	const windowMinutes = Number(
+		process.env.CONTACT_RATE_LIMIT_WINDOW_MINUTES ?? '15',
+	)
 	if (maxAttempts > 0) {
 		assertRateLimit(`contact:${clientIp}`, {
 			max: maxAttempts,

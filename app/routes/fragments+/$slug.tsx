@@ -23,7 +23,9 @@ export const handle: SEOHandle & LinkPreviewHandle = {
 		})
 	}),
 	linkPreview: serverOnly$(async (context) => {
-		const { resolveFragmentLinkPreview } = await import('./$slug.preview.server.ts')
+		const { resolveFragmentLinkPreview } = await import(
+			'./$slug.preview.server.ts'
+		)
 		return resolveFragmentLinkPreview(context)
 	}),
 }

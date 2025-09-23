@@ -1,5 +1,8 @@
 import { matchPath } from 'react-router'
-import { type InternalLinkPreviewData, type LinkPreviewHandle } from './link-preview'
+import {
+	type InternalLinkPreviewData,
+	type LinkPreviewHandle,
+} from './link-preview'
 import { handle as fragmentSlugHandle } from '#app/routes/fragments+/$slug'
 import { handle as fragmentsIndexHandle } from '#app/routes/fragments+/_index'
 
@@ -45,7 +48,9 @@ export async function getInternalLinkPreviews(
 	paths: Array<string>,
 	request: Request,
 ): Promise<Record<string, InternalLinkPreviewData>> {
-	const uniquePaths = Array.from(new Set(paths.map((path) => (path.startsWith('/') ? path : `/${path}`))))
+	const uniquePaths = Array.from(
+		new Set(paths.map((path) => (path.startsWith('/') ? path : `/${path}`))),
+	)
 	const entries = await Promise.all(
 		uniquePaths.map(async (path) => {
 			const preview = await getInternalLinkPreview(path, request)
@@ -53,5 +58,7 @@ export async function getInternalLinkPreviews(
 		}),
 	)
 
-	return Object.fromEntries(entries.filter(Boolean) as Array<[string, InternalLinkPreviewData]>)
+	return Object.fromEntries(
+		entries.filter(Boolean) as Array<[string, InternalLinkPreviewData]>,
+	)
 }

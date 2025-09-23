@@ -31,8 +31,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		take: 3,
 	})
 
-	const fragmentPaths = recentFragments.map((fragment) => `/fragments/${fragment.slug}`)
-	const fragmentLinkPreviews = await getInternalLinkPreviews(fragmentPaths, request)
+	const fragmentPaths = recentFragments.map(
+		(fragment) => `/fragments/${fragment.slug}`,
+	)
+	const fragmentLinkPreviews = await getInternalLinkPreviews(
+		fragmentPaths,
+		request,
+	)
 	const siteHostname = new URL(request.url).hostname
 
 	// Fetch and cache link previews server-side for homepage
@@ -120,19 +125,22 @@ export default function Index() {
 			<ul className="my-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
 				{data.fragments.map((fragment) => {
 					const path = `/fragments/${fragment.slug}`
-					const preview =
-						data.fragmentLinkPreviews[path] ?? {
-							url: path,
-							title: fragment.title,
-							description: fragment.description,
-							domain: data.siteHostname,
-						}
+					const preview = data.fragmentLinkPreviews[path] ?? {
+						url: path,
+						title: fragment.title,
+						description: fragment.description,
+						domain: data.siteHostname,
+					}
 					const publishMeta = fragment.publishAt ? (
 						<Time time={fragment.publishAt.toDateString()} />
 					) : null
 					return (
 						<li key={fragment.title + fragment.slug}>
-							<InternalLinkPreview to={path} data={preview} meta={publishMeta} />
+							<InternalLinkPreview
+								to={path}
+								data={preview}
+								meta={publishMeta}
+							/>
 						</li>
 					)
 				})}
