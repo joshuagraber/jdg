@@ -95,7 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
 			})
 		}
 
-		return getPostImageSource(image.id)
+		return getPostImageSource(image.id, { relative: true })
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

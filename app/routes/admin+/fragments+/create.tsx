@@ -252,7 +252,9 @@ export default function NewPost() {
 						<label className="block text-sm font-medium">Content</label>
 						<div className="rounded-lg border border-input bg-background shadow-sm">
 							<MDXEditorComponent
-								images={images.map((image) => getPostImageSource(image.id))}
+								images={images.map((image) =>
+									getPostImageSource(image.id, { relative: true }),
+								)}
 								imageUploadHandler={handleImageUpload}
 								markdown={content}
 								onChange={setContent}

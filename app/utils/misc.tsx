@@ -6,9 +6,6 @@ import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
 
 function withAssetBase(path: string) {
-	if (path.startsWith('/resources/')) {
-		return path
-	}
 	if (typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL) {
 		const base = window.ENV.ASSET_BASE_URL.replace(/\/$/, '')
 		return `${base}${path.startsWith('/') ? '' : '/'}${path}`
@@ -39,12 +36,22 @@ export function getUserImgSrc(imageId?: string | null) {
 		: '/img/user.png'
 }
 
-export function getPostImageSource(imageId: string) {
-	return withAssetBase(`/resources/post-images/${imageId}`)
+export function getPostImageSource(
+	imageId: string,
+	options?: { relative?: boolean },
+) {
+	const path = `/resources/post-images/${imageId}`
+	if (options?.relative) return path
+	return withAssetBase(path)
 }
 
-export function getPostVideoSource(videoId: string) {
-	return withAssetBase(`/resources/post-videos/${videoId}`)
+export function getPostVideoSource(
+	videoId: string,
+	options?: { relative?: boolean },
+) {
+	const path = `/resources/post-videos/${videoId}`
+	if (options?.relative) return path
+	return withAssetBase(path)
 }
 
 export function getErrorMessage(error: unknown) {

@@ -314,7 +314,9 @@ export default function EditPost() {
 						<div className="rounded-lg border border-input bg-background shadow-sm">
 							<MDXEditorComponent
 								imageUploadHandler={handleImageUpload}
-								images={images.map((image) => getPostImageSource(image.id))}
+								images={images.map((image) =>
+									getPostImageSource(image.id, { relative: true }),
+								)}
 								markdown={content}
 								onChange={setContent}
 								diffSource={post.content}

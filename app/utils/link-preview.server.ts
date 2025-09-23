@@ -86,7 +86,8 @@ async function fetchHtml(url: string): Promise<string> {
 export function hasPreviewData(data: unknown): data is OpenGraphData {
 	if (!data || typeof data !== 'object') return false
 	const candidate = data as Partial<OpenGraphData>
-	const hasTitle = typeof candidate.title === 'string' && candidate.title.trim() !== ''
+	const hasTitle =
+		typeof candidate.title === 'string' && candidate.title.trim() !== ''
 	const hasDescription =
 		typeof candidate.description === 'string' &&
 		candidate.description.trim() !== ''

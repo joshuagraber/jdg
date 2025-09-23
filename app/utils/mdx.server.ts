@@ -8,7 +8,11 @@ import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
-import { getOpenGraphData, hasPreviewData, type OpenGraphData } from './link-preview.server.ts'
+import {
+	getOpenGraphData,
+	hasPreviewData,
+	type OpenGraphData,
+} from './link-preview.server.ts'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -111,7 +115,7 @@ const remarkInlinePreviewData: Plugin = () => {
 									throw new Error('No preview data available')
 								}
 								return result
-						},
+							},
 						})
 
 						const domainFromUrl = url.startsWith('data:')
