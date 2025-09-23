@@ -8,7 +8,7 @@ import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
-import { getOpenGraphData } from './link-preview.server.ts'
+import { getOpenGraphData, hasPreviewData } from './link-preview.server.ts'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -98,9 +98,29 @@ const remarkInlinePreviewData: Plugin = () => {
 							cache,
 							ttl: 1000 * 60 * 60 * 24, // 24h
 							swr: 1000 * 60 * 60 * 24 * 7, // 7d
-							async getFreshValue() {
-								return await getOpenGraphData(url)
+							fallbackToCache: 1000 * 60 * 60,
+							checkValue(value) {
+								return hasPreviewData(value)
+									? true
+									: 'Link preview missing essential fields'
 							},
+							async getFreshValue(context) {
+								const result = await getOpenGraphData(url)
+								if (!hasPreviewData(result)) {
+									context.metadata.ttl = 0
+									throw new Error('No preview data available')
+								}
+								return result
+							},
+						}).catch((error) => {
+							console.warn(
+								'Falling back to minimal link preview during MDX compilation',
+								{
+									url,
+									error,
+								},
+							)
+							return {}
 						})
 
 						const domainFromUrl = url.startsWith('data:')

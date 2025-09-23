@@ -1,11 +1,15 @@
 import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
+import { type LinkPreviewData } from '#app/components/link-preview.tsx'
 import { Spacer } from '#app/components/spacer'
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
-import { getOpenGraphData } from '#app/utils/link-preview.server.ts'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
+import {
+	getOpenGraphData,
+	hasPreviewData,
+} from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
 export const RECENT_PUBLICATIONS = [
@@ -43,24 +47,46 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	// Fetch and cache link previews server-side for homepage
 	const previews = await Promise.all(
 		RECENT_PUBLICATIONS.map(async (url) => {
-			const og = await cachified({
-				key: `link-preview:${url}`,
-				cache,
-				ttl: 1000 * 60 * 10, // 10 minutes
-				swr: 1000 * 60 * 60 * 24, // 24 hours
-				async getFreshValue() {
-					return await getOpenGraphData(url)
-				},
-			})
 			const domain = url.startsWith('data:')
 				? 'data-url'
 				: new URL(url).hostname
-			return {
-				url,
-				title: og.title,
-				description: og.description,
-				image: og.image,
-				domain,
+			try {
+				const og = await cachified({
+					key: `link-preview:${url}`,
+					cache,
+					ttl: 1000 * 60 * 10, // 10 minutes
+					swr: 1000 * 60 * 60 * 24, // 24 hours
+					fallbackToCache: 1000 * 60 * 60,
+					checkValue(value) {
+						return hasPreviewData(value as LinkPreviewData)
+							? true
+							: 'Link preview missing essential fields'
+					},
+					async getFreshValue(context) {
+						const result = await getOpenGraphData(url)
+						if (!hasPreviewData(result)) {
+							context.metadata.ttl = 0
+							throw new Error('No preview data available')
+						}
+						return result
+					},
+				})
+				return {
+					url,
+					title: og.title,
+					description: og.description,
+					image: og.image,
+					domain,
+				}
+			} catch (error) {
+				console.warn('Falling back to minimal link preview', { url, error })
+				return {
+					url,
+					title: undefined,
+					description: undefined,
+					image: undefined,
+					domain,
+				}
 			}
 		}),
 	)
