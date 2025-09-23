@@ -1,9 +1,9 @@
-import { type LinkPreviewData } from '#app/components/link-preview.tsx'
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import {
 	getOpenGraphData,
 	hasPreviewData,
-} from '#app/utils/link-preview.server'
+	type OpenGraphData,
+} from '#app/utils/link-preview.server.ts'
 import { type Route } from './+types/link-preview'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -23,14 +23,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 		const hostname = url.startsWith('data:')
 			? 'data-url'
 			: new URL(url).hostname
-		const ogData = await cachified({
+		const ogData = await cachified<OpenGraphData>({
 			key: `link-preview:${url}`,
 			cache,
 			ttl: 1000 * 60 * 10, // 10 minutes
 			swr: 1000 * 60 * 60 * 24, // 24 hours
 			fallbackToCache: 1000 * 60 * 60, // allow fallback to cached value for 1 hour
 			checkValue(value) {
-				return hasPreviewData(value as LinkPreviewData)
+				return hasPreviewData(value)
 					? true
 					: 'Link preview missing essential fields'
 			},

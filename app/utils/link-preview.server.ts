@@ -83,10 +83,16 @@ async function fetchHtml(url: string): Promise<string> {
 		: new Error('Unknown error fetching HTML')
 }
 
-export function hasPreviewData(data: OpenGraphData) {
-	return Boolean(
-		data.title?.trim() || data.description?.trim() || data.image?.trim(),
-	)
+export function hasPreviewData(data: unknown): data is OpenGraphData {
+	if (!data || typeof data !== 'object') return false
+	const candidate = data as Partial<OpenGraphData>
+	const hasTitle = typeof candidate.title === 'string' && candidate.title.trim() !== ''
+	const hasDescription =
+		typeof candidate.description === 'string' &&
+		candidate.description.trim() !== ''
+	const hasImage =
+		typeof candidate.image === 'string' && candidate.image.trim() !== ''
+	return hasTitle || hasDescription || hasImage
 }
 
 export async function getOpenGraphData(url: string): Promise<OpenGraphData> {

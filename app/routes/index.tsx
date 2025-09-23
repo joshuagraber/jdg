@@ -1,7 +1,6 @@
 import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
-import { type LinkPreviewData } from '#app/components/link-preview.tsx'
 import { Spacer } from '#app/components/spacer'
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
@@ -9,6 +8,7 @@ import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.serve
 import {
 	getOpenGraphData,
 	hasPreviewData,
+	type OpenGraphData,
 } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
@@ -51,17 +51,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				? 'data-url'
 				: new URL(url).hostname
 			try {
-				const og = await cachified({
-					key: `link-preview:${url}`,
-					cache,
-					ttl: 1000 * 60 * 10, // 10 minutes
-					swr: 1000 * 60 * 60 * 24, // 24 hours
-					fallbackToCache: 1000 * 60 * 60,
-					checkValue(value) {
-						return hasPreviewData(value as LinkPreviewData)
-							? true
-							: 'Link preview missing essential fields'
-					},
+					const og = await cachified<OpenGraphData>({
+						key: `link-preview:${url}`,
+						cache,
+						ttl: 1000 * 60 * 10, // 10 minutes
+						swr: 1000 * 60 * 60 * 24, // 24 hours
+						fallbackToCache: 1000 * 60 * 60,
+						checkValue(value) {
+							return hasPreviewData(value)
+								? true
+								: 'Link preview missing essential fields'
+						},
 					async getFreshValue(context) {
 						const result = await getOpenGraphData(url)
 						if (!hasPreviewData(result)) {
