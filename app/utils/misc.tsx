@@ -6,6 +6,9 @@ import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
 
 function withAssetBase(path: string) {
+	if (path.startsWith('/resources/')) {
+		return path
+	}
 	if (typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL) {
 		const base = window.ENV.ASSET_BASE_URL.replace(/\/$/, '')
 		return `${base}${path.startsWith('/') ? '' : '/'}${path}`
