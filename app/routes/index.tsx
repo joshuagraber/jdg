@@ -1,9 +1,11 @@
-import { useLoaderData, Link } from 'react-router'
+import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
+import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
 import { getOpenGraphData } from '#app/utils/link-preview.server.ts'
+import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
 import { Time } from './fragments+/__time'
 
 export const RECENT_PUBLICATIONS = [
@@ -15,7 +17,7 @@ export const RECENT_PUBLICATIONS = [
 	'https://www.mrbullbull.com/newbull/fiction/metaphors-toward-__________________',
 ]
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const recentFragments = await prisma.post.findMany({
 		where: {
 			publishAt: {
@@ -28,6 +30,10 @@ export async function loader() {
 		},
 		take: 3,
 	})
+
+	const fragmentPaths = recentFragments.map((fragment) => `/fragments/${fragment.slug}`)
+	const fragmentLinkPreviews = await getInternalLinkPreviews(fragmentPaths, request)
+	const siteHostname = new URL(request.url).hostname
 
 	// Fetch and cache link previews server-side for homepage
 	const previews = await Promise.all(
@@ -58,6 +64,8 @@ export async function loader() {
 		fragments: recentFragments,
 		recentPubs: RECENT_PUBLICATIONS,
 		previews,
+		fragmentLinkPreviews,
+		siteHostname,
 	}
 }
 
@@ -109,24 +117,26 @@ export default function Index() {
 			<Spacer size="3xs" />
 			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
-
-			<ol className="my-4 grid list-decimal grid-cols-1 gap-x-2 space-y-2 pl-6 md:grid-cols-2 md:gap-x-8 lg:grid-cols-3">
-				{data.fragments.map(({ title, description, slug, publishAt }) => {
+			<ul className="my-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+				{data.fragments.map((fragment) => {
+					const path = `/fragments/${fragment.slug}`
+					const preview =
+						data.fragmentLinkPreviews[path] ?? {
+							url: path,
+							title: fragment.title,
+							description: fragment.description,
+							domain: data.siteHostname,
+						}
+					const publishMeta = fragment.publishAt ? (
+						<Time time={fragment.publishAt.toDateString()} />
+					) : null
 					return (
-						<li key={title + slug} className="display-list-item">
-							<Link
-								prefetch="intent"
-								to={`/fragments/${slug}`}
-								className="flex flex-col no-underline hover:underline"
-							>
-								<h4>{title}</h4>
-								{description && <p>{description}</p>}
-								{publishAt && <Time time={publishAt.toDateString()} />}
-							</Link>
+						<li key={fragment.title + fragment.slug}>
+							<InternalLinkPreview to={path} data={preview} meta={publishMeta} />
 						</li>
 					)
 				})}
-			</ol>
+			</ul>
 			<Spacer size="3xs" />
 			<h3>Some recent publications</h3>
 			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">

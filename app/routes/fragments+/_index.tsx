@@ -4,6 +4,7 @@ import { Link, useLoaderData, useLocation } from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { prisma } from '#app/utils/db.server'
+import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
 import { type Route } from './+types/_index'
@@ -11,6 +12,19 @@ import { PaginationBar } from './__pagination-bar'
 import { Time } from './__time'
 
 export const POSTS_PER_PAGE = 5
+const FRAGMENTS_DESCRIPTION = 'Collection of fragments and short posts'
+
+export const handle: LinkPreviewHandle = {
+	async linkPreview({ request }) {
+		const url = new URL(request.url)
+		return {
+			url: '/fragments',
+			title: 'Fragments | Joshua D. Graber',
+			description: FRAGMENTS_DESCRIPTION,
+			domain: url.hostname,
+		}
+	},
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
 	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
@@ -67,12 +81,12 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 		{
 			name: 'description',
 			property: 'description',
-			content: 'Collection of fragments and short posts',
+			content: FRAGMENTS_DESCRIPTION,
 		},
 		{
 			name: 'og:description',
 			property: 'og:description',
-			content: 'Collection of fragments and short posts',
+			content: FRAGMENTS_DESCRIPTION,
 		},
 		{
 			property: 'og:title',

@@ -9,15 +9,21 @@ import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { prisma } from '#app/utils/db.server'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
+import { type LinkPreviewHandle } from '#app/utils/link-preview'
+import { getPostImageSource } from '#app/utils/misc.tsx'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
 
-export const handle: SEOHandle = {
+export const handle: SEOHandle & LinkPreviewHandle = {
 	getSitemapEntries: serverOnly$(async (_request) => {
 		const fragments = await prisma.post.findMany()
 		return fragments.map((post) => {
 			return { route: `/fragments/${post.slug}`, priority: 0.7 }
 		})
+	}),
+	linkPreview: serverOnly$(async (context) => {
+		const { resolveFragmentLinkPreview } = await import('./$slug.preview.server.ts')
+		return resolveFragmentLinkPreview(context)
 	}),
 }
 
@@ -34,14 +40,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 			title: true,
 			description: true,
 			slug: true,
+			previewImageId: true,
 		},
 	})
 
 	invariantResponse(post, 'Not found', { status: 404 })
 
 	const { code } = await compileMDX(post.content, { title: post.title })
+	const previewImageUrl = post.previewImageId
+		? getPostImageSource(post.previewImageId)
+		: null
 
-	return { post, code, ogURL: url }
+	return { post, code, ogURL: url, previewImageUrl }
 }
 
 export const meta: Route.MetaFunction = ({ data, matches }) => {
@@ -55,6 +65,10 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 	}
 
 	const { post } = data
+	const imageUrl = data.previewImageUrl
+	const absoluteImageUrl = imageUrl
+		? new URL(imageUrl, data.ogURL).toString()
+		: null
 
 	return mergeMeta(parentMeta, [
 		{ title: `${post.title} | Joshua D. Graber` },
@@ -75,6 +89,18 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 			name: 'og:url',
 			content: data?.ogURL.toString(),
 		},
+		...(absoluteImageUrl
+			? [
+					{ property: 'og:image', name: 'og:image', content: absoluteImageUrl },
+					{
+						property: 'og:image:alt',
+						name: 'og:image:alt',
+						content: post.title,
+					},
+					{ name: 'twitter:card', content: 'summary_large_image' },
+					{ name: 'twitter:image', content: absoluteImageUrl },
+				]
+			: []),
 	])
 }
 

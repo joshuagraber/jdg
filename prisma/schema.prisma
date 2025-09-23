@@ -34,6 +34,9 @@ model Post {
   slug        String  @unique
   content     String
   description String?
+  previewTitle       String?
+  previewDescription String?
+  previewImageId     String?
 
   createdAt DateTime  @default(now())
   publishAt DateTime?

@@ -19,6 +19,8 @@ export async function action({ request }: ActionFunctionArgs) {
 		existing?.content ?? undefined,
 		undefined,
 		existing?.title ?? undefined,
+		undefined,
+		existing?.slug ?? undefined,
 	)
 
 	return deleted

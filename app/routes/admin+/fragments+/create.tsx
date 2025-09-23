@@ -16,7 +16,7 @@ import {
 	useLoaderData,
 	useNavigation,
 } from 'react-router'
-import { Field, ErrorList } from '#app/components/forms'
+import { Field, ErrorList, TextareaField } from '#app/components/forms'
 import { MDXEditorComponent } from '#app/components/mdx/editor.tsx'
 import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
@@ -79,14 +79,26 @@ export async function action({ request }: Route.ActionArgs) {
 		)
 	}
 
-	const { title, content, description, publishAt, slug } = submission.value
+	const {
+		title,
+		content,
+		description,
+		publishAt,
+		slug,
+		previewTitle,
+		previewDescription,
+		previewImageId,
+	} = submission.value
 
 	const publishAtWithTimezone = publishAt
 		? fromZonedTime(publishAt, timeZone)
 		: null
+	const normalizedPreviewTitle = previewTitle?.trim() ?? null
+	const normalizedPreviewDescription = previewDescription?.trim() ?? null
+	const normalizedPreviewImageId = previewImageId?.trim() ?? null
 
 	try {
-		const created = await prisma.post.create({
+		await prisma.post.create({
 			data: {
 				title,
 				content,
@@ -94,8 +106,11 @@ export async function action({ request }: Route.ActionArgs) {
 				slug: makePostSlug(title, slug),
 				publishAt: publishAtWithTimezone,
 				authorId,
+				previewTitle: normalizedPreviewTitle,
+				previewDescription: normalizedPreviewDescription,
+				previewImageId: normalizedPreviewImageId,
 			},
-		})
+		} as any)
 
 		// Warm compiled MDX & inline previews (non-blocking)
 		void compileMDX(content, { title })
@@ -163,20 +178,58 @@ export default function NewPost() {
 						}}
 						errors={fields.title.errors}
 					/>
+				<Field
+					labelProps={{
+						htmlFor: fields.description.id,
+						children: 'Description',
+					}}
+					inputProps={{
+						...getInputProps(fields.description, { type: 'text' }),
+					}}
+					errors={fields.description.errors}
+				/>
+				<Field
+					labelProps={{
+						htmlFor: fields.previewTitle.id,
+						children: 'Link preview title (optional)',
+					}}
+					inputProps={{
+						...getInputProps(fields.previewTitle, { type: 'text' }),
+					}}
+					errors={fields.previewTitle.errors}
+				/>
+				<TextareaField
+					labelProps={{
+						htmlFor: fields.previewDescription.id,
+						children: 'Link preview description (optional)',
+					}}
+					textareaProps={getTextareaProps(fields.previewDescription)}
+					errors={fields.previewDescription.errors}
+				/>
+				<div>
 					<Field
 						labelProps={{
-							htmlFor: fields.description.id,
-							children: 'Description',
+							htmlFor: fields.previewImageId.id,
+							children: 'Link preview image ID (optional)',
 						}}
 						inputProps={{
-							...getInputProps(fields.description, { type: 'text' }),
+							...getInputProps(fields.previewImageId, { type: 'text' }),
+							list: 'preview-image-options',
 						}}
-						errors={fields.description.errors}
+						errors={fields.previewImageId.errors}
 					/>
-					<Field
-						labelProps={{
-							htmlFor: fields.slug.id,
-							children: 'Slug (optional - defaults to kebab-cased title)',
+					<datalist id="preview-image-options">
+						{images.map((image) => (
+							<option key={image.id} value={image.id}>
+								{image.title ?? image.id}
+							</option>
+						))}
+					</datalist>
+				</div>
+				<Field
+					labelProps={{
+						htmlFor: fields.slug.id,
+						children: 'Slug (optional - defaults to kebab-cased title)',
 						}}
 						inputProps={{
 							...getInputProps(fields.slug, { type: 'text' }),
