@@ -3,9 +3,8 @@ import { default as defaultConfig } from '@epic-web/config/eslint'
 /** @type {import("eslint").Linter.Config} */
 export default [
 	...defaultConfig,
-	// TODO: ignore gitignored files by default
-	{ ignores: ['.react-router/**', '.ignored/**'] },
 	// add custom config objects here:
+	{ ignores: ['.react-router/**', '.ignored/**'] }, 	// TODO: ignore gitignored files by default
 	{
 		files: ['**/tests/**/*.ts'],
 		ignores: [
