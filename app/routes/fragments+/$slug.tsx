@@ -10,6 +10,7 @@ import { prisma } from '#app/utils/db.server'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
+import { toAbsoluteUrl } from '#app/utils/misc.tsx'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
@@ -66,9 +67,7 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 
 	const { post } = data
 	const imageUrl = data.previewImageUrl
-	const absoluteImageUrl = imageUrl
-		? new URL(imageUrl, data.ogURL).toString()
-		: null
+	const absoluteImageUrl = toAbsoluteUrl(imageUrl, data.ogURL)
 
 	return mergeMeta(parentMeta, [
 		{ title: `${post.title} | Joshua D. Graber` },
