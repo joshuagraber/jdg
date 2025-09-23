@@ -16,6 +16,23 @@ function withAssetBase(path: string) {
 	return path
 }
 
+export function toAbsoluteUrl(
+	url: string | URL | null | undefined,
+	base: string | URL | null | undefined,
+): string | null {
+	if (!url || !base) return null
+	try {
+		const baseUrl = base instanceof URL ? base : new URL(base)
+		const resolved = url instanceof URL ? url : new URL(url, baseUrl)
+		return resolved.toString()
+	} catch (error) {
+		if (process.env.NODE_ENV === 'development') {
+			console.debug('Failed to construct absolute URL', { url, base, error })
+		}
+		return null
+	}
+}
+
 export function getUserImgSrc(imageId?: string | null) {
 	return imageId
 		? withAssetBase(`/resources/user-images/${imageId}`)
@@ -80,12 +97,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getDomainUrl(request: Request) {
-	const host =
+	let host =
 		request.headers.get('X-Forwarded-Host') ??
 		request.headers.get('host') ??
-		new URL(request.url).host
+		undefined
+	if (!host) {
+		try {
+			host = new URL(request.url).host
+		} catch {
+			host = undefined
+		}
+	}
 	const protocol = request.headers.get('X-Forwarded-Proto') ?? 'http'
-	return `${protocol}://${host}`
+	const finalHost = host ?? 'localhost'
+	return `${protocol}://${finalHost}`
 }
 
 export function getReferrerRoute(request: Request) {
