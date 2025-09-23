@@ -1,10 +1,10 @@
 import { matchPath } from 'react-router'
+import { handle as fragmentSlugHandle } from '#app/routes/fragments+/$slug'
+import { handle as fragmentsIndexHandle } from '#app/routes/fragments+/_index'
 import {
 	type InternalLinkPreviewData,
 	type LinkPreviewHandle,
 } from './link-preview'
-import { handle as fragmentSlugHandle } from '#app/routes/fragments+/$slug'
-import { handle as fragmentsIndexHandle } from '#app/routes/fragments+/_index'
 
 const linkPreviewRoutes: Array<{ path: string; handle: LinkPreviewHandle }> = [
 	{ path: '/fragments/:slug', handle: fragmentSlugHandle },

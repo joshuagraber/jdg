@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router'
+import  { type InternalLinkPreviewData } from '#app/utils/link-preview'
 import { cn } from '#app/utils/misc.tsx'
-import type { InternalLinkPreviewData } from '#app/utils/link-preview'
 
 interface InternalLinkPreviewProps {
 	to: string
