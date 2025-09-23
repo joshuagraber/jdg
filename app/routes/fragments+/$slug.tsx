@@ -43,6 +43,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 			description: true,
 			slug: true,
 			previewImageId: true,
+			previewImage: {
+				select: { s3Key: true },
+			},
 		},
 	})
 
@@ -50,7 +53,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 	const { code } = await compileMDX(post.content, { title: post.title })
 	const previewImageUrl = post.previewImageId
-		? getPostImageSource(post.previewImageId)
+		? getPostImageSource(post.previewImageId, {
+				s3Key: post.previewImage?.s3Key ?? null,
+			})
 		: null
 
 	return { post, code, ogURL: url, previewImageUrl }

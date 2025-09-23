@@ -31,6 +31,9 @@ export async function resolveFragmentLinkPreview({
 					previewTitle: true,
 					previewDescription: true,
 					previewImageId: true,
+					previewImage: {
+						select: { s3Key: true },
+					},
 				},
 			})
 
@@ -42,7 +45,9 @@ export async function resolveFragmentLinkPreview({
 			const previewTitle = post.previewTitle ?? post.title
 			const previewDescription = post.previewDescription ?? post.description
 			const image = post.previewImageId
-				? getPostImageSource(post.previewImageId)
+				? getPostImageSource(post.previewImageId, {
+						s3Key: post.previewImage?.s3Key ?? null,
+					})
 				: null
 
 			return {

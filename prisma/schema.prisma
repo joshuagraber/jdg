@@ -37,6 +37,7 @@ model Post {
   previewTitle       String?
   previewDescription String?
   previewImageId     String?
+  previewImage       PostImage? @relation(fields: [previewImageId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now())
   publishAt DateTime?
@@ -58,6 +59,8 @@ model PostImage {
   s3Key       String
   width       Int?
   height      Int?
+
+  posts Post[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

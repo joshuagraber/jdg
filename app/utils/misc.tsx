@@ -5,12 +5,13 @@ import { useSpinDelay } from 'spin-delay'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
 
-function withAssetBase(path: string) {
-	if (typeof window !== 'undefined' && window.ENV?.ASSET_BASE_URL) {
-		const base = window.ENV.ASSET_BASE_URL.replace(/\/$/, '')
-		return `${base}${path.startsWith('/') ? '' : '/'}${path}`
-	}
-	return path
+function getAssetBaseUrl() {
+	const rawBase =
+		typeof window !== 'undefined'
+			? window.ENV?.ASSET_BASE_URL
+			: process.env.ASSET_BASE_URL
+	if (!rawBase) return null
+	return rawBase.replace(/\/$/, '')
 }
 
 export function toAbsoluteUrl(
@@ -31,27 +32,45 @@ export function toAbsoluteUrl(
 }
 
 export function getUserImgSrc(imageId?: string | null) {
-	return imageId
-		? withAssetBase(`/resources/user-images/${imageId}`)
-		: '/img/user.png'
+	return imageId ? `/resources/user-images/${imageId}` : '/img/user.png'
+}
+
+type AssetSourceOptions = {
+	relative?: boolean
+	s3Key?: string | null
+}
+
+function buildCdnUrlFromKey(key?: string | null) {
+	if (!key) return null
+	const base = getAssetBaseUrl()
+	if (!base) return null
+	return `${base}/${key.replace(/^\/+/, '')}`
 }
 
 export function getPostImageSource(
 	imageId: string,
-	options?: { relative?: boolean },
+	options?: AssetSourceOptions,
 ) {
+	if (!options?.relative) {
+		const cdnUrl = buildCdnUrlFromKey(options?.s3Key)
+		if (cdnUrl) return cdnUrl
+	}
+
 	const path = `/resources/post-images/${imageId}`
-	if (options?.relative) return path
-	return withAssetBase(path)
+	return path
 }
 
 export function getPostVideoSource(
 	videoId: string,
-	options?: { relative?: boolean },
+	options?: AssetSourceOptions,
 ) {
+	if (!options?.relative) {
+		const cdnUrl = buildCdnUrlFromKey(options?.s3Key)
+		if (cdnUrl) return cdnUrl
+	}
+
 	const path = `/resources/post-videos/${videoId}`
-	if (options?.relative) return path
-	return withAssetBase(path)
+	return path
 }
 
 export function getErrorMessage(error: unknown) {
