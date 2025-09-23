@@ -77,8 +77,8 @@ export async function action({ request }: Route.ActionArgs) {
 			data: {
 				s3Key: key,
 				contentType: file.type,
-				altText: formData.get('altText') as string,
-				title: formData.get('title') as string,
+				altText,
+				title,
 				width: width ?? null,
 				height: height ?? null,
 			},

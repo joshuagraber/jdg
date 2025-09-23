@@ -38,7 +38,7 @@ export async function loader({ request }: { request: Request }) {
 					compiled++
 				} catch (e) {
 					// swallow; prewarm shouldn't fail the app
-					// console.warn('prewarm error', current.slug, e)
+					console.warn('prewarm error', current.slug, e)
 				}
 			}
 		}

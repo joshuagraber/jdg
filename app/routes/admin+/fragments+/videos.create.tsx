@@ -2,7 +2,6 @@ import { data } from 'react-router'
 import { prisma } from '#app/utils/db.server.ts'
 import { getPostVideoSource } from '#app/utils/misc.tsx'
 import { requireUserWithRole } from '#app/utils/permissions.server.ts'
-import { fileToBlob } from '#app/utils/post-images.server'
 import {
 	getSignedUploadUrl,
 	IMMUTABLE_CACHE_CONTROL,

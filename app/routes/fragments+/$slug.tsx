@@ -10,7 +10,7 @@ import { prisma } from '#app/utils/db.server'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
-import { toAbsoluteUrl, getPostImageSource  } from '#app/utils/misc.tsx'
+import { toAbsoluteUrl, getPostImageSource } from '#app/utils/misc.tsx'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
 
