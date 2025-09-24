@@ -77,20 +77,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 					}
 					return result
 				},
-			})
-				.then((og) => ({
-					url,
-					title: og.title,
-					description: og.description,
-					image: og.image,
-					domain,
-				}))
+			}).then((og) => ({
+				url,
+				title: og.title,
+				description: og.description,
+				image: og.image,
+				domain,
+			}))
 			let timeoutId: ReturnType<typeof setTimeout> | null = null
 			try {
 				const result = await Promise.race([
-					previewPromise.then((value) => ({ status: 'success' as const, value })),
+					previewPromise.then((value) => ({
+						status: 'success' as const,
+						value,
+					})),
 					new Promise<{ status: 'timeout' }>((resolve) => {
-						timeoutId = setTimeout(() => resolve({ status: 'timeout' }), MAX_PREVIEW_WAIT_MS)
+						timeoutId = setTimeout(
+							() => resolve({ status: 'timeout' }),
+							MAX_PREVIEW_WAIT_MS,
+						)
 					}),
 				])
 				if (timeoutId) clearTimeout(timeoutId)
@@ -130,8 +135,8 @@ export default function Index() {
 				Hi I&apos;m Joshua. I currently work as a writer, editor, and software
 				engineer, with a career that has spanned writing, tech, and education.
 				Along the way, I&apos;ve also worked as a professor, activist, tutor,
-				bartender, landscaper, farm worker, and dishwasher. 
-			<Spacer size="4xs" />
+				bartender, landscaper, farm worker, and dishwasher.
+				<Spacer size="4xs" />
 			</p>
 			<Spacer size="2xs" />
 			{/* Writing */}
@@ -165,7 +170,7 @@ export default function Index() {
 			<Spacer size="3xs" />
 			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
-			<ul className="my-4 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
+			<ul className="my-4 flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
 				{data.fragments.map((fragment) => {
 					const path = `/fragments/${fragment.slug}`
 					const preview = data.fragmentLinkPreviews[path] ?? {
@@ -182,7 +187,7 @@ export default function Index() {
 							<InternalLinkPreview
 								to={path}
 								data={preview}
-								className="max-w-3xl"
+								className="w-full max-w-3xl"
 								meta={publishMeta}
 							/>
 						</li>
@@ -191,11 +196,11 @@ export default function Index() {
 			</ul>
 			<Spacer size="3xs" />
 			<h3>Recent publications</h3>
-				<Spacer size="5xs" />
-			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
+			<Spacer size="5xs" />
+			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
 				{data.previews.map((p) => (
 					<li key={p.url}>
-						<LinkPreviewStatic className="max-w-3xl" {...p} />
+						<LinkPreviewStatic className="w-full max-w-3xl" {...p} />
 					</li>
 				))}
 			</ul>

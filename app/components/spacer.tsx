@@ -29,7 +29,7 @@ export function Spacer({
 	 * 4xl: h-44 (176px)
 	 */
 	size:
-	  | '5xs'
+		| '5xs'
 		| '4xs'
 		| '3xs'
 		| '2xs'

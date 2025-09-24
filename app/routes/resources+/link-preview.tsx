@@ -52,7 +52,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 		const result = await Promise.race([
 			ogPromise.then((data) => ({ status: 'success' as const, data })),
 			new Promise<{ status: 'timeout' }>((resolve) => {
-				timeoutId = setTimeout(() => resolve({ status: 'timeout' }), MAX_PREVIEW_WAIT_MS)
+				timeoutId = setTimeout(
+					() => resolve({ status: 'timeout' }),
+					MAX_PREVIEW_WAIT_MS,
+				)
 			}),
 		])
 		if (timeoutId) clearTimeout(timeoutId)

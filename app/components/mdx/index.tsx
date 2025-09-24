@@ -1,3 +1,4 @@
+import { LinkPreview } from '../link-preview'
 import { LinkPreviewStatic } from '../link-preview-static'
 import { MdxImage } from '../mdx-image'
 import { YouTubeEmbed } from './youtube'
@@ -7,6 +8,7 @@ type MDXComponents = {
 	LinkPreviewStatic: (
 		props: React.ComponentProps<typeof LinkPreviewStatic>,
 	) => JSX.Element
+	LinkPreview: (props: React.ComponentProps<typeof LinkPreview>) => JSX.Element
 	MdxImage: (props: React.ComponentProps<typeof MdxImage>) => JSX.Element
 	// Back-compat for previously compiled content/components
 	ClientOnlyImage: (props: React.ComponentProps<typeof MdxImage>) => JSX.Element
@@ -18,6 +20,7 @@ export const mdxComponents: MDXComponents = {
 		return <YouTubeEmbed id={id} />
 	},
 	LinkPreviewStatic: (props) => <LinkPreviewStatic {...props} />,
+	LinkPreview: (props) => <LinkPreview {...props} />,
 	MdxImage: (props) => <MdxImage {...props} />,
 	ClientOnlyImage: (props) => <MdxImage {...props} />,
 } as const

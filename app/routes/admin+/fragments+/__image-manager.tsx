@@ -21,7 +21,8 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 	const imageCreateFetcher = useFetcher<typeof imageCreateAction>()
 
 	const handleCopyMarkdown = async (image: Image) => {
-		const path = getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+		const path =
+			getPostImageSource(image.id, { s3Key: image.s3Key }) ??
 			getPostImageSource(image.id, { relative: true }) ??
 			`/resources/post-images/${image.id}`
 		const markdown = `![${image.altText}](${path}${image.title ? ` "${image.title}"` : ''})`
@@ -129,7 +130,10 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 							/>
 						</div>
 
-						<p className="font-mono text-xs text-muted-foreground" aria-label={`Resource ID ${image.id}`}>
+						<p
+							className="font-mono text-xs text-muted-foreground"
+							aria-label={`Resource ID ${image.id}`}
+						>
 							Resource ID: {image.id}
 						</p>
 
