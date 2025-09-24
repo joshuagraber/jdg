@@ -36,36 +36,53 @@ export function extractPreviewUrls(markdown: string): string[] {
 	return Array.from(urls)
 }
 
+async function deleteCacheKey(key: string) {
+	if (typeof cache.delete !== 'function') return
+	try {
+		await cache.delete(key)
+	} catch (error) {
+		if (process.env.NODE_ENV !== 'production') {
+			console.debug('Failed to delete cache key', { key, error })
+		}
+	}
+}
+
 export async function invalidatePostCaches(
 	oldContent?: string,
 	newContent?: string,
 	oldTitle?: string,
-	newTitle?: string,
+	_newTitle?: string,
 	oldSlug?: string,
 	newSlug?: string,
 ) {
-	const urls = new Set<string>([
-		...(oldContent ? extractPreviewUrls(oldContent) : []),
-		...(newContent ? extractPreviewUrls(newContent) : []),
-	])
+	const oldUrls = new Set(oldContent ? extractPreviewUrls(oldContent) : [])
+	const newUrls = new Set(newContent ? extractPreviewUrls(newContent) : [])
 
-	// Invalidate link preview cache entries
-	await Promise.all(
-		Array.from(urls).map((u) => cache.delete?.(`link-preview:${u}`)),
-	)
+	// Only remove preview cache entries that no longer exist in the post.
+	const removedUrls = Array.from(oldUrls).filter((url) => !newUrls.has(url))
+	if (removedUrls.length > 0) {
+		await Promise.all(
+			removedUrls.map((url) => deleteCacheKey(`link-preview:${url}`)),
+		)
+	}
 
-	// Invalidate internal link preview cache entries for this slug
+	// Internal preview cache entries should always be invalidated so the
+	// homepage/module listings pick up edits like title/description changes.
 	const slugs = new Set<string>()
 	if (oldSlug) slugs.add(oldSlug)
 	if (newSlug) slugs.add(newSlug)
-	await Promise.all(
-		Array.from(slugs).map((slug) =>
-			cache.delete?.(internalPreviewCacheKey(slug)),
-		),
-	)
+	if (slugs.size > 0) {
+		await Promise.all(
+			Array.from(slugs).map((slug) =>
+				deleteCacheKey(internalPreviewCacheKey(slug)),
+			),
+		)
+	}
 
-	// Invalidate prior compiled MDX if available
-	if (oldContent) {
-		await cache.delete?.(mdxCacheKeyFor(oldContent, oldTitle))
+	// MDX compilation cache keys are content-hashed, so new content gets a
+	// brand-new cache entry automatically. Keeping the old entry avoids a
+	// forced recompile while the stale-while-revalidate job catches up.
+	if (oldContent && oldTitle) {
+		void deleteCacheKey(mdxCacheKeyFor(oldContent, oldTitle))
 	}
 }

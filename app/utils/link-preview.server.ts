@@ -13,9 +13,9 @@ const ogSchema = z.object({
 
 export type OpenGraphData = z.infer<typeof ogSchema>
 
-const DEFAULT_FETCH_TIMEOUT_MS = 15000
-const READ_TIMEOUT_MS = 10000
-const MAX_FETCH_ATTEMPTS = 2
+const DEFAULT_FETCH_TIMEOUT_MS = 5000
+const READ_TIMEOUT_MS = 4000
+const MAX_FETCH_ATTEMPTS = 1
 const RETRY_DELAY_BASE_MS = 500
 
 const fetchWithTimeout = async (
@@ -94,6 +94,30 @@ export function hasPreviewData(data: unknown): data is OpenGraphData {
 	const hasImage =
 		typeof candidate.image === 'string' && candidate.image.trim() !== ''
 	return hasTitle || hasDescription || hasImage
+}
+
+function isAbortError(error: unknown) {
+	if (!error) return false
+	if (error instanceof DOMException) {
+		return error.name === 'AbortError'
+	}
+	if (error instanceof Error) {
+		return error.name === 'AbortError'
+	}
+	return false
+}
+
+function buildFallbackPreview(url: string): OpenGraphData {
+	try {
+		const parsed = new URL(url)
+		const hostname = parsed.hostname || parsed.href
+		return {
+			title: hostname,
+			description: parsed.href,
+		}
+	} catch {
+		return { title: url }
+	}
 }
 
 export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
@@ -191,7 +215,12 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 			sanitized['image:alt'] = parsed['image:alt'].trim()
 		return sanitized
 	} catch (e) {
-		console.error('Error in getOpenGraphData:', { url }, e)
-		return {}
+		const fallback = buildFallbackPreview(url)
+		if (isAbortError(e)) {
+			console.warn('Link preview request timed out', { url })
+		} else {
+			console.error('Error in getOpenGraphData:', { url }, e)
+		}
+		return fallback
 	}
 }

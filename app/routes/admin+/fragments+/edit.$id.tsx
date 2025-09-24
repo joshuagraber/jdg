@@ -51,6 +51,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 				id: true,
 				altText: true,
 				title: true,
+				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		}),
@@ -314,8 +315,11 @@ export default function EditPost() {
 						<div className="rounded-lg border border-input bg-background shadow-sm">
 							<MDXEditorComponent
 								imageUploadHandler={handleImageUpload}
-								images={images.map((image) =>
-									getPostImageSource(image.id, { relative: true }),
+								images={images.map(
+									(image) =>
+										getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+										getPostImageSource(image.id, { relative: true }) ??
+										`/resources/post-images/${image.id}`,
 								)}
 								markdown={content}
 								onChange={setContent}

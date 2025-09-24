@@ -85,100 +85,122 @@ const remarkYoutube: Plugin = () => {
 	}
 }
 
+const INLINE_PREVIEW_CONCURRENCY = 4
+
 const remarkInlinePreviewData: Plugin = () => {
 	return async (tree) => {
-		const tasks: Array<Promise<void>> = []
+		const tasks: Array<() => Promise<void>> = []
 		visit(tree, (node: Node<Data>) => {
 			if (!(isDirectiveNode(node) && node.name === 'preview')) return
 
 			const url = node.attributes?.url || node.attributes?.['#']
 			if (!url || typeof url !== 'string') return
 
-			tasks.push(
-				(async () => {
-					try {
-						const og = await cachified<OpenGraphData>({
-							key: `link-preview:${url}`,
-							cache,
-							ttl: 1000 * 60 * 60 * 24, // 24h
-							swr: 1000 * 60 * 60 * 24 * 7, // 7d
-							fallbackToCache: 1000 * 60 * 60,
-							checkValue(value) {
-								return hasPreviewData(value)
-									? true
-									: 'Link preview missing essential fields'
-							},
-							async getFreshValue(context) {
-								const result = await getOpenGraphData(url)
-								if (!hasPreviewData(result)) {
-									context.metadata.ttl = 0
-									throw new Error('No preview data available')
+			tasks.push(async () => {
+				try {
+					const og = await cachified<OpenGraphData>({
+						key: `link-preview:${url}`,
+						cache,
+						ttl: 1000 * 60 * 60 * 24, // 24h
+						swr: 1000 * 60 * 60 * 24 * 7, // 7d
+						fallbackToCache: 1000 * 60 * 60,
+						checkValue(value) {
+							return hasPreviewData(value)
+								? true
+								: 'Link preview missing essential fields'
+						},
+						async getFreshValue(context) {
+							const result = await getOpenGraphData(url)
+							if (!hasPreviewData(result)) {
+								context.metadata.ttl = 0
+								throw new Error('No preview data available')
+							}
+							return result
+						},
+					})
+
+					const domainFromUrl = url.startsWith('data:')
+						? 'data-url'
+						: new URL(url).hostname
+
+					const attrTitle = node.attributes?.title
+					const attrDescription = node.attributes?.description
+					const attrImage = node.attributes?.image
+					const attrDomain = node.attributes?.domain
+
+					const title =
+						typeof attrTitle === 'string' && attrTitle.length
+							? attrTitle
+							: og.title
+					const description =
+						typeof attrDescription === 'string' && attrDescription.length
+							? attrDescription
+							: og.description
+					const image =
+						typeof attrImage === 'string' && attrImage.length
+							? attrImage
+							: og.image
+					const domain =
+						typeof attrDomain === 'string' && attrDomain.length
+							? attrDomain
+							: domainFromUrl
+
+					const previewNode = node as unknown as MdxJsxFlowElement
+					previewNode.type = 'mdxJsxFlowElement'
+					previewNode.name = 'LinkPreviewStatic'
+					previewNode.attributes = [
+						{ type: 'mdxJsxAttribute', name: 'url', value: url },
+						title
+							? { type: 'mdxJsxAttribute', name: 'title', value: title }
+							: undefined,
+						description
+							? {
+									type: 'mdxJsxAttribute',
+									name: 'description',
+									value: description,
 								}
-								return result
-							},
-						})
-
-						const domainFromUrl = url.startsWith('data:')
-							? 'data-url'
-							: new URL(url).hostname
-
-						const attrTitle = node.attributes?.title
-						const attrDescription = node.attributes?.description
-						const attrImage = node.attributes?.image
-						const attrDomain = node.attributes?.domain
-
-						const title =
-							typeof attrTitle === 'string' && attrTitle.length
-								? attrTitle
-								: og.title
-						const description =
-							typeof attrDescription === 'string' && attrDescription.length
-								? attrDescription
-								: og.description
-						const image =
-							typeof attrImage === 'string' && attrImage.length
-								? attrImage
-								: og.image
-						const domain =
-							typeof attrDomain === 'string' && attrDomain.length
-								? attrDomain
-								: domainFromUrl
-
-						const previewNode = node as unknown as MdxJsxFlowElement
-						previewNode.type = 'mdxJsxFlowElement'
-						previewNode.name = 'LinkPreviewStatic'
-						previewNode.attributes = [
-							{ type: 'mdxJsxAttribute', name: 'url', value: url },
-							title
-								? { type: 'mdxJsxAttribute', name: 'title', value: title }
-								: undefined,
-							description
-								? {
-										type: 'mdxJsxAttribute',
-										name: 'description',
-										value: description,
-									}
-								: undefined,
-							image
-								? { type: 'mdxJsxAttribute', name: 'image', value: image }
-								: undefined,
-							domain
-								? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
-								: undefined,
-						].filter(Boolean) as MdxJsxFlowElement['attributes']
-					} catch {
-						const previewNode = node as unknown as MdxJsxFlowElement
-						previewNode.type = 'mdxJsxFlowElement'
-						previewNode.name = 'LinkPreviewStatic'
-						previewNode.attributes = [
-							{ type: 'mdxJsxAttribute', name: 'url', value: String(url) },
-						]
-					}
-				})(),
-			)
+							: undefined,
+						image
+							? { type: 'mdxJsxAttribute', name: 'image', value: image }
+							: undefined,
+						domain
+							? { type: 'mdxJsxAttribute', name: 'domain', value: domain }
+							: undefined,
+					].filter(Boolean) as MdxJsxFlowElement['attributes']
+				} catch {
+					const previewNode = node as unknown as MdxJsxFlowElement
+					previewNode.type = 'mdxJsxFlowElement'
+					previewNode.name = 'LinkPreview'
+					previewNode.attributes = [
+						{ type: 'mdxJsxAttribute', name: 'url', value: String(url) },
+					]
+				}
+			})
 		})
-		await Promise.all(tasks)
+		await runWithLimitedConcurrency(tasks, INLINE_PREVIEW_CONCURRENCY)
 	}
+}
+
+async function runWithLimitedConcurrency(
+	tasks: Array<() => Promise<void>>,
+	limit: number,
+) {
+	if (!tasks.length) return
+	const concurrency = Math.max(1, limit)
+	const executing = new Set<Promise<void>>()
+
+	for (const task of tasks) {
+		const pending = task()
+		const wrapped = pending.finally(() => {
+			executing.delete(wrapped)
+		})
+		executing.add(wrapped)
+		if (executing.size >= concurrency) {
+			await Promise.race(executing)
+		}
+	}
+
+	await Promise.all(executing)
 }
 
 const remarkClientOnlyImages: Plugin = () => {
