@@ -60,11 +60,14 @@ export default function AdminPosts() {
 	return (
 		<div className="p-8">
 			<h1 className="font-bold">Manage Posts and Images</h1>
-			<Link to="/fragments">View fragments</Link>
+			<Link to="/fragments" prefetch="none">
+				View fragments
+			</Link>
 			<div className="mb-6 flex flex-wrap items-center justify-between">
 				<h2>Manage posts</h2>
 				<Link
 					to="create"
+					prefetch="none"
 					className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 				>
 					New Post
@@ -89,7 +92,9 @@ export default function AdminPosts() {
 											: 'Draft'}
 									</span>
 									<span>•</span>
-									<Link to={`/fragments/${post.slug}`}>View post</Link>
+									<Link to={`/fragments/${post.slug}`} prefetch="none">
+										View post
+									</Link>
 								</div>
 							</div>
 
@@ -98,6 +103,7 @@ export default function AdminPosts() {
 									<Link
 										className="text-primary-foreground no-underline hover:text-primary-foreground"
 										to={`edit/${post.id}`}
+										prefetch="none"
 									>
 										Edit
 									</Link>

@@ -36,6 +36,17 @@ export function extractPreviewUrls(markdown: string): string[] {
 	return Array.from(urls)
 }
 
+async function deleteCacheKey(key: string) {
+	if (typeof cache.delete !== 'function') return
+	try {
+		await cache.delete(key)
+	} catch (error) {
+		if (process.env.NODE_ENV !== 'production') {
+			console.debug('Failed to delete cache key', { key, error })
+		}
+	}
+}
+
 export async function invalidatePostCaches(
 	oldContent?: string,
 	newContent?: string,
@@ -51,9 +62,7 @@ export async function invalidatePostCaches(
 	const removedUrls = Array.from(oldUrls).filter((url) => !newUrls.has(url))
 	if (removedUrls.length > 0) {
 		await Promise.all(
-			removedUrls.map((url) =>
-				cache.delete?.(`link-preview:${url}`)?.catch(() => undefined),
-			),
+			removedUrls.map((url) => deleteCacheKey(`link-preview:${url}`)),
 		)
 	}
 
@@ -65,9 +74,7 @@ export async function invalidatePostCaches(
 	if (slugs.size > 0) {
 		await Promise.all(
 			Array.from(slugs).map((slug) =>
-				cache
-					.delete?.(internalPreviewCacheKey(slug))
-					?.catch(() => undefined),
+				deleteCacheKey(internalPreviewCacheKey(slug)),
 			),
 		)
 	}
@@ -76,8 +83,6 @@ export async function invalidatePostCaches(
 	// brand-new cache entry automatically. Keeping the old entry avoids a
 	// forced recompile while the stale-while-revalidate job catches up.
 	if (oldContent && oldTitle) {
-		void cache
-			.delete?.(mdxCacheKeyFor(oldContent, oldTitle))
-			?.catch(() => undefined)
+		void deleteCacheKey(mdxCacheKeyFor(oldContent, oldTitle))
 	}
 }
