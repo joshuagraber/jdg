@@ -5,6 +5,9 @@ export type InternalLinkPreviewData = {
 	title?: string | null
 	description?: string | null
 	image?: string | null
+	imageLight?: string | null
+	imageDark?: string | null
+	imageAlt?: string | null
 	domain?: string | null
 }
 

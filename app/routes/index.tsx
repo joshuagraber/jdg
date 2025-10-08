@@ -2,7 +2,12 @@ import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
+import {
+	HOME_EXPERIMENT_PREVIEWS,
+	type ExperimentPreviewConfig,
+} from '#app/content/experiments'
 import { cachified, cache } from '#app/utils/cache.server.ts'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
 import {
@@ -11,6 +16,13 @@ import {
 	type OpenGraphData,
 } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
+
+function resolveExperimentImage(
+	theme: string | null | undefined,
+	preview: ExperimentPreviewConfig,
+) {
+	return theme === 'dark' ? preview.images.dark : preview.images.light
+}
 
 export const RECENT_PUBLICATIONS = [
 	'https://www.post-gazette.com/ae/books/2025/08/24/matthew-frank-submersed-wonder-obsession-review-joshua-graber/stories/202508240053',
@@ -43,6 +55,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		request,
 	)
 	const siteHostname = new URL(request.url).hostname
+	const hints = getHints(request)
+	const experimentPreviews = HOME_EXPERIMENT_PREVIEWS.map((preview) => {
+		const image = resolveExperimentImage(hints.theme, preview)
+		return {
+			to: preview.to,
+			data: {
+				url: preview.url,
+				title: preview.title,
+				description: preview.description,
+				image,
+				imageLight: preview.images.light,
+				imageDark: preview.images.dark,
+				imageAlt: preview.imageAlt,
+				domain: siteHostname,
+			},
+		}
+	})
 
 	// Fetch and cache link previews server-side for homepage
 	const MAX_PREVIEW_WAIT_MS = 2500
@@ -119,6 +148,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		recentPubs: RECENT_PUBLICATIONS,
 		previews,
 		fragmentLinkPreviews,
+		experimentPreviews,
 		siteHostname,
 	}
 }
@@ -138,6 +168,23 @@ export default function Index() {
 				bartender, landscaper, farm worker, and dishwasher.
 				<Spacer size="4xs" />
 			</p>
+			<Spacer size="2xs" />
+			{/* Experiments */}
+			<h2 id="experiments">Experiments</h2>
+			<Spacer size="4xs" />
+			<p>Experiments in digital poetics and programming</p>
+			<Spacer size="5xs" />
+			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.experimentPreviews.map((preview) => (
+					<li key={preview.to}>
+						<InternalLinkPreview
+							to={preview.to}
+							data={preview.data}
+							className="w-full max-w-3xl"
+						/>
+					</li>
+				))}
+			</ul>
 			<Spacer size="2xs" />
 			{/* Writing */}
 			<h2 id="writing">Writing</h2>
