@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { useOptionalTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { type InternalLinkPreviewData } from '#app/utils/link-preview'
 import { cn } from '#app/utils/misc.tsx'
 
@@ -18,8 +19,24 @@ export function InternalLinkPreview({
 	prefetch = 'intent',
 	meta,
 }: InternalLinkPreviewProps) {
-	const { title, description, image, domain, url } = data
-	const hasAny = Boolean(title || description || image)
+	const theme = useOptionalTheme()
+
+	const {
+		title,
+		description,
+		domain,
+		url,
+		image,
+		imageLight,
+		imageDark,
+		imageAlt,
+	} = data
+
+	const resolvedImage =
+		theme === 'dark'
+			? (imageDark ?? image ?? imageLight ?? null)
+			: (imageLight ?? image ?? imageDark ?? null)
+	const hasAny = Boolean(title || description || resolvedImage)
 	const isInternal = url.startsWith('/')
 	let fallbackLabel: string | null = null
 
@@ -54,11 +71,11 @@ export function InternalLinkPreview({
 				</div>
 			) : (
 				<div className="flex flex-col sm:flex-row">
-					{image && (
+					{resolvedImage && (
 						<div className="h-44 flex-shrink-0 sm:h-44 sm:w-44">
 							<img
-								src={image}
-								alt={title || ''}
+								src={resolvedImage}
+								alt={imageAlt ?? title ?? ''}
 								className="h-full w-full object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100"
 								loading="lazy"
 							/>

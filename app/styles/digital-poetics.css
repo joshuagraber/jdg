@@ -29,3 +29,7 @@
 .dipo-text-input {
 	max-width: unset;
 }
+
+#dipo-rotation-modal-title {
+	font-size: 1.25rem;
+}

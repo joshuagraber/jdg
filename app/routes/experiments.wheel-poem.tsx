@@ -8,9 +8,30 @@ import {
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import '@joshuagraber/digital-poetics/styles'
+import { getHints } from '#app/utils/client-hints.tsx'
 import '#app/styles/digital-poetics.css'
+import { WHEEL_POEM_LINK_PREVIEW } from '#app/content/experiments'
 import { ClientOnly } from 'remix-utils/client-only'
+import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { type Route } from './+types'
+
+const WHEEL_POEM_IMAGE_ALT = WHEEL_POEM_LINK_PREVIEW.imageAlt
+
+function resolveWheelPoemImage(theme?: string | null) {
+	return theme === 'dark'
+		? WHEEL_POEM_LINK_PREVIEW.images.dark
+		: WHEEL_POEM_LINK_PREVIEW.images.light
+}
+
+const WHEEL_POEM_LINK_PREVIEW_CONTENT = JSON.stringify({
+	url: WHEEL_POEM_LINK_PREVIEW.url,
+	title: WHEEL_POEM_LINK_PREVIEW.title,
+	description: WHEEL_POEM_LINK_PREVIEW.description,
+	image: WHEEL_POEM_LINK_PREVIEW.images.light,
+	imageLight: WHEEL_POEM_LINK_PREVIEW.images.light,
+	imageDark: WHEEL_POEM_LINK_PREVIEW.images.dark,
+	imageAlt: WHEEL_POEM_IMAGE_ALT,
+})
 
 const SESSION_STORAGE_KEY = 'wheel-poem-sessions'
 const MAX_SAVED_SESSIONS = 8
@@ -89,7 +110,8 @@ function coerceSession(entry: unknown): StoredSession | null {
 		text: candidate.text,
 		rotations: normalizeRotations(candidate.rotations),
 		wheelSize:
-			typeof candidate.wheelSize === 'number' && Number.isFinite(candidate.wheelSize)
+			typeof candidate.wheelSize === 'number' &&
+			Number.isFinite(candidate.wheelSize)
 				? candidate.wheelSize
 				: null,
 		updatedAt: candidate.updatedAt,
@@ -102,7 +124,11 @@ type SavedSessionsListProps = {
 	disabled?: boolean
 }
 
-function SavedSessionsList({ sessions, onResume, disabled }: SavedSessionsListProps) {
+function SavedSessionsList({
+	sessions,
+	onResume,
+	disabled,
+}: SavedSessionsListProps) {
 	if (sessions.length === 0) {
 		return null
 	}
@@ -110,9 +136,11 @@ function SavedSessionsList({ sessions, onResume, disabled }: SavedSessionsListPr
 	// TODO: why do we need to use custom `rounded` here? Why isn't `rounded-xl` enough? Effing Tailwind 🙄
 	return (
 		<aside className="flex h-max flex-col gap-3 rounded-[.5rem] border border-border bg-card/50 p-4 shadow-sm">
-			<h2 className="text-base font-semibold text-foreground">Continue where you left off?</h2>
+			<h2 className="text-base font-semibold text-foreground">
+				Continue where you left off?
+			</h2>
 			<div className="flex flex-col gap-2">
-				{sessions.slice(0,5).map((session) => (
+				{sessions.slice(0, 5).map((session) => (
 					<button
 						key={session.id}
 						type="button"
@@ -133,14 +161,103 @@ function SavedSessionsList({ sessions, onResume, disabled }: SavedSessionsListPr
 	)
 }
 
-export const meta: Route.MetaFunction = () => [
-	{ title: 'Wheel Poem Experiment | JDG' },
-	{
-		name: 'description',
-		content:
-			'Generate combinatorial poetry by distributing your text across spinning concentric wheels.',
+export const handle: LinkPreviewHandle = {
+	async linkPreview({ request }) {
+		const hints = getHints(request)
+		const hostname = new URL(request.url).hostname
+		const image = resolveWheelPoemImage(hints.theme)
+		return {
+			url: WHEEL_POEM_LINK_PREVIEW.url,
+			title: WHEEL_POEM_LINK_PREVIEW.title,
+			description: WHEEL_POEM_LINK_PREVIEW.description,
+			image,
+			imageLight: WHEEL_POEM_LINK_PREVIEW.images.light,
+			imageDark: WHEEL_POEM_LINK_PREVIEW.images.dark,
+			imageAlt: WHEEL_POEM_IMAGE_ALT,
+			domain: hostname,
+		}
 	},
-]
+}
+
+export const meta: Route.MetaFunction = ({ matches }) => {
+	const rootMatch = matches.find((match) => match.id === 'root')
+	const rootData = rootMatch?.data as
+		| {
+				requestInfo?: {
+					hints?: { theme?: string | null }
+					ogURL?: URL | string
+				}
+		  }
+		| undefined
+	const theme = rootData?.requestInfo?.hints?.theme ?? null
+	const ogURL = rootData?.requestInfo?.ogURL
+	const previewImage = resolveWheelPoemImage(theme)
+	const absolutePreviewImage =
+		typeof ogURL === 'string' || ogURL instanceof URL
+			? new URL(previewImage, ogURL).toString()
+			: previewImage
+
+	return [
+		{
+			title: `${WHEEL_POEM_LINK_PREVIEW.title} | JDG`,
+		},
+		{
+			name: 'description',
+			property: 'description',
+			content: WHEEL_POEM_LINK_PREVIEW.description,
+		},
+		{
+			property: 'og:title',
+			name: 'og:title',
+			content: `${WHEEL_POEM_LINK_PREVIEW.title} | JDG`,
+		},
+		{
+			property: 'og:description',
+			name: 'og:description',
+			content: WHEEL_POEM_LINK_PREVIEW.description,
+		},
+		{ property: 'og:type', name: 'og:type', content: 'article' },
+		{
+			property: 'og:image',
+			name: 'og:image',
+			content: absolutePreviewImage,
+		},
+		{
+			property: 'og:image:alt',
+			name: 'og:image:alt',
+			content: WHEEL_POEM_IMAGE_ALT,
+		},
+		{
+			property: 'twitter:card',
+			name: 'twitter:card',
+			content: 'summary_large_image',
+		},
+		{
+			name: 'twitter:title',
+			property: 'twitter:title',
+			content: `${WHEEL_POEM_LINK_PREVIEW.title} | JDG`,
+		},
+		{
+			name: 'twitter:description',
+			property: 'twitter:description',
+			content: WHEEL_POEM_LINK_PREVIEW.description,
+		},
+		{
+			name: 'twitter:image',
+			property: 'twitter:image',
+			content: absolutePreviewImage,
+		},
+		{
+			name: 'twitter:image:alt',
+			property: 'twitter:image:alt',
+			content: WHEEL_POEM_IMAGE_ALT,
+		},
+		{
+			name: 'link-preview',
+			content: WHEEL_POEM_LINK_PREVIEW_CONTENT,
+		},
+	]
+}
 
 export default function WheelPoemExperimentRoute() {
 	return (
@@ -154,7 +271,9 @@ function WheelPoemInteractive() {
 	const [hasProcessed, setHasProcessed] = useState(false)
 	const [savedSessions, setSavedSessions] = useState<StoredSession[]>([])
 	const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-	const [lastSubmittedText, setLastSubmittedText] = useState<string | null>(null)
+	const [lastSubmittedText, setLastSubmittedText] = useState<string | null>(
+		null,
+	)
 	const [lastWheelSize, setLastWheelSize] = useState<number | null>(null)
 	const [isRestoring, setIsRestoring] = useState(false)
 	const wheelState = useWheelState()
@@ -162,7 +281,9 @@ function WheelPoemInteractive() {
 	const layoutClasses = useMemo(() => {
 		return [
 			'w-full lg:grid-rows-[auto,auto]',
-			savedSessions.length > 0 ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]' : '',
+			savedSessions.length > 0
+				? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]'
+				: '',
 		]
 			.filter(Boolean)
 			.join(' ')
@@ -224,7 +345,8 @@ function WheelPoemInteractive() {
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return
-		if (!activeSessionId || !lastSubmittedText || !wheelState.textDistribution) return
+		if (!activeSessionId || !lastSubmittedText || !wheelState.textDistribution)
+			return
 		if (wheelState.isProcessing) return
 
 		const normalizedRotations = normalizeRotations(wheelState.rotations)
@@ -232,7 +354,9 @@ function WheelPoemInteractive() {
 		const timestamp = new Date().toISOString()
 
 		setSavedSessions((previous) => {
-			const existingIndex = previous.findIndex((session) => session.id === activeSessionId)
+			const existingIndex = previous.findIndex(
+				(session) => session.id === activeSessionId,
+			)
 			const existing = existingIndex >= 0 ? previous[existingIndex] : null
 			if (
 				existing &&
@@ -294,7 +418,10 @@ function WheelPoemInteractive() {
 			setLastWheelSize(session.wheelSize)
 			setHasProcessed(true)
 			try {
-				await wheelState.processText(session.text, session.wheelSize ?? undefined)
+				await wheelState.processText(
+					session.text,
+					session.wheelSize ?? undefined,
+				)
 				wheelState.setRotations(session.rotations)
 			} catch (error) {
 				console.error('Unable to restore wheel poem session', error)
@@ -317,7 +444,9 @@ function WheelPoemInteractive() {
 		<div className="container">
 			{!hasProcessed && (
 				<div className={layoutClasses}>
-					<h1 className="text-2xl font-semibold tracking-tight text-foreground lg:col-span-2">Wheel Poem</h1>
+					<h1 className="text-2xl font-semibold tracking-tight text-foreground lg:col-span-2">
+						Wheel Poem
+					</h1>
 					<WheelPoemTextInput
 						{...wheelState}
 						processText={handleProcessText}
@@ -325,18 +454,20 @@ function WheelPoemInteractive() {
 						onTextProcessed={() => setHasProcessed(true)}
 					/>
 					<div className="lg:pt-7">
-					<SavedSessionsList
-						sessions={savedSessions}
-						onResume={handleResumeSession}
-						disabled={wheelState.isProcessing || isRestoring}
-					/>
+						<SavedSessionsList
+							sessions={savedSessions}
+							onResume={handleResumeSession}
+							disabled={wheelState.isProcessing || isRestoring}
+						/>
 					</div>
 				</div>
 			)}
 			{hasProcessed && (
 				<div className="mx-auto flex w-full flex-col gap-8">
 					<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-						<h1 className="text-2xl font-semibold tracking-tight text-foreground self-start">Wheel Poem</h1>
+						<h1 className="self-start text-2xl font-semibold tracking-tight text-foreground">
+							Wheel Poem
+						</h1>
 						<WheelPoemControls
 							{...wheelState}
 							onRequestNewText={handleRequestNewText}
@@ -353,7 +484,10 @@ function WheelPoemInteractive() {
 							isVisible={!!wheelState.textDistribution}
 						/>
 					</div>
-					<WheelPoemStats wheelStats={wheelState.wheelStats} className="w-full" />
+					<WheelPoemStats
+						wheelStats={wheelState.wheelStats}
+						className="w-full"
+					/>
 				</div>
 			)}
 		</div>
