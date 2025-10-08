@@ -1,0 +1,31 @@
+:root,
+.dark {
+	--dipo-bg-primary: hsl(var(--background));
+	--dipo-bg-secondary: hsl(var(--muted));
+	--dipo-bg-tertiary: hsl(var(--card));
+	--dipo-bg-elevated: hsl(var(--card));
+	--dipo-bg-overlay: hsla(var(--foreground) / 0.08);
+
+	--dipo-text-primary: hsl(var(--foreground));
+	--dipo-text-secondary: hsl(var(--muted-foreground));
+	--dipo-text-tertiary: hsla(var(--muted-foreground) / 0.75);
+	--dipo-text-muted: hsla(var(--muted-foreground) / 0.6);
+	--dipo-text-inverse: hsl(var(--background));
+
+	--dipo-border-primary: hsl(var(--border));
+	--dipo-border-secondary: hsl(var(--border));
+	--dipo-border-focus: hsl(var(--ring));
+
+	--dipo-shadow-sm: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+	--dipo-shadow-md: var(--shadow-md, 0 10px 15px rgba(15, 23, 42, 0.1));
+	--dipo-shadow-lg: var(--shadow-lg, 0 20px 25px rgba(15, 23, 42, 0.15));
+}
+
+/* Ensure wheel container respects rounded corners when placed against muted backgrounds */
+[data-wheel-container] {
+	background-color: var(--dipo-bg-primary);
+}
+
+.dipo-text-input {
+	max-width: unset;
+}

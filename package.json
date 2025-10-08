@@ -42,6 +42,7 @@
     "@epic-web/invariant": "^1.0.0",
     "@epic-web/remember": "^1.1.0",
     "@epic-web/totp": "^2.0.0",
+    "@joshuagraber/digital-poetics": "^1.0.0",
     "@mdxeditor/editor": "^3.20.0",
     "@mjackson/file-storage": "^0.6.1",
     "@mjackson/form-data-parser": "^0.7.0",
