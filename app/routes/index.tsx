@@ -172,9 +172,7 @@ export default function Index() {
 			{/* Experiments */}
 			<h2 id="experiments">Experiments</h2>
 			<Spacer size="4xs" />
-			<p>
-				Experiments in digital poetics and programming
-			</p>
+			<p>Experiments in digital poetics and programming</p>
 			<Spacer size="5xs" />
 			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
 				{data.experimentPreviews.map((preview) => (

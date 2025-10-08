@@ -8,10 +8,10 @@ import {
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import '@joshuagraber/digital-poetics/styles'
-import { getHints } from '#app/utils/client-hints.tsx'
 import '#app/styles/digital-poetics.css'
-import { WHEEL_POEM_LINK_PREVIEW } from '#app/content/experiments'
 import { ClientOnly } from 'remix-utils/client-only'
+import { WHEEL_POEM_LINK_PREVIEW } from '#app/content/experiments'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { type Route } from './+types'
 
@@ -180,7 +180,7 @@ export const handle: LinkPreviewHandle = {
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
-	const rootMatch = matches.find((match) => match.id === 'root')
+	const rootMatch = matches.find((match) => match?.id === 'root')
 	const rootData = rootMatch?.data as
 		| {
 				requestInfo?: {

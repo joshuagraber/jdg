@@ -15,7 +15,7 @@ export const WHEEL_POEM_LINK_PREVIEW: ExperimentPreviewConfig = {
 	url: '/experiments/wheel-poem',
 	title: 'Wheel Poem Experiment',
 	description:
-		'Generate combinatorial poetry by distributing your text across spinning concentric wheels.',
+		'Generate aleatory poetry by distributing any text across spinning concentric wheels.',
 	imageAlt: 'Wheel Poem experiment interface preview',
 	images: {
 		light: '/img/wheel-poem-preview_light.png',
