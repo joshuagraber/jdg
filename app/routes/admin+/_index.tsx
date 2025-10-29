@@ -21,6 +21,7 @@ export default function Admin() {
 			<div className="flex flex-col">
 				<Link to="fragments">Add or update fragments</Link>
 				<Link to="cache">Inspect cache</Link>
+				<Link to="user-created">User-created records</Link>
 			</div>
 		</div>
 	)

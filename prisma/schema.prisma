@@ -182,3 +182,16 @@ model Connection {
 
   @@unique([providerName, providerId])
 }
+
+model UserCreatedWheelPoem {
+  id               String   @id @default(cuid())
+  sessionId        String
+  text             String
+  rotations        String
+  wheelSize        Float?
+  sessionUpdatedAt DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sessionId])
+}
