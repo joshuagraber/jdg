@@ -7,6 +7,7 @@ import {
 	useWheelState,
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useFetcher } from 'react-router'
 import '@joshuagraber/digital-poetics/styles'
 import '#app/styles/digital-poetics.css'
 import { ClientOnly } from 'remix-utils/client-only'
@@ -34,6 +35,7 @@ const WHEEL_POEM_LINK_PREVIEW_CONTENT = JSON.stringify({
 })
 
 const SESSION_STORAGE_KEY = 'wheel-poem-sessions'
+const PENDING_SESSION_STORAGE_KEY = 'wheel-poem-pending-session-id'
 const MAX_SAVED_SESSIONS = 8
 
 interface StoredSession {
@@ -277,6 +279,8 @@ function WheelPoemInteractive() {
 	const [lastWheelSize, setLastWheelSize] = useState<number | null>(null)
 	const [isRestoring, setIsRestoring] = useState(false)
 	const wheelState = useWheelState()
+	const sessionPersistenceFetcher = useFetcher<{ ok: boolean; error?: string }>()
+	const [pendingResumeId, setPendingResumeId] = useState<string | null>(null)
 
 	const layoutClasses = useMemo(() => {
 		return [
@@ -301,6 +305,12 @@ function WheelPoemInteractive() {
 				.filter((session): session is StoredSession => session !== null)
 				.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1))
 			setSavedSessions(sanitized.slice(0, MAX_SAVED_SESSIONS))
+			const pendingId = window.localStorage.getItem(
+				PENDING_SESSION_STORAGE_KEY,
+			)
+			if (pendingId) {
+				setPendingResumeId(pendingId)
+			}
 		} catch (error) {
 			console.error('Unable to load saved wheel poem sessions', error)
 		}
@@ -309,6 +319,15 @@ function WheelPoemInteractive() {
 	useEffect(() => {
 		if (!wheelState.textDistribution) setHasProcessed(false)
 	}, [wheelState.textDistribution])
+
+	useEffect(() => {
+		if (sessionPersistenceFetcher.data?.ok === false) {
+			console.error(
+				'Wheel poem persistence request failed',
+				sessionPersistenceFetcher.data.error,
+			)
+		}
+	}, [sessionPersistenceFetcher.data])
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return
@@ -386,6 +405,19 @@ function WheelPoemInteractive() {
 
 			const trimmed = next.slice(0, MAX_SAVED_SESSIONS)
 			window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(trimmed))
+			const payload = new FormData()
+			payload.append('id', updated.id)
+			payload.append('text', updated.text)
+			payload.append('rotations', JSON.stringify(updated.rotations))
+			payload.append(
+				'wheelSize',
+				updated.wheelSize === null ? '' : updated.wheelSize.toString(),
+			)
+			payload.append('updatedAt', updated.updatedAt)
+			void sessionPersistenceFetcher.submit(payload, {
+				method: 'POST',
+				action: '/resources/experiments/wheel-poem',
+			})
 
 			return trimmed
 		})
@@ -393,6 +425,7 @@ function WheelPoemInteractive() {
 		activeSessionId,
 		lastSubmittedText,
 		lastWheelSize,
+		sessionPersistenceFetcher,
 		wheelState.isProcessing,
 		wheelState.rotations,
 		wheelState.textDistribution,
@@ -432,6 +465,35 @@ function WheelPoemInteractive() {
 		},
 		[isRestoring, wheelState],
 	)
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return
+		if (hasProcessed) return
+		if (wheelState.isProcessing || isRestoring) return
+		if (!pendingResumeId) return
+		if (savedSessions.length === 0) return
+
+	const matching = savedSessions.find(
+		(session) => session.id === pendingResumeId,
+	)
+
+	if (!matching) {
+		window.localStorage.removeItem(PENDING_SESSION_STORAGE_KEY)
+		setPendingResumeId(null)
+		return
+	}
+
+	window.localStorage.removeItem(PENDING_SESSION_STORAGE_KEY)
+	setPendingResumeId(null)
+	void handleResumeSession(matching)
+	}, [
+		handleResumeSession,
+		hasProcessed,
+		isRestoring,
+		pendingResumeId,
+		savedSessions,
+		wheelState.isProcessing,
+	])
 
 	const handleRequestNewText = useCallback(() => {
 		setHasProcessed(false)
