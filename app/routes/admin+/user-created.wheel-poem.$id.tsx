@@ -80,10 +80,10 @@ export default function AdminUserCreatedWheelPoemDetailRoute() {
 					sessions = parsed.filter((entry): entry is StoredSession => {
 						if (!entry || typeof entry !== 'object') return false
 						return (
-							typeof entry.id === 'string' &&
-							typeof entry.text === 'string' &&
-							Array.isArray(entry.rotations) &&
-							typeof entry.updatedAt === 'string'
+							'id' in entry && typeof entry.id === 'string' &&
+							'text' in entry && typeof entry.text === 'string' &&
+							'rotations' in entry && Array.isArray(entry.rotations) &&
+							'updatedAt' in entry && typeof entry.updatedAt === 'string'
 						)
 					})
 				}
@@ -110,7 +110,7 @@ export default function AdminUserCreatedWheelPoemDetailRoute() {
 			)
 			window.localStorage.setItem(PENDING_SESSION_STORAGE_KEY, session.id)
 
-			navigate('/experiments/wheel-poem')
+			void navigate('/experiments/wheel-poem')
 		} catch (error) {
 			console.error('Failed to prepare wheel poem session', error)
 		}

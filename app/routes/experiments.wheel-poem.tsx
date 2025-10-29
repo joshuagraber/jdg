@@ -414,7 +414,7 @@ function WheelPoemInteractive() {
 				updated.wheelSize === null ? '' : updated.wheelSize.toString(),
 			)
 			payload.append('updatedAt', updated.updatedAt)
-			sessionPersistenceFetcher.submit(payload, {
+			void sessionPersistenceFetcher.submit(payload, {
 				method: 'POST',
 				action: '/resources/experiments/wheel-poem',
 			})
