@@ -1,5 +1,5 @@
 import { data } from 'react-router'
-import { RECENT_PUBLICATIONS } from '#app/routes/index.tsx'
+import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
 import { prisma } from '#app/utils/db.server.ts'
 import { compileMDX } from '#app/utils/mdx.server'
 

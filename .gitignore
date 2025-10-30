@@ -6,6 +6,7 @@ node_modules
 /server-build
 .env*
 .cache
+other/cache.db*
 .temp*
 .uploads
 
