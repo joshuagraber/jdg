@@ -1,5 +1,7 @@
+import  { type CacheEntry } from '@epic-web/cachified'
 import { parse } from 'node-html-parser'
 import { z } from 'zod'
+import { cachified, cache } from '#app/utils/cache.server.ts'
 
 const ogSchema = z.object({
 	title: z.string().optional(),
@@ -17,6 +19,174 @@ const DEFAULT_FETCH_TIMEOUT_MS = 5000
 const READ_TIMEOUT_MS = 4000
 const MAX_FETCH_ATTEMPTS = 1
 const RETRY_DELAY_BASE_MS = 500
+const LINK_PREVIEW_CACHE_PREFIX = 'link-preview:'
+const LINK_PREVIEW_TTL_MS = 1000 * 60 * 10
+const LINK_PREVIEW_SWR_MS = 1000 * 60 * 60 * 24
+const LINK_PREVIEW_FALLBACK_TO_CACHE_MS = 1000 * 60 * 60
+const inFlightPreviewFetches = new Map<string, Promise<OpenGraphData | null>>()
+
+type FallbackablePreview = OpenGraphData & { __fallback?: true }
+
+type CacheFreshness = 'fresh' | 'stale'
+
+interface CachedLinkPreview {
+	data: OpenGraphData
+	freshness: CacheFreshness
+}
+
+const resolveLinkPreviewCacheKey = (url: string) =>
+	`${LINK_PREVIEW_CACHE_PREFIX}${url}`
+
+const resolveCacheFreshness = (
+	metadata: CacheEntry<unknown>['metadata'] | undefined,
+): CacheFreshness => {
+	if (!metadata) return 'fresh'
+	const ttl = metadata.ttl
+	if (typeof ttl !== 'number' || ttl <= 0) return 'fresh'
+	const expiresAt = metadata.createdTime + ttl
+	return Date.now() > expiresAt ? 'stale' : 'fresh'
+}
+
+const getCachedLinkPreview = (url: string): CachedLinkPreview | null => {
+	try {
+		const entry = cache.get(
+			resolveLinkPreviewCacheKey(url),
+		) as CacheEntry<unknown> | null
+		if (!entry) return null
+		if (!hasPreviewData(entry.value)) return null
+		return {
+			data: entry.value,
+			freshness: resolveCacheFreshness(entry.metadata),
+		}
+	} catch (error) {
+		console.warn('Failed to read cached link preview', { url, error })
+		return null
+	}
+}
+
+const createCachifiedOptions = (
+	url: string,
+): Parameters<typeof cachified<OpenGraphData>>[0] => ({
+	key: resolveLinkPreviewCacheKey(url),
+	cache,
+	ttl: LINK_PREVIEW_TTL_MS,
+	swr: LINK_PREVIEW_SWR_MS,
+	fallbackToCache: LINK_PREVIEW_FALLBACK_TO_CACHE_MS,
+	checkValue(value) {
+		return hasPreviewData(value)
+			? true
+			: 'Link preview missing essential fields'
+	},
+	async getFreshValue(context) {
+		const result = await getOpenGraphData(url)
+		if (!hasPreviewData(result)) {
+			context.metadata.ttl = 0
+			throw new Error('No preview data available')
+		}
+		if (isFallbackPreview(result)) {
+			context.metadata.ttl = 0
+			throw new Error('Only fallback preview available')
+		}
+		return result
+	},
+})
+
+function ensureLinkPreviewFetch(
+	url: string,
+	{ forceFresh }: { forceFresh: boolean },
+) {
+	const cacheKey = resolveLinkPreviewCacheKey(url)
+	const existing = inFlightPreviewFetches.get(cacheKey)
+	if (existing) return existing
+
+	const fetchPromise = cachified<OpenGraphData>({
+		...createCachifiedOptions(url),
+		forceFresh,
+	})
+		.catch((error) => {
+			console.warn('Background link preview fetch failed', { url, error })
+			return null
+		})
+		.finally(() => {
+			inFlightPreviewFetches.delete(cacheKey)
+		})
+
+	inFlightPreviewFetches.set(cacheKey, fetchPromise)
+	return fetchPromise
+}
+
+type TimedResult<T> =
+	| { status: 'success'; value: T }
+	| { status: 'timeout' }
+	| { status: 'error'; error: unknown }
+
+const settleWithin = async <T>(
+	promise: Promise<T>,
+	timeoutMs: number,
+): Promise<TimedResult<T>> =>
+	new Promise((resolve) => {
+		const timeoutId = setTimeout(() => {
+			resolve({ status: 'timeout' })
+		}, timeoutMs)
+
+		void promise
+			.then((value) => {
+				clearTimeout(timeoutId)
+				resolve({ status: 'success', value })
+			})
+			.catch((error) => {
+				clearTimeout(timeoutId)
+				resolve({ status: 'error', error })
+			})
+	})
+
+export async function getLinkPreviewForRequest(
+	url: string,
+	{ maxWaitMs = 350 }: { maxWaitMs?: number } = {},
+): Promise<{
+	data: OpenGraphData | null
+	resolvedFrom: 'cache' | 'fresh' | 'pending'
+}> {
+	const cached = getCachedLinkPreview(url)
+	if (cached && cached.freshness === 'fresh') {
+		return { data: cached.data, resolvedFrom: 'cache' }
+	}
+
+	const shouldForceFresh = !cached || cached.freshness === 'stale'
+	const fetchPromise = ensureLinkPreviewFetch(url, {
+		forceFresh: shouldForceFresh,
+	})
+
+	if (maxWaitMs > 0) {
+		const result = await settleWithin(fetchPromise, maxWaitMs)
+		if (result.status === 'success' && result.value) {
+			return { data: result.value, resolvedFrom: 'fresh' }
+		}
+	}
+
+	return {
+		data: cached?.data ?? null,
+		resolvedFrom: cached ? 'cache' : 'pending',
+	}
+}
+
+export type RefreshResult =
+	| { status: 'skipped' }
+	| { status: 'updated'; source: 'created' | 'refreshed' }
+
+export async function refreshLinkPreview(url: string): Promise<RefreshResult> {
+	const before = getCachedLinkPreview(url)
+	const result = await ensureLinkPreviewFetch(url, { forceFresh: true })
+	if (!result) {
+		return { status: 'skipped' }
+	}
+	const after = getCachedLinkPreview(url)
+	if (!after) {
+		return { status: 'skipped' }
+	}
+	const source = before ? 'refreshed' : 'created'
+	return { status: 'updated', source }
+}
 
 const fetchWithTimeout = async (
 	url: string,
@@ -114,9 +284,9 @@ function buildFallbackPreview(url: string): OpenGraphData {
 		return {
 			title: hostname,
 			description: parsed.href,
-		}
+		} as OpenGraphData
 	} catch {
-		return { title: url }
+		return { title: url } as OpenGraphData
 	}
 }
 
@@ -176,12 +346,24 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 
 		try {
 			if (!ogData.image) {
-				ogData.image =
-					root
-						.querySelector('meta[name="twitter:image"]')
-						?.getAttribute('content') ||
-					root.querySelector('img[src^="http"]')?.getAttribute('src') ||
-					''
+				const twitterImage = root
+					.querySelector('meta[name="twitter:image"]')
+					?.getAttribute('content')
+				if (twitterImage) {
+					ogData.image = twitterImage
+				} else {
+					const iconHref = root
+						.querySelector('link[rel="icon"], link[rel="shortcut icon"]')
+						?.getAttribute('href')
+					if (iconHref) {
+						try {
+							const resolved = new URL(iconHref, url).href
+							ogData.image = resolved
+						} catch {
+							// ignore invalid icon URLs
+						}
+					}
+				}
 			}
 		} catch (e) {
 			console.error('Error getting image:', e)
@@ -213,9 +395,11 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 		if (parsed.url?.trim()) sanitized.url = parsed.url
 		if (parsed['image:alt']?.trim())
 			sanitized['image:alt'] = parsed['image:alt'].trim()
+		console.log('Fetched OpenGraph data:', { url, sanitized, parsed, ogData })
 		return sanitized
 	} catch (e) {
-		const fallback = buildFallbackPreview(url)
+		const fallback = buildFallbackPreview(url) as FallbackablePreview
+		fallback.__fallback = true
 		if (isAbortError(e)) {
 			console.warn('Link preview request timed out', { url })
 		} else {
@@ -223,4 +407,8 @@ export async function getOpenGraphData(url: string): Promise<OpenGraphData> {
 		}
 		return fallback
 	}
+}
+
+function isFallbackPreview(data: OpenGraphData): data is FallbackablePreview {
+	return (data as FallbackablePreview).__fallback === true
 }

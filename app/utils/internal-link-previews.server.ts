@@ -1,7 +1,7 @@
 import { matchPath } from 'react-router'
+import { handle as wheelPoemHandle } from '#app/routes/experiments.wheel-poem'
 import { handle as fragmentSlugHandle } from '#app/routes/fragments+/$slug'
 import { handle as fragmentsIndexHandle } from '#app/routes/fragments+/_index'
-import { handle as wheelPoemHandle } from '#app/routes/experiments.wheel-poem'
 import {
 	type InternalLinkPreviewData,
 	type LinkPreviewHandle,

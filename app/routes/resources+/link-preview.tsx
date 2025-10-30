@@ -1,9 +1,4 @@
-import { cachified, cache } from '#app/utils/cache.server.ts'
-import {
-	getOpenGraphData,
-	hasPreviewData,
-	type OpenGraphData,
-} from '#app/utils/link-preview.server.ts'
+import { getLinkPreviewForRequest } from '#app/utils/link-preview.server.ts'
 import { type Route } from './+types/link-preview'
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -27,54 +22,26 @@ export async function loader({ request }: Route.LoaderArgs) {
 			domain: hostname,
 			url,
 		}
-		const MAX_PREVIEW_WAIT_MS = 2500
-		const ogPromise = cachified<OpenGraphData>({
-			key: `link-preview:${url}`,
-			cache,
-			ttl: 1000 * 60 * 10, // 10 minutes
-			swr: 1000 * 60 * 60 * 24, // 24 hours
-			fallbackToCache: 1000 * 60 * 60, // allow fallback to cached value for 1 hour
-			checkValue(value) {
-				return hasPreviewData(value)
-					? true
-					: 'Link preview missing essential fields'
-			},
-			async getFreshValue(context) {
-				const result = await getOpenGraphData(url)
-				if (!hasPreviewData(result)) {
-					context.metadata.ttl = 0
-					throw new Error('No preview data available')
-				}
-				return result
-			},
+		const { data, resolvedFrom } = await getLinkPreviewForRequest(url, {
+			maxWaitMs: 500,
 		})
-		let timeoutId: ReturnType<typeof setTimeout> | null = null
-		const result = await Promise.race([
-			ogPromise.then((data) => ({ status: 'success' as const, data })),
-			new Promise<{ status: 'timeout' }>((resolve) => {
-				timeoutId = setTimeout(
-					() => resolve({ status: 'timeout' }),
-					MAX_PREVIEW_WAIT_MS,
-				)
-			}),
-		])
-		if (timeoutId) clearTimeout(timeoutId)
-		if (result.status === 'success') {
+		if (data) {
 			const body = {
-				...result.data,
-				domain: hostname,
 				url,
+				domain: hostname,
+				title: data.title,
+				description: data.description,
+				image: data.image,
 			}
 			return Response.json(body, {
 				headers: { 'Cache-Control': 'public, max-age=600' },
 			})
 		}
-		void ogPromise.catch((error) => {
-			console.warn('Background link preview fetch failed (resource route)', {
+		if (resolvedFrom === 'pending') {
+			console.debug('Link preview pending; using fallback (resource route)', {
 				url,
-				error,
 			})
-		})
+		}
 		return Response.json(fallbackBody, {
 			headers: { 'Cache-Control': 'public, max-age=120' },
 			status: 200,

@@ -6,14 +6,12 @@ import {
 	HOME_EXPERIMENT_PREVIEWS,
 	type ExperimentPreviewConfig,
 } from '#app/content/experiments'
-import { cachified, cache } from '#app/utils/cache.server.ts'
+import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
 import {
-	getOpenGraphData,
-	hasPreviewData,
-	type OpenGraphData,
+	getLinkPreviewForRequest,
 } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
@@ -23,15 +21,6 @@ function resolveExperimentImage(
 ) {
 	return theme === 'dark' ? preview.images.dark : preview.images.light
 }
-
-export const RECENT_PUBLICATIONS = [
-	'https://www.post-gazette.com/ae/books/2025/08/24/matthew-frank-submersed-wonder-obsession-review-joshua-graber/stories/202508240053',
-	'https://www.post-gazette.com/ae/books/2025/05/31/laurence-leamer-muses-andy-warhol/stories/202506010061',
-	'https://www.theadroitjournal.org/2025/03/24/a-review-of-alex-higleys-true-failure/',
-	'https://www.post-gazette.com/ae/books/2024/04/27/review-mara-van-der-lugt-begetting-what-does-it-mean-to-create-a-child/stories/202404280037',
-	'https://www.artreview.com/genre-and-the-newer-newness-danielle-dutton-prairie-dresses-art-other-review/',
-	'https://www.mrbullbull.com/newbull/fiction/metaphors-toward-__________________',
-]
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const recentFragments = await prisma.post.findMany({
@@ -74,7 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	})
 
 	// Fetch and cache link previews server-side for homepage
-	const MAX_PREVIEW_WAIT_MS = 2500
+	const MAX_PREVIEW_WAIT_MS = 350
 	const previews = await Promise.all(
 		RECENT_PUBLICATIONS.map(async (url) => {
 			const domain = url.startsWith('data:')
@@ -87,58 +76,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				image: undefined,
 				domain,
 			}
-			const previewPromise = cachified<OpenGraphData>({
-				key: `link-preview:${url}`,
-				cache,
-				ttl: 1000 * 60 * 10, // 10 minutes
-				swr: 1000 * 60 * 60 * 24, // 24 hours
-				fallbackToCache: 1000 * 60 * 60,
-				checkValue(value) {
-					return hasPreviewData(value)
-						? true
-						: 'Link preview missing essential fields'
-				},
-				async getFreshValue(context) {
-					const result = await getOpenGraphData(url)
-					if (!hasPreviewData(result)) {
-						context.metadata.ttl = 0
-						throw new Error('No preview data available')
+			const { data, resolvedFrom } = await getLinkPreviewForRequest(url, {
+				maxWaitMs: MAX_PREVIEW_WAIT_MS,
+			})
+				if (!data) {
+					if (resolvedFrom === 'pending') {
+						console.debug('Link preview pending; using fallback', { url })
 					}
-					return result
-				},
-			}).then((og) => ({
-				url,
-				title: og.title,
-				description: og.description,
-				image: og.image,
-				domain,
-			}))
-			let timeoutId: ReturnType<typeof setTimeout> | null = null
-			try {
-				const result = await Promise.race([
-					previewPromise.then((value) => ({
-						status: 'success' as const,
-						value,
-					})),
-					new Promise<{ status: 'timeout' }>((resolve) => {
-						timeoutId = setTimeout(
-							() => resolve({ status: 'timeout' }),
-							MAX_PREVIEW_WAIT_MS,
-						)
-					}),
-				])
-				if (timeoutId) clearTimeout(timeoutId)
-				if (result.status === 'success') {
-					return result.value
+					return fallbackPreview
 				}
-				void previewPromise.catch((error) => {
-					console.warn('Background link preview fetch failed', { url, error })
-				})
-				return fallbackPreview
-			} catch (error) {
-				if (timeoutId) clearTimeout(timeoutId)
-				console.warn('Falling back to minimal link preview', { url, error })
-				return fallbackPreview
+
+			return {
+				url,
+				title: data.title,
+				description: data.description,
+				image: data.image,
+				domain,
 			}
 		}),
 	)
