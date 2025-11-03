@@ -10,9 +10,7 @@ import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
-import {
-	getLinkPreviewForRequest,
-} from '#app/utils/link-preview.server.ts'
+import { getLinkPreviewForRequest } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
 function resolveExperimentImage(
@@ -79,12 +77,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			const { data, resolvedFrom } = await getLinkPreviewForRequest(url, {
 				maxWaitMs: MAX_PREVIEW_WAIT_MS,
 			})
-				if (!data) {
-					if (resolvedFrom === 'pending') {
-						console.debug('Link preview pending; using fallback', { url })
-					}
-					return fallbackPreview
+			if (!data) {
+				if (resolvedFrom === 'pending') {
+					console.debug('Link preview pending; using fallback', { url })
 				}
+				return fallbackPreview
+			}
 
 			return {
 				url,

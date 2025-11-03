@@ -1,4 +1,4 @@
-import  { type CacheEntry } from '@epic-web/cachified'
+import { type CacheEntry } from '@epic-web/cachified'
 import { parse } from 'node-html-parser'
 import { z } from 'zod'
 import { cachified, cache } from '#app/utils/cache.server.ts'
