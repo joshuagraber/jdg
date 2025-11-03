@@ -201,17 +201,18 @@ const YouTubeButton = () => {
 			dialogInputPlaceholder="Paste the youtube video URL"
 			buttonContent="YT"
 			onSubmit={(url) => {
-				const videoId = new URL(url).searchParams.get('v')
-				if (videoId) {
-					insertDirective({
-						name: 'youtube',
-						type: 'leafDirective',
-						attributes: { id: videoId },
-						children: [],
-					} as LeafDirective)
-				} else {
+				const videoId = extractYoutubeId(url)
+				if (!videoId) {
 					alert('Invalid YouTube URL')
+					return
 				}
+
+				insertDirective({
+					name: 'youtube',
+					type: 'leafDirective',
+					attributes: { id: videoId },
+					children: [],
+				} as LeafDirective)
 			}}
 		/>
 	)
@@ -307,6 +308,11 @@ const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
 	attributes: ['id'],
 	hasChildren: false,
 	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
+		const videoId = extractYoutubeId(mdastNode.attributes.id)
+		const previewSrc = videoId
+			? `https://www.youtube.com/embed/${videoId}`
+			: null
+
 		return (
 			<div className="mdx-directive-container">
 				<div className="mdx-directive-controls">
@@ -324,14 +330,20 @@ const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
 					</button>
 				</div>
 				<div className="mdx-directive-content">
-					<iframe
-						width="560"
-						height="315"
-						src={`https://www.youtube.com/embed/${mdastNode.attributes.id}`}
-						title="YouTube video player"
-						frameBorder="0"
-						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-					></iframe>
+					{previewSrc ? (
+						<iframe
+							width="560"
+							height="315"
+							src={previewSrc}
+							title="YouTube video player"
+							frameBorder="0"
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+						></iframe>
+					) : (
+						<div className="flex h-full items-center justify-center rounded border border-dashed border-destructive p-4 text-destructive">
+							Invalid YouTube URL
+						</div>
+					)}
 				</div>
 			</div>
 		)
@@ -393,4 +405,30 @@ const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
 			</div>
 		)
 	},
+}
+
+function extractYoutubeId(input: string): string | null {
+	if (!input) return null
+	const trimmed = input.trim()
+	if (!trimmed) return null
+
+	try {
+		if (/^https?:\/\//i.test(trimmed)) {
+			const url = new URL(trimmed)
+			if (url.hostname === 'youtu.be') {
+				return url.pathname.split('/').filter(Boolean)[0] ?? null
+			}
+			if (!url.hostname.includes('youtube')) return null
+			const paramId = url.searchParams.get('v')
+			if (paramId) return paramId
+			const segments = url.pathname.split('/').filter(Boolean)
+			if (segments[0] === 'shorts' || segments[0] === 'embed') {
+				return segments[1] ?? null
+			}
+		}
+	} catch {
+		// ignore malformed URLs, fall through to return raw value
+	}
+
+	return trimmed
 }

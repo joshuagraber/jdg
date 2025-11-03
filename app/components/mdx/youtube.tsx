@@ -1,33 +1,21 @@
-import { ClientOnly } from 'remix-utils/client-only'
-import { Icon } from '../ui/icon'
-
-export const YouTubeEmbed = ({ id }: { id: string }) => {
-	return (
-		<div className="relative my-2 aspect-video md:my-4">
-			<ClientOnly fallback={<YouTubeLoading />}>
-				{() => (
-					<iframe
-						rel="preload"
-						className="aspect-video w-full"
-						src={`https://www.youtube.com/embed/${id}?origin=${window.location.origin}`}
-						title="YouTube video player"
-						allowFullScreen
-					/>
-				)}
-			</ClientOnly>
-		</div>
-	)
+type YouTubeEmbedProps = {
+	id: string
+	params?: string
 }
 
-function YouTubeLoading() {
+export const YouTubeEmbed = ({ id }: YouTubeEmbedProps) => {
 	return (
-		<div className="absolute inset-0 flex items-center justify-center bg-secondary dark:bg-primary-foreground">
-			<div className="flex animate-pulse space-x-4">
-				<Icon
-					className="h-16 w-16 text-secondary-foreground dark:text-primary"
-					name="dots-horizontal"
-				/>
-			</div>
+		<div className="relative my-2 aspect-video md:my-4">
+			<iframe
+				className="aspect-video w-full"
+				src={`https://www.youtube.com/embed/${id}`}
+				title="YouTube video player"
+				frameBorder="0"
+				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+				referrerPolicy="strict-origin-when-cross-origin"
+				allowFullScreen
+				loading="lazy"
+			/>
 		</div>
 	)
 }
