@@ -54,7 +54,7 @@
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.3",
-    "@react-email/components": "0.0.27",
+    "@react-email/components": "0.5.7",
     "@react-router/express": "^7.9.4",
     "@react-router/node": "^7.9.4",
     "@sentry/profiling-node": "^8.35.0",
