@@ -64,11 +64,25 @@ const remarkYoutube: Plugin = () => {
 	return (tree) => {
 		visit(tree, (node: Node<Data>) => {
 			if (isDirectiveNode(node) && node.name === 'youtube') {
-				const id =
-					node.attributes?.id ||
-					(node.attributes?.['#'] ? node.attributes['#'] : null)
+				const childText =
+					Array.isArray((node as any).children) &&
+					typeof (node as any).children[0]?.value === 'string'
+						? ((node as any).children[0].value as string)
+						: null
 
-				if (!id) return
+				const rawValue =
+					typeof node.attributes?.id === 'string'
+						? node.attributes.id
+						: typeof node.attributes?.['#'] === 'string'
+							? node.attributes['#']
+							: typeof node.attributes?.url === 'string'
+								? node.attributes.url
+								: typeof node.attributes?.href === 'string'
+									? node.attributes.href
+									: childText
+
+				const videoId = extractYoutubeId(rawValue)
+				if (!videoId) return
 
 				const youtubeNode = node as unknown as MdxJsxFlowElement
 				youtubeNode.type = 'mdxJsxFlowElement'
@@ -77,9 +91,9 @@ const remarkYoutube: Plugin = () => {
 					{
 						type: 'mdxJsxAttribute',
 						name: 'id',
-						value: id,
+						value: videoId,
 					},
-				]
+				] as MdxJsxFlowElement['attributes']
 			}
 		})
 	}
@@ -281,4 +295,31 @@ function isDirectiveNode(node: Node<Data>): node is DirectiveNode {
 		'name' in node &&
 		typeof (node as DirectiveNode).name === 'string'
 	)
+}
+
+function extractYoutubeId(input: unknown): string | null {
+	if (!input || typeof input !== 'string') return null
+	const value = input.trim()
+	if (!value) return null
+
+	try {
+		if (/^https?:\/\//i.test(value)) {
+			const url = new URL(value)
+			if (url.hostname === 'youtu.be') {
+				return url.pathname.split('/').filter(Boolean)[0] ?? null
+			}
+			if (!url.hostname.includes('youtube')) return null
+			const paramId = url.searchParams.get('v')
+			if (paramId) return paramId
+			const segments = url.pathname.split('/').filter(Boolean)
+			if (segments[0] === 'shorts' || segments[0] === 'embed') {
+				return segments[1] ?? null
+			}
+		}
+	} catch {
+		// ignore malformed URLs, fall back to raw value
+	}
+
+	// Fall back to the raw string for cases where the author supplied the id directly.
+	return value
 }

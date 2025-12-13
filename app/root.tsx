@@ -129,8 +129,15 @@ export const meta: Route.MetaFunction = ({ data }) => {
 		data?.requestInfo.hints.theme === 'dark'
 			? '/img/jdg_primary_inverted.png'
 			: '/img/jdg_primary.png'
-	const ogURL = data?.requestInfo.ogURL.toString()
-	const imgURL = new URL(img, ogURL).toString()
+
+	let ogURL, imgURL
+
+	try {
+		ogURL = data?.requestInfo.ogURL.toString()
+		imgURL = new URL(img, ogURL).toString()
+	} catch (error) {
+		console.error(error)
+	}
 
 	return [
 		{ title: 'Joshua D. Graber' },

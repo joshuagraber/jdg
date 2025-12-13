@@ -279,7 +279,10 @@ function WheelPoemInteractive() {
 	const [lastWheelSize, setLastWheelSize] = useState<number | null>(null)
 	const [isRestoring, setIsRestoring] = useState(false)
 	const wheelState = useWheelState()
-	const sessionPersistenceFetcher = useFetcher<{ ok: boolean; error?: string }>()
+	const sessionPersistenceFetcher = useFetcher<{
+		ok: boolean
+		error?: string
+	}>()
 	const [pendingResumeId, setPendingResumeId] = useState<string | null>(null)
 
 	const layoutClasses = useMemo(() => {
@@ -305,9 +308,7 @@ function WheelPoemInteractive() {
 				.filter((session): session is StoredSession => session !== null)
 				.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1))
 			setSavedSessions(sanitized.slice(0, MAX_SAVED_SESSIONS))
-			const pendingId = window.localStorage.getItem(
-				PENDING_SESSION_STORAGE_KEY,
-			)
+			const pendingId = window.localStorage.getItem(PENDING_SESSION_STORAGE_KEY)
 			if (pendingId) {
 				setPendingResumeId(pendingId)
 			}
@@ -473,19 +474,19 @@ function WheelPoemInteractive() {
 		if (!pendingResumeId) return
 		if (savedSessions.length === 0) return
 
-	const matching = savedSessions.find(
-		(session) => session.id === pendingResumeId,
-	)
+		const matching = savedSessions.find(
+			(session) => session.id === pendingResumeId,
+		)
 
-	if (!matching) {
+		if (!matching) {
+			window.localStorage.removeItem(PENDING_SESSION_STORAGE_KEY)
+			setPendingResumeId(null)
+			return
+		}
+
 		window.localStorage.removeItem(PENDING_SESSION_STORAGE_KEY)
 		setPendingResumeId(null)
-		return
-	}
-
-	window.localStorage.removeItem(PENDING_SESSION_STORAGE_KEY)
-	setPendingResumeId(null)
-	void handleResumeSession(matching)
+		void handleResumeSession(matching)
 	}, [
 		handleResumeSession,
 		hasProcessed,

@@ -80,10 +80,14 @@ export default function AdminUserCreatedWheelPoemDetailRoute() {
 					sessions = parsed.filter((entry): entry is StoredSession => {
 						if (!entry || typeof entry !== 'object') return false
 						return (
-							'id' in entry && typeof entry.id === 'string' &&
-							'text' in entry && typeof entry.text === 'string' &&
-							'rotations' in entry && Array.isArray(entry.rotations) &&
-							'updatedAt' in entry && typeof entry.updatedAt === 'string'
+							'id' in entry &&
+							typeof entry.id === 'string' &&
+							'text' in entry &&
+							typeof entry.text === 'string' &&
+							'rotations' in entry &&
+							Array.isArray(entry.rotations) &&
+							'updatedAt' in entry &&
+							typeof entry.updatedAt === 'string'
 						)
 					})
 				}
@@ -104,10 +108,7 @@ export default function AdminUserCreatedWheelPoemDetailRoute() {
 				sessions = sessions.slice(0, MAX_SAVED_SESSIONS)
 			}
 
-			window.localStorage.setItem(
-				SESSION_STORAGE_KEY,
-				JSON.stringify(sessions),
-			)
+			window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions))
 			window.localStorage.setItem(PENDING_SESSION_STORAGE_KEY, session.id)
 
 			void navigate('/experiments/wheel-poem')

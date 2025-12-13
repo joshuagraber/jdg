@@ -46,11 +46,10 @@ const WheelPoemSessionSchema = z.object({
 })
 
 export async function action({ request }: ActionFunctionArgs) {
-	invariantResponse(
-		request.method === 'POST',
-		'Method not allowed',
-		{ status: 405, headers: { Allow: 'POST' } },
-	)
+	invariantResponse(request.method === 'POST', 'Method not allowed', {
+		status: 405,
+		headers: { Allow: 'POST' },
+	})
 
 	const formData = await request.formData()
 	const submission = WheelPoemSessionSchema.safeParse(

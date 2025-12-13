@@ -39,11 +39,19 @@ jobs:
       - name: 🎈 Setup Fly
         uses: superfly/flyctl-actions/setup-flyctl@1.5
 
+      - name: 🏷 Determine release version
+        id: release
+        run: |
+          CALVER=$(date -u '+%Y.%m.%d')
+          echo "version=$CALVER" >> "$GITHUB_OUTPUT"
+          echo "Release version: $CALVER"
+
       - name: 🚀 Deploy Staging
         if: ${{ github.ref == 'refs/heads/dev' }}
-        run:
+        run: >-
           flyctl deploy --remote-only --build-arg COMMIT_SHA=${{ github.sha }}
-          --app ${{ steps.app_name.outputs.value }}-staging
+          --build-arg RELEASE_VERSION=${{ steps.release.outputs.version }} --app
+          ${{ steps.app_name.outputs.value }}-staging
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
@@ -51,13 +59,9 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         run: >-
           flyctl deploy --remote-only --build-arg COMMIT_SHA=${{ github.sha }}
+          --build-arg RELEASE_VERSION=${{ steps.release.outputs.version }}
           --build-arg SENTRY_ORG=${{ secrets.SENTRY_ORG }} --build-arg
           SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }} --build-secret
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-  release:
-    name: Release
-    needs: [validate, deploy]
-    uses: ./.github/workflows/release.yml

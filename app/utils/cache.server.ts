@@ -15,10 +15,7 @@ import type Database from 'better-sqlite3'
 import { LRUCache } from 'lru-cache'
 import { z } from 'zod'
 import { updatePrimaryCacheValue } from '#app/routes/admin+/cache_.sqlite.server.ts'
-import {
-	getCacheDbPath,
-	openReadWrite,
-} from '../../server/cache/sqlite.ts'
+import { getCacheDbPath, openReadWrite } from '../../server/cache/sqlite.ts'
 import { getInstanceInfo, getInstanceInfoSync } from './litefs.server.ts'
 import { cachifiedTimingReporter, type Timings } from './timing.server.ts'
 
