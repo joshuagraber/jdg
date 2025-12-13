@@ -45,9 +45,7 @@ export default function AdminUserCreatedIndexRoute() {
 
 			<section className="space-y-4">
 				<div>
-					<h2 className="text-xl font-semibold text-foreground">
-						Wheel poems
-					</h2>
+					<h2 className="text-xl font-semibold text-foreground">Wheel poems</h2>
 					<p className="text-sm text-muted-foreground">
 						Most recent sessions saved from the Wheel Poem experiment.
 					</p>
@@ -69,7 +67,7 @@ export default function AdminUserCreatedIndexRoute() {
 										<span className="text-sm font-medium text-foreground group-hover:text-primary">
 											{record.text
 												? record.text.slice(0, 80) +
-												  (record.text.length > 80 ? '…' : '')
+													(record.text.length > 80 ? '…' : '')
 												: '(empty)'}
 										</span>
 										<time

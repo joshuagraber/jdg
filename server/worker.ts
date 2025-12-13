@@ -10,8 +10,10 @@ const loopDelay =
 	Number.parseInt(process.env.LINK_PREVIEW_REFRESH_INTERVAL_MS ?? '', 10) ||
 	DEFAULT_LOOP_DELAY_MS
 const startupStagger =
-	Number.parseInt(process.env.LINK_PREVIEW_REFRESH_STARTUP_DELAY_MS ?? '', 10) ||
-	DEFAULT_STARTUP_STAGGER_MS
+	Number.parseInt(
+		process.env.LINK_PREVIEW_REFRESH_STARTUP_DELAY_MS ?? '',
+		10,
+	) || DEFAULT_STARTUP_STAGGER_MS
 
 let active = true
 
