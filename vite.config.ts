@@ -53,7 +53,11 @@ export default defineConfig({
 					org: process.env.SENTRY_ORG,
 					project: process.env.SENTRY_PROJECT,
 					release: {
-						name: process.env.COMMIT_SHA,
+						name:
+							process.env.RELEASE_VERSION ??
+							process.env.COMMIT_SHA ??
+							'MISSING_RELEASE',
+						dist: process.env.COMMIT_SHA,
 						setCommits: {
 							auto: true,
 						},

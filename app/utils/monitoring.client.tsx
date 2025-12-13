@@ -11,7 +11,8 @@ export function init() {
 	sentryInit({
 		dsn: ENV.SENTRY_DSN,
 		environment: ENV.MODE,
-		release: ENV.COMMIT_SHA,
+		release: ENV.RELEASE_VERSION || ENV.COMMIT_SHA || 'development',
+		dist: ENV.COMMIT_SHA || undefined,
 		beforeSend(event) {
 			try {
 				const maybeUrl = event.request?.url

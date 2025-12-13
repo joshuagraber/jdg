@@ -12,6 +12,7 @@ other/cache.db*
 
 /prisma/data.db
 /prisma/data.db-journal
+/postgres-data
 /tests/prisma
 
 /test-results/

@@ -5,7 +5,11 @@ export function init() {
 	Sentry.init({
 		dsn: process.env.SENTRY_DSN,
 		environment: process.env.NODE_ENV,
-		release: process.env.COMMIT_SHA,
+		release:
+			process.env.RELEASE_VERSION ??
+			process.env.COMMIT_SHA ??
+			(process.env.NODE_ENV === 'production' ? 'production' : 'development'),
+		dist: process.env.COMMIT_SHA,
 		tracesSampleRate: process.env.NODE_ENV === 'production' ? 1 : 0,
 		autoInstrumentRemix: true,
 		denyUrls: [
