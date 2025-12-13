@@ -1,5 +1,5 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { data, type ActionFunctionArgs } from 'react-router';
+import { data, type ActionFunctionArgs } from 'react-router'
 import { requireUserId } from '#app/utils/auth.server'
 import { prisma } from '#app/utils/db.server'
 

@@ -5,15 +5,20 @@ import {
 	browserProfilingIntegration,
 } from '@sentry/remix'
 import { useEffect } from 'react'
-import { useLocation, useMatches } from 'react-router';
+import { useLocation, useMatches } from 'react-router'
 
 export function init() {
 	sentryInit({
 		dsn: ENV.SENTRY_DSN,
 		environment: ENV.MODE,
+		release: ENV.RELEASE_VERSION || ENV.COMMIT_SHA || 'development',
+		dist: ENV.COMMIT_SHA || undefined,
 		beforeSend(event) {
-			if (event.request?.url) {
-				const url = new URL(event.request.url)
+			try {
+				const maybeUrl = event.request?.url
+				if (!maybeUrl) return event
+				// Guard against invalid/relative URLs coming from extensions or SDK internals
+				const url = new URL(maybeUrl)
 				if (
 					url.protocol === 'chrome-extension:' ||
 					url.protocol === 'moz-extension:'
@@ -21,8 +26,11 @@ export function init() {
 					// This error is from a browser extension, ignore it
 					return null
 				}
+				return event
+			} catch {
+				// If URL construction fails, keep the event but don't parse the URL
+				return event
 			}
-			return event
 		},
 		integrations: [
 			browserTracingIntegration({
@@ -34,10 +42,9 @@ export function init() {
 			browserProfilingIntegration(),
 		],
 
-		// Set tracesSampleRate to 1.0 to capture 100%
-		// of transactions for performance monitoring.
-		// We recommend adjusting this value in production
-		tracesSampleRate: 1.0,
+		tracesSampleRate: 1,
+
+		profilesSampleRate: 1,
 
 		// Capture Replay for 10% of all sessions,
 		// plus for 100% of sessions with an error

@@ -28,24 +28,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      - name: Cache dependencies
-        id: deps-cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            node_modules/.prisma
-          key: node-deps-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-deps-
-
-      - name: Install dependencies
-        if: steps.deps-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Generate prisma client
-        run: npx prisma generate
-
   lint:
     needs: setup
     name: ⬣ ESLint
@@ -59,16 +41,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: 📥 Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            node_modules/.prisma
-          key: node-deps-${{ hashFiles('package-lock.json') }}
+      - name: Install deps
+        run: npm ci
 
       - name: 🖼 Build icons
-        run: npm run build:icons
+        run: npm run build:icons --verbose
 
       - name: 🔬 Lint
         run: npm run lint
@@ -86,13 +63,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: 📥 Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            node_modules/.prisma
-          key: node-deps-${{ hashFiles('package-lock.json') }}
+      - name: Install deps
+        run: npm ci
 
       - name: Build
         run: npm run build
@@ -110,13 +82,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: 📥 Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            node_modules/.prisma
-          key: node-deps-${{ hashFiles('package-lock.json') }}
+      - name: Install deps
+        run: npm ci
+
+      - name: Generate prisma client
+        run: npx prisma generate
 
       - name: 🖼 Build icons
         run: npm run build:icons
@@ -125,7 +95,7 @@ jobs:
         run: npx tsc --version
 
       - name: 🔎 Type check
-        run: npm run typecheck -- --pretty
+        run: npm run typecheck
 
   vitest:
     needs: setup
@@ -140,13 +110,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: 📥 Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            node_modules/.prisma
-          key: node-deps-${{ hashFiles('package-lock.json') }}
+      - name: Install deps
+        run: npm ci
 
       - name: 🏄 Copy test env vars
         run: cp .env.example .env

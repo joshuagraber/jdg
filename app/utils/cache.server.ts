@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { unlinkSync } from 'node:fs'
 import {
 	cachified as baseCachified,
 	verboseReporter,
@@ -11,42 +11,51 @@ import {
 	type CreateReporter,
 } from '@epic-web/cachified'
 import { remember } from '@epic-web/remember'
-import Database from 'better-sqlite3'
+import type Database from 'better-sqlite3'
 import { LRUCache } from 'lru-cache'
 import { z } from 'zod'
 import { updatePrimaryCacheValue } from '#app/routes/admin+/cache_.sqlite.server.ts'
+import { getCacheDbPath, openReadWrite } from '../../server/cache/sqlite.ts'
 import { getInstanceInfo, getInstanceInfoSync } from './litefs.server.ts'
 import { cachifiedTimingReporter, type Timings } from './timing.server.ts'
 
-const CACHE_DATABASE_PATH = process.env.CACHE_DATABASE_PATH
+const CACHE_DATABASE_PATH = getCacheDbPath()
 
 const cacheDb = remember('cacheDb', createDatabase)
 
-function createDatabase(tryAgain = true): Database.Database {
-	const db = new Database(CACHE_DATABASE_PATH)
+function ensureSchema(db: Database.Database) {
 	const { currentIsPrimary } = getInstanceInfoSync()
 	if (!currentIsPrimary) return db
 
+	db.exec(`
+		CREATE TABLE IF NOT EXISTS cache (
+			key TEXT PRIMARY KEY,
+			metadata TEXT,
+			value TEXT
+		)
+	`)
+	return db
+}
+
+function createDatabase(tryAgain = true): Database.Database {
 	try {
-		// create cache table with metadata JSON column and value JSON column if it does not exist already
-		db.exec(`
-			CREATE TABLE IF NOT EXISTS cache (
-				key TEXT PRIMARY KEY,
-				metadata TEXT,
-				value TEXT
-			)
-		`)
+		const db = openReadWrite()
+		return ensureSchema(db)
 	} catch (error: unknown) {
-		fs.unlinkSync(CACHE_DATABASE_PATH)
 		if (tryAgain) {
+			try {
+				unlinkSync(CACHE_DATABASE_PATH)
+			} catch {
+				// ignore unlink failures
+			}
 			console.error(
 				`Error creating cache database, deleting the file at "${CACHE_DATABASE_PATH}" and trying again...`,
+				error,
 			)
 			return createDatabase(false)
 		}
 		throw error
 	}
-	return db
 }
 
 const lru = remember(

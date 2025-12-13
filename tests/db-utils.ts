@@ -103,12 +103,15 @@ export async function getUserImages() {
 export async function img({
 	altText,
 	filepath,
+	title,
 }: {
 	altText?: string
 	filepath: string
+	title?: string
 }) {
 	return {
 		altText,
+		title,
 		contentType: filepath.endsWith('.png') ? 'image/png' : 'image/jpeg',
 		blob: await fs.promises.readFile(filepath),
 	}

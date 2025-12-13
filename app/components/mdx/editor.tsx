@@ -38,6 +38,9 @@ import {
 } from '@mdxeditor/editor'
 import { type LeafDirective } from 'mdast-util-directive'
 import { useRef } from 'react'
+import { ClientOnly } from 'remix-utils/client-only'
+import { LinkPreviewStatic } from '#app/components/link-preview-static.tsx'
+import { LinkPreview } from '#app/components/link-preview.tsx'
 import { useTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { cn } from '#app/utils/misc.tsx'
 
@@ -60,28 +63,54 @@ const Toolbar = () => (
 				},
 				{
 					fallback: () => (
-						<>
-							<UndoRedo />
+						<div className="mdx-toolbar">
+							{/* History Controls */}
+							<div className="mdx-toolbar-group">
+								<UndoRedo />
+							</div>
 							<Separator />
-							<BoldItalicUnderlineToggles />
-							<CodeToggle />
+
+							{/* Text Formatting */}
+							<div className="mdx-toolbar-group">
+								<BoldItalicUnderlineToggles />
+								<CodeToggle />
+								<StrikeThroughSupSubToggles />
+							</div>
 							<Separator />
-							<InsertCodeBlock />
+
+							{/* Block Formatting */}
+							<div className="mdx-toolbar-group">
+								<BlockTypeSelect />
+								<ListsToggle />
+							</div>
 							<Separator />
-							<StrikeThroughSupSubToggles />
+
+							{/* Code & Structure */}
+							<div className="mdx-toolbar-group">
+								<InsertCodeBlock />
+								<InsertThematicBreak />
+							</div>
 							<Separator />
-							<ListsToggle />
+
+							{/* Media & Links */}
+							<div className="mdx-toolbar-group">
+								<CreateLink />
+								<InsertImage />
+							</div>
 							<Separator />
-							<BlockTypeSelect />
+
+							{/* Rich Content */}
+							<div className="mdx-toolbar-group">
+								<PreviewButton />
+								<YouTubeButton />
+							</div>
 							<Separator />
-							<CreateLink />
-							<InsertImage />
-							<YouTubeButton />
-							<Separator />
-							<InsertTable />
-							<InsertThematicBreak />
-							<Separator />
-						</>
+
+							{/* Tables */}
+							<div className="mdx-toolbar-group">
+								<InsertTable />
+							</div>
+						</div>
 					),
 				},
 			]}
@@ -101,52 +130,62 @@ export function MDXEditorComponent({
 	const theme = useTheme()
 
 	return (
-		<MDXEditor
-			className={cn(
-				// TODO: Remove the typography plugin (https://github.com/tailwindlabs/tailwindcss-typography) when global typography styles updated
-				'jdg_typography min-h-[400px] w-full',
-				className,
-				theme === 'dark' && 'dark-theme dark-editor',
-			)}
-			ref={editorRef}
-			markdown={markdown}
-			onChange={onChange}
-			plugins={[
-				toolbarPlugin({
-					toolbarContents: () => <Toolbar />,
-				}),
-				listsPlugin(),
-				quotePlugin(),
-				headingsPlugin({ allowedHeadingLevels: [2, 3, 4, 5, 6] }),
-				linkPlugin(),
-				linkDialogPlugin(),
-				imagePlugin({
-					imageAutocompleteSuggestions: images,
-					imageUploadHandler,
-				}),
-				tablePlugin(),
-				thematicBreakPlugin(),
-				frontmatterPlugin(),
-				codeBlockPlugin({ defaultCodeBlockLanguage: '' }),
-				codeMirrorPlugin({
-					codeBlockLanguages: {
-						js: 'JavaScript',
-						css: 'CSS',
-						txt: 'Plain Text',
-						tsx: 'TypeScript',
-						'': 'Unspecified',
-					},
-				}),
-				directivesPlugin({
-					directiveDescriptors: [
-						YoutubeDirectiveDescriptor,
-						AdmonitionDirectiveDescriptor,
-					],
-				}),
-				diffSourcePlugin({ viewMode: 'source', diffMarkdown: diffSource }),
-				markdownShortcutPlugin(),
-			]}
-		/>
+		<ClientOnly fallback={null}>
+			{() => {
+				return (
+					<MDXEditor
+						className={cn(
+							// TODO: Remove the typography plugin (https://github.com/tailwindlabs/tailwindcss-typography) when global typography styles updated
+							'jdg_typography min-h-[400px] w-full',
+							className,
+							theme === 'dark' && 'dark-theme dark-editor',
+						)}
+						ref={editorRef}
+						markdown={markdown}
+						onChange={onChange}
+						plugins={[
+							toolbarPlugin({
+								toolbarContents: () => <Toolbar />,
+							}),
+							listsPlugin(),
+							quotePlugin(),
+							headingsPlugin({ allowedHeadingLevels: [2, 3, 4, 5, 6] }),
+							linkPlugin(),
+							linkDialogPlugin(),
+							imagePlugin({
+								imageAutocompleteSuggestions: images,
+								imageUploadHandler,
+							}),
+							tablePlugin(),
+							thematicBreakPlugin(),
+							frontmatterPlugin(),
+							codeBlockPlugin({ defaultCodeBlockLanguage: '' }),
+							codeMirrorPlugin({
+								codeBlockLanguages: {
+									js: 'JavaScript',
+									css: 'CSS',
+									txt: 'Plain Text',
+									tsx: 'TypeScript',
+									'': 'Unspecified',
+								},
+							}),
+							directivesPlugin({
+								directiveDescriptors: [
+									YoutubeDirectiveDescriptor,
+									PreviewDirectiveDescriptor,
+									AdmonitionDirectiveDescriptor,
+								],
+							}),
+							diffSourcePlugin({
+								viewMode: 'source',
+								diffMarkdown: diffSource,
+							}),
+							markdownShortcutPlugin(),
+						]}
+					/>
+				)
+			}}
+		</ClientOnly>
 	)
 }
 
@@ -162,16 +201,93 @@ const YouTubeButton = () => {
 			dialogInputPlaceholder="Paste the youtube video URL"
 			buttonContent="YT"
 			onSubmit={(url) => {
-				const videoId = new URL(url).searchParams.get('v')
-				if (videoId) {
-					insertDirective({
-						name: 'youtube',
-						type: 'leafDirective',
-						attributes: { id: videoId },
-						children: [],
-					} as LeafDirective)
-				} else {
+				const videoId = extractYoutubeId(url)
+				if (!videoId) {
 					alert('Invalid YouTube URL')
+					return
+				}
+
+				insertDirective({
+					name: 'youtube',
+					type: 'leafDirective',
+					attributes: { id: videoId },
+					children: [],
+				} as LeafDirective)
+			}}
+		/>
+	)
+}
+
+const PreviewButton = () => {
+	const insertDirective = usePublisher(insertDirective$)
+
+	// Load recent URLs from localStorage for autocomplete
+	let recentSuggestions: string[] = []
+	try {
+		const raw =
+			typeof window !== 'undefined'
+				? localStorage.getItem('jdg:preview:recent')
+				: null
+		recentSuggestions = raw ? (JSON.parse(raw) as string[]) : []
+	} catch {
+		recentSuggestions = []
+	}
+
+	return (
+		<DialogButton
+			tooltipTitle="Insert Link Preview"
+			submitButtonTitle="Insert preview"
+			dialogInputPlaceholder="Paste the URL to preview"
+			buttonContent="Preview"
+			autocompleteSuggestions={recentSuggestions}
+			onSubmit={(url) => {
+				try {
+					const u = new URL(url)
+					if (!/^https?:/.test(u.protocol)) throw new Error('Invalid scheme')
+				} catch {
+					alert('Please enter a valid http(s) URL')
+					return
+				}
+
+				// Optional overrides
+				const title =
+					window.prompt(
+						'Optional title override (leave blank to auto-fetch):',
+					) || ''
+				const description =
+					window.prompt(
+						'Optional description override (leave blank to auto-fetch):',
+					) || ''
+				const image =
+					window.prompt(
+						'Optional image URL override (leave blank to auto-fetch):',
+					) || ''
+				const domain =
+					window.prompt(
+						'Optional domain override (leave blank to auto-detect):',
+					) || ''
+
+				const attributes: Record<string, string> = { url }
+				if (title.trim()) attributes.title = title.trim()
+				if (description.trim()) attributes.description = description.trim()
+				if (image.trim()) attributes.image = image.trim()
+				if (domain.trim()) attributes.domain = domain.trim()
+
+				insertDirective({
+					name: 'preview',
+					type: 'leafDirective',
+					attributes,
+					children: [],
+				} as LeafDirective)
+
+				// Persist recent URL for autocomplete
+				try {
+					const raw = localStorage.getItem('jdg:preview:recent')
+					const list: string[] = raw ? (JSON.parse(raw) as string[]) : []
+					const next = [url, ...list.filter((u) => u !== url)].slice(0, 15)
+					localStorage.setItem('jdg:preview:recent', JSON.stringify(next))
+				} catch {
+					// ignore
 				}
 			}}
 		/>
@@ -192,33 +308,127 @@ const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
 	attributes: ['id'],
 	hasChildren: false,
 	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
+		const videoId = extractYoutubeId(mdastNode.attributes.id)
+		const previewSrc = videoId
+			? `https://www.youtube.com/embed/${videoId}`
+			: null
+
 		return (
-			<div
-				style={{
-					display: 'flex',
-					flexDirection: 'column',
-					alignItems: 'flex-start',
-				}}
-			>
-				<button
-					onClick={() => {
-						parentEditor.update(() => {
-							lexicalNode.selectNext()
-							lexicalNode.remove()
-						})
-					}}
-				>
-					delete
-				</button>
-				<iframe
-					width="560"
-					height="315"
-					src={`https://www.youtube.com/embed/${mdastNode.attributes.id}`}
-					title="YouTube video player"
-					frameBorder="0"
-					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-				></iframe>
+			<div className="mdx-directive-container">
+				<div className="mdx-directive-controls">
+					<button
+						className="mdx-delete-button"
+						onClick={() => {
+							parentEditor.update(() => {
+								lexicalNode.selectNext()
+								lexicalNode.remove()
+							})
+						}}
+						title="Delete YouTube video"
+					>
+						🗑️
+					</button>
+				</div>
+				<div className="mdx-directive-content">
+					{previewSrc ? (
+						<iframe
+							width="560"
+							height="315"
+							src={previewSrc}
+							title="YouTube video player"
+							frameBorder="0"
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+						></iframe>
+					) : (
+						<div className="flex h-full items-center justify-center rounded border border-dashed border-destructive p-4 text-destructive">
+							Invalid YouTube URL
+						</div>
+					)}
+				</div>
 			</div>
 		)
 	},
+}
+
+interface PreviewDirectiveNode extends LeafDirective {
+	name: 'preview'
+	attributes: { url: string }
+}
+
+const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
+	name: 'preview',
+	type: 'leafDirective',
+	testNode(node) {
+		return node.name === 'preview'
+	},
+	attributes: ['url', 'title', 'description', 'image', 'domain'],
+	hasChildren: false,
+	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
+		const url = mdastNode.attributes.url
+		const title = (mdastNode as any).attributes?.title as string | undefined
+		const description = (mdastNode as any).attributes?.description as
+			| string
+			| undefined
+		const image = (mdastNode as any).attributes?.image as string | undefined
+		const domain = (mdastNode as any).attributes?.domain as string | undefined
+		return (
+			<div className="mdx-directive-container">
+				<div className="mdx-directive-controls">
+					<button
+						className="mdx-delete-button"
+						onClick={() => {
+							parentEditor.update(() => {
+								lexicalNode.selectNext()
+								lexicalNode.remove()
+							})
+						}}
+						title="Delete link preview"
+					>
+						🗑️
+					</button>
+				</div>
+				<div className="mdx-directive-content">
+					<div className="mdx-link-preview-container">
+						{title || description || image || domain ? (
+							<LinkPreviewStatic
+								url={url}
+								title={title}
+								description={description}
+								image={image}
+								domain={domain}
+							/>
+						) : (
+							<LinkPreview url={url} />
+						)}
+					</div>
+				</div>
+			</div>
+		)
+	},
+}
+
+function extractYoutubeId(input: string): string | null {
+	if (!input) return null
+	const trimmed = input.trim()
+	if (!trimmed) return null
+
+	try {
+		if (/^https?:\/\//i.test(trimmed)) {
+			const url = new URL(trimmed)
+			if (url.hostname === 'youtu.be') {
+				return url.pathname.split('/').filter(Boolean)[0] ?? null
+			}
+			if (!url.hostname.includes('youtube')) return null
+			const paramId = url.searchParams.get('v')
+			if (paramId) return paramId
+			const segments = url.pathname.split('/').filter(Boolean)
+			if (segments[0] === 'shorts' || segments[0] === 'embed') {
+				return segments[1] ?? null
+			}
+		}
+	} catch {
+		// ignore malformed URLs, fall through to return raw value
+	}
+
+	return trimmed
 }

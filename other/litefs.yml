@@ -40,4 +40,4 @@ exec:
   - cmd: sqlite3 $CACHE_DATABASE_PATH "PRAGMA journal_mode = WAL;"
     if-candidate: true
 
-  - cmd: npm start
+  - cmd: bash ./scripts/supervise.sh

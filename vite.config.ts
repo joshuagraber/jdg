@@ -28,7 +28,10 @@ export default defineConfig({
 			}
 		},
 
-		sourcemap: MODE === 'development',
+		// Generate sourcemaps for development; use hidden maps in production
+		// so the sourceMappingURL comment is omitted from built files.
+		sourcemap:
+			MODE === 'production' ? 'hidden' : MODE === 'test' ? false : true,
 	},
 	server: {
 		watch: {
@@ -50,16 +53,17 @@ export default defineConfig({
 					org: process.env.SENTRY_ORG,
 					project: process.env.SENTRY_PROJECT,
 					release: {
-						name: process.env.COMMIT_SHA,
+						name:
+							process.env.RELEASE_VERSION ??
+							process.env.COMMIT_SHA ??
+							'MISSING_RELEASE',
+						dist: process.env.COMMIT_SHA,
 						setCommits: {
 							auto: true,
 						},
 					},
 					sourcemaps: {
-						filesToDeleteAfterUpload: await glob([
-							'./build/**/*.map',
-							'.server-build/**/*.map',
-						]),
+						filesToDeleteAfterUpload: await glob(['./build/client/**/*.map']),
 					},
 				})
 			: null,

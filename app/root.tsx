@@ -37,13 +37,6 @@ import { makeTimings, time } from './utils/timing.server.ts'
 import { getToast } from './utils/toast.server.ts'
 import { useOptionalUser } from './utils/user.ts'
 import '@mdxeditor/editor/style.css?url'
-;<link
-	rel="preload"
-	href="/fonts/Inter-Regular.woff2"
-	as="font"
-	type="font/woff2"
-	crossOrigin="anonymous"
-/>
 
 export const links: Route.LinksFunction = () => {
 	return [
@@ -136,8 +129,15 @@ export const meta: Route.MetaFunction = ({ data }) => {
 		data?.requestInfo.hints.theme === 'dark'
 			? '/img/jdg_primary_inverted.png'
 			: '/img/jdg_primary.png'
-	const ogURL = data?.requestInfo.ogURL.toString()
-	const imgURL = new URL(img, ogURL).toString()
+
+	let ogURL, imgURL
+
+	try {
+		ogURL = data?.requestInfo.ogURL.toString()
+		imgURL = new URL(img, ogURL).toString()
+	} catch (error) {
+		console.error(error)
+	}
 
 	return [
 		{ title: 'Joshua D. Graber' },
@@ -304,6 +304,18 @@ function App() {
 								to="fragments"
 							>
 								fragments
+							</NavLink>{' '}
+							|{' '}
+							<NavLink
+								className={({ isActive }) =>
+									cn(
+										'no-underline hover:underline focus:underline md:text-body-md',
+										isActive && 'text-secondary-foreground',
+									)
+								}
+								to="contact"
+							>
+								contact
 							</NavLink>
 							{user?.roles.some(({ name }) => name === 'admin') && (
 								<>

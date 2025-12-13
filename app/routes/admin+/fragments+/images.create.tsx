@@ -3,9 +3,15 @@ import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { data } from 'react-router'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
-import { resizeImage } from '#app/utils/image-processing.server.ts'
+import {
+	getImageDimensions,
+	resizeImage,
+} from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
-import { fileToBlob } from '#app/utils/post-images.server'
+import {
+	getSignedUploadUrl,
+	IMMUTABLE_CACHE_CONTROL,
+} from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 10 // 10MB
@@ -27,7 +33,8 @@ export async function action({ request }: Route.ActionArgs) {
 			// Convert upload to buffer for processing
 			const buffer = await fileUpload.arrayBuffer()
 			// Resize to max 800px (post container max width)
-			const resizedImageBuffer = await resizeImage(Buffer.from(buffer))
+			const inputBuffer = Buffer.from(buffer)
+			const resizedImageBuffer = await resizeImage(inputBuffer)
 
 			// Create a new File object with the resized image
 			const resizedFile = new File([resizedImageBuffer], fileUpload.name, {
@@ -48,7 +55,6 @@ export async function action({ request }: Route.ActionArgs) {
 	)
 
 	const file = formData.get('file') as File | null
-	const postId = formData.get('postId') as string | null
 	const altText = formData.get('altText') as string | null
 	const title = formData.get('title') as string | null
 
@@ -60,16 +66,40 @@ export async function action({ request }: Route.ActionArgs) {
 	}
 
 	try {
-		const imageData = await fileToBlob({ file, altText, title })
+		const key = `images/${Date.now()}-${file.name}`
+		const uploadUrl = await getSignedUploadUrl(key, file.type)
+
+		// Determine dimensions of the file we will upload (resized or original if gif)
+		const arrayBuf = await file.arrayBuffer()
+		const { width, height } = await getImageDimensions(Buffer.from(arrayBuf))
 
 		const image = await prisma.postImage.create({
 			data: {
-				...imageData,
-				...(postId ? { posts: { connect: { id: postId } } } : {}),
+				s3Key: key,
+				contentType: file.type,
+				altText,
+				title,
+				width: width ?? null,
+				height: height ?? null,
 			},
 		})
 
-		return getPostImageSource(image.id)
+		if (image) {
+			await fetch(uploadUrl, {
+				method: 'PUT',
+				body: file,
+				headers: {
+					'Content-Type': file.type,
+					'Cache-Control': IMMUTABLE_CACHE_CONTROL,
+				},
+			})
+		}
+
+		return (
+			getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+			getPostImageSource(image.id, { relative: true }) ??
+			`/resources/post-images/${image.id}`
+		)
 	} catch {
 		return data({ error: 'Error uploading image' }, { status: 500 })
 	}

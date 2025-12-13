@@ -1,10 +1,26 @@
-import { useLoaderData, Link } from 'react-router'
-import { LinkPreview } from '#app/components/link-preview'
+import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
+import { InternalLinkPreview } from '#app/components/link-preview-internal'
+import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
+import {
+	HOME_EXPERIMENT_PREVIEWS,
+	type ExperimentPreviewConfig,
+} from '#app/content/experiments'
+import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
+import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
+import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
+import { getLinkPreviewForRequest } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
-export async function loader() {
+function resolveExperimentImage(
+	theme: string | null | undefined,
+	preview: ExperimentPreviewConfig,
+) {
+	return theme === 'dark' ? preview.images.dark : preview.images.light
+}
+
+export async function loader({ request }: LoaderFunctionArgs) {
 	const recentFragments = await prisma.post.findMany({
 		where: {
 			publishAt: {
@@ -15,10 +31,77 @@ export async function loader() {
 		orderBy: {
 			publishAt: 'desc',
 		},
-		take: 3,
+		take: 4,
 	})
 
-	return { fragments: recentFragments }
+	const fragmentPaths = recentFragments.map(
+		(fragment) => `/fragments/${fragment.slug}`,
+	)
+	const fragmentLinkPreviews = await getInternalLinkPreviews(
+		fragmentPaths,
+		request,
+	)
+	const siteHostname = new URL(request.url).hostname
+	const hints = getHints(request)
+	const experimentPreviews = HOME_EXPERIMENT_PREVIEWS.map((preview) => {
+		const image = resolveExperimentImage(hints.theme, preview)
+		return {
+			to: preview.to,
+			data: {
+				url: preview.url,
+				title: preview.title,
+				description: preview.description,
+				image,
+				imageLight: preview.images.light,
+				imageDark: preview.images.dark,
+				imageAlt: preview.imageAlt,
+				domain: siteHostname,
+			},
+		}
+	})
+
+	// Fetch and cache link previews server-side for homepage
+	const MAX_PREVIEW_WAIT_MS = 350
+	const previews = await Promise.all(
+		RECENT_PUBLICATIONS.map(async (url) => {
+			const domain = url.startsWith('data:')
+				? 'data-url'
+				: new URL(url).hostname
+			const fallbackPreview = {
+				url,
+				title: undefined,
+				description: undefined,
+				image: undefined,
+				domain,
+			}
+			const { data, resolvedFrom } = await getLinkPreviewForRequest(url, {
+				maxWaitMs: MAX_PREVIEW_WAIT_MS,
+			})
+			if (!data) {
+				if (resolvedFrom === 'pending') {
+					console.debug('Link preview pending; using fallback', { url })
+				}
+				return fallbackPreview
+			}
+
+			return {
+				url,
+				title: data.title,
+				description: data.description,
+				image: data.image,
+				domain,
+			}
+		}),
+	)
+
+	return {
+		fragments: recentFragments,
+		recentPubs: RECENT_PUBLICATIONS,
+		previews,
+		fragmentLinkPreviews,
+		experimentPreviews,
+		siteHostname,
+	}
 }
 
 export default function Index() {
@@ -30,16 +113,29 @@ export default function Index() {
 			<h1>Joshua D. Graber</h1>
 			<Spacer size="4xs" />
 			<p>
-				👋 Hi I&apos;m Joshua. I currently work as a writer, editor, and
-				computer scientist.
-				<Spacer size="4xs" />
-				I'm a writer, editor, and computer scientist with a career that spans
-				storytelling, software, and shaping ideas. Along the way, I&apos;ve also
-				been a professor, activist, tutor, bartender, landscaper, farmhand,
-				dishwasher, and entrepreneur. I like to think all of it informs the work
-				I do today.
+				Hi I&apos;m Joshua. I currently work as a writer, editor, and software
+				engineer, with a career that has spanned writing, tech, and education.
+				Along the way, I&apos;ve also worked as a professor, activist, tutor,
+				bartender, landscaper, farm worker, and dishwasher.
 				<Spacer size="4xs" />
 			</p>
+			<Spacer size="2xs" />
+			{/* Experiments */}
+			<h2 id="experiments">Experiments</h2>
+			<Spacer size="4xs" />
+			<p>Experiments in digital poetics and programming</p>
+			<Spacer size="5xs" />
+			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.experimentPreviews.map((preview) => (
+					<li key={preview.to}>
+						<InternalLinkPreview
+							to={preview.to}
+							data={preview.data}
+							className="w-full max-w-3xl"
+						/>
+					</li>
+				))}
+			</ul>
 			<Spacer size="2xs" />
 			{/* Writing */}
 			<h2 id="writing">Writing</h2>
@@ -53,11 +149,11 @@ export default function Index() {
 				>
 					University of Pittsburgh
 				</a>
-				) and have published fiction, poetry, essays, and genre-fluid work in
+				) and have published fiction, poetry, essays, and genre-bending work in
 				journals and publications including <em>Guernica</em>, <em>diagram</em>,{' '}
 				<em>Glimmer Train</em>, <em>The New Guard Review</em>
-				&apos;s BANG!, the Pittsburgh <em>Post Gazette</em>, and{' '}
-				<em>Art Review</em>.
+				&apos;s BANG!, the Pittsburgh <em>Post Gazette</em>,{' '}
+				<em>Adroit Journal</em>, and <em>Art Review</em>.
 				<Spacer size="4xs" />I also write and produce audio documentary, and I'm
 				a founder of the storytelling collective{' '}
 				<a
@@ -72,52 +168,39 @@ export default function Index() {
 			<Spacer size="3xs" />
 			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
-
-			<ol className="my-4 grid list-decimal grid-cols-1 gap-x-2 space-y-2 pl-6 md:grid-cols-2 md:gap-x-8 lg:grid-cols-3">
-				{data.fragments.map(({ title, description, slug, publishAt }) => {
+			<ul className="my-4 flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.fragments.map((fragment) => {
+					const path = `/fragments/${fragment.slug}`
+					const preview = data.fragmentLinkPreviews[path] ?? {
+						url: path,
+						title: fragment.title,
+						description: fragment.description,
+						domain: data.siteHostname,
+					}
+					const publishMeta = fragment.publishAt ? (
+						<Time time={fragment.publishAt.toDateString()} />
+					) : null
 					return (
-						<li key={title + slug} className="display-list-item">
-							<Link
-								prefetch="intent"
-								to={`/fragments/${slug}`}
-								className="flex flex-col no-underline hover:underline"
-							>
-								<h4>{title}</h4>
-								{description && <p>{description}</p>}
-								{publishAt && <Time time={publishAt.toDateString()} />}
-							</Link>
+						<li key={fragment.title + fragment.slug}>
+							<InternalLinkPreview
+								to={path}
+								data={preview}
+								className="w-full max-w-3xl"
+								meta={publishMeta}
+							/>
 						</li>
 					)
 				})}
-			</ol>
+			</ul>
 			<Spacer size="3xs" />
-			<h3>Some recent publications</h3>
-			<ul className="[&>*]:shrink-1 flex flex-wrap gap-4 [&>*]:grow [&>*]:basis-[450px] [&>*]:sm:shrink-0">
-				{/* TODO: add to DB, create admin route to update these without needing to trigger a new build. Also update the link preview logic. Fetch in the loader so that we don't have to cache */}
-				<li>
-					<LinkPreview
-						className="max-w-3xl"
-						url="https://www.post-gazette.com/ae/books/2025/02/02/review-dose-effect-optimize-dopamine-oxytocin-serotonin-endorphins-tj-power/stories/202502020045"
-					/>
-				</li>
-				<li>
-					<LinkPreview
-						className="max-w-3xl"
-						url="https://www.post-gazette.com/ae/books/2024/04/27/review-mara-van-der-lugt-begetting-what-does-it-mean-to-create-a-child/stories/202404280037"
-					/>
-				</li>
-				<li>
-					<LinkPreview
-						className="max-w-3xl"
-						url="https://artreview.com/genre-and-the-newer-newness-danielle-dutton-prairie-dresses-art-other-review/"
-					/>
-				</li>
-				<li>
-					<LinkPreview
-						className="max-w-3xl"
-						url="https://mrbullbull.com/newbull/fiction/metaphors-toward-__________________"
-					/>
-				</li>
+			<h3>Recent publications</h3>
+			<Spacer size="5xs" />
+			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.previews.map((p) => (
+					<li key={p.url}>
+						<LinkPreviewStatic className="w-full max-w-3xl" {...p} />
+					</li>
+				))}
 			</ul>
 			<Spacer size="2xs" />
 			{/* Software */}
@@ -128,7 +211,7 @@ export default function Index() {
 				<a href="https://www.aura.com" rel="noreferrer noopener" target="blank">
 					Aura
 				</a>
-				, a consumer digital security company.
+				, a consumer digital safety company.
 				<Spacer size="4xs" />I also maintain the open-source client applications
 				for the{' '}
 				<a href="https://www.pdap.io" rel="noreferrer noopener" target="blank">
@@ -138,14 +221,8 @@ export default function Index() {
 				journalists, and communities impacted by policing.
 				<Spacer size="4xs" />I am occasionally available for engineering
 				projects on a freelance basis. Please{' '}
-				<a
-					href="mailto:joshua.d.graber@gmail.com"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					get in touch
-				</a>{' '}
-				if you are interested in collaborating.
+				<Link to="contact">get in touch</Link> if you are interested in
+				collaborating.
 			</p>
 			<Spacer size="2xs" />
 			{/* Editing */}
@@ -153,7 +230,7 @@ export default function Index() {
 			<Spacer size="4xs" />
 			<p>
 				For nearly 15 years, I’ve worked as a literary editor of prose and
-				poetry. My editorial journey started in undergrad when I founded{' '}
+				poetry. As an undergraduate, I became the founding executive editor of{' '}
 				<em>The Quaker</em>.
 				<Spacer size="4xs" />
 				In graduate school, I served as fiction editor for{' '}
@@ -182,17 +259,10 @@ export default function Index() {
 				>
 					Word West Press
 				</a>
-				, working on an array of remarkable books.
+				, working on an array of remarkable books across styles and genres.
 				<Spacer size="4xs" />
 				I&apos;m available for freelance editorial work&mdash;
-				<a
-					href="mailto:joshua.d.graber@gmail.com"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					say hello
-				</a>{' '}
-				or check out{' '}
+				<Link to="contact">say hello</Link> or check out{' '}
 				<a
 					href="https://reedsy.com/joshua-graber"
 					rel="noreferrer noopener"
@@ -200,7 +270,7 @@ export default function Index() {
 				>
 					my profile on Reedsy
 				</a>
-				. .
+				.
 			</p>
 			<Spacer size="2xs" />
 			{/* Misc. */}
@@ -209,15 +279,7 @@ export default function Index() {
 			<p>
 				Every now and then, I put my professor hat back on and teach writing
 				workshops or programming courses. If you’re looking for an engaging,
-				improvisational educator,{' '}
-				<a
-					href="mailto:joshua.d.graber@gmail.com"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					let&apos;s chat
-				</a>
-				.
+				improvisational speaker, <Link to="contact">let&apos;s chat</Link>.
 			</p>
 			<Spacer size="lg" />
 		</main>

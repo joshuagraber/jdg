@@ -10,7 +10,7 @@ import { type action as imageCreateAction } from '#app/routes/admin+/fragments+/
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { DeleteImage } from './__deleters'
 
-type Image = Pick<PostImage, 'id' | 'altText' | 'title'>
+type Image = Pick<PostImage, 'id' | 'altText' | 'title' | 's3Key'>
 
 interface PostImageManagerProps {
 	images: Image[]
@@ -21,7 +21,10 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 	const imageCreateFetcher = useFetcher<typeof imageCreateAction>()
 
 	const handleCopyMarkdown = async (image: Image) => {
-		const path = getPostImageSource(image.id)
+		const path =
+			getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+			getPostImageSource(image.id, { relative: true }) ??
+			`/resources/post-images/${image.id}`
 		const markdown = `![${image.altText}](${path}${image.title ? ` "${image.title}"` : ''})`
 		// Safari mobile fallback using execCommand
 		if (navigator.clipboard === undefined) {
@@ -117,11 +120,22 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 					<div key={image.id} className="space-y-4 rounded-lg border p-4">
 						<div className="relative aspect-video">
 							<img
-								src={getPostImageSource(image.id)}
+								src={
+									getPostImageSource(image.id, { s3Key: image.s3Key }) ??
+									getPostImageSource(image.id, { relative: true }) ??
+									`/resources/post-images/${image.id}`
+								}
 								alt={image.altText ?? ''}
 								className="h-full w-full rounded-md object-cover"
 							/>
 						</div>
+
+						<p
+							className="font-mono text-xs text-muted-foreground"
+							aria-label={`Resource ID ${image.id}`}
+						>
+							Resource ID: {image.id}
+						</p>
 
 						<ImageMetadataForm image={image} />
 

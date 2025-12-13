@@ -31,13 +31,15 @@ RUN npm prune --omit=dev
 # Build the app
 FROM base as build
 
+# Build args for build-time Sentry uploads 
 ARG COMMIT_SHA
+ARG RELEASE_VERSION
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
 ENV COMMIT_SHA=$COMMIT_SHA
-
-# Use the following environment variables to configure Sentry
-# ENV SENTRY_ORG=
-# ENV SENTRY_PROJECT=
-
+ENV RELEASE_VERSION=$RELEASE_VERSION
+ENV SENTRY_ORG=$SENTRY_ORG
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
 
 WORKDIR /myapp
 
@@ -55,6 +57,12 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
 
 # Finally, build the production image with minimal footprint
 FROM base
+
+ARG COMMIT_SHA
+ARG RELEASE_VERSION
+
+ENV COMMIT_SHA=$COMMIT_SHA
+ENV RELEASE_VERSION=$RELEASE_VERSION
 
 ENV FLY="true"
 ENV LITEFS_DIR="/litefs/data"

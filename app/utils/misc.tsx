@@ -5,16 +5,72 @@ import { useSpinDelay } from 'spin-delay'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
 
+function getAssetBaseUrl() {
+	const rawBase =
+		typeof window !== 'undefined'
+			? window.ENV?.ASSET_BASE_URL
+			: process.env.ASSET_BASE_URL
+	if (!rawBase) return null
+	return rawBase.replace(/\/$/, '')
+}
+
+export function toAbsoluteUrl(
+	url: string | URL | null | undefined,
+	base: string | URL | null | undefined,
+): string | null {
+	if (!url || !base) return null
+	try {
+		const baseUrl = base instanceof URL ? base : new URL(base)
+		const resolved = url instanceof URL ? url : new URL(url, baseUrl)
+		return resolved.toString()
+	} catch (error) {
+		if (process.env.NODE_ENV === 'development') {
+			console.debug('Failed to construct absolute URL', { url, base, error })
+		}
+		return null
+	}
+}
+
 export function getUserImgSrc(imageId?: string | null) {
 	return imageId ? `/resources/user-images/${imageId}` : '/img/user.png'
 }
 
-export function getPostImageSource(imageId: string) {
-	return `/resources/post-images/${imageId}`
+type AssetSourceOptions = {
+	relative?: boolean
+	s3Key?: string | null
 }
 
-export function getPostVideoSource(videoId: string) {
-	return `/resources/post-videos/${videoId}`
+function buildCdnUrlFromKey(key?: string | null) {
+	if (!key) return null
+	const base = getAssetBaseUrl()
+	if (!base) return null
+	return `${base}/${key.replace(/^\/+/, '')}`
+}
+
+export function getPostImageSource(
+	imageId: string,
+	options?: AssetSourceOptions,
+) {
+	if (!options?.relative) {
+		const cdnUrl = buildCdnUrlFromKey(options?.s3Key)
+		if (cdnUrl) return cdnUrl
+	}
+
+	const path = `/resources/post-images/${imageId}`
+	return path
+}
+
+export function getPostVideoSource(
+	videoId: string,
+	options?: AssetSourceOptions,
+) {
+	if (!options?.relative) {
+		const cdnUrl = buildCdnUrlFromKey(options?.s3Key)
+		if (cdnUrl) return cdnUrl
+	}
+
+	const path = `/resources/post-videos/${videoId}`
+	return path
 }
 
 export function getErrorMessage(error: unknown) {
@@ -67,12 +123,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getDomainUrl(request: Request) {
-	const host =
+	let host =
 		request.headers.get('X-Forwarded-Host') ??
 		request.headers.get('host') ??
-		new URL(request.url).host
+		undefined
+	if (!host) {
+		try {
+			host = new URL(request.url).host
+		} catch {
+			host = undefined
+		}
+	}
 	const protocol = request.headers.get('X-Forwarded-Proto') ?? 'http'
-	return `${protocol}://${host}`
+	const finalHost = host ?? 'localhost'
+	return `${protocol}://${finalHost}`
 }
 
 export function getReferrerRoute(request: Request) {

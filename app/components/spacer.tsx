@@ -29,6 +29,7 @@ export function Spacer({
 	 * 4xl: h-44 (176px)
 	 */
 	size:
+		| '5xs'
 		| '4xs'
 		| '3xs'
 		| '2xs'
@@ -42,6 +43,7 @@ export function Spacer({
 		| '4xl'
 }) {
 	const options: Record<typeof size, string> = {
+		'5xs': 'h-2 md:h-3',
 		'4xs': 'h-3 md:h-4',
 		'3xs': 'h-6 md:h-8',
 		'2xs': 'h-8 md:h-12',

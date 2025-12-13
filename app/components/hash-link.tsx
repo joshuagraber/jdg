@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router'
 import { cn } from '#app/utils/misc.tsx'
 
 export function HashLink({

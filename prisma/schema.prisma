@@ -34,6 +34,10 @@ model Post {
   slug        String  @unique
   content     String
   description String?
+  previewTitle       String?
+  previewDescription String?
+  previewImageId     String?
+  previewImage       PostImage? @relation(fields: [previewImageId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now())
   publishAt DateTime?
@@ -44,6 +48,7 @@ model Post {
 
   @@index([authorId])
   @@index([authorId, updatedAt])
+  @@index([publishAt]) // Added index for faster queries on publishAt
 }
 
 model PostImage {
@@ -51,7 +56,11 @@ model PostImage {
   altText     String?
   title       String?
   contentType String
-  blob        Bytes
+  s3Key       String
+  width       Int?
+  height      Int?
+
+  posts Post[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,7 +71,7 @@ model PostVideo {
   altText     String?
   title       String?
   contentType String
-  blob        Bytes
+  s3Key       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,4 +181,17 @@ model Connection {
   userId String
 
   @@unique([providerName, providerId])
+}
+
+model UserCreatedWheelPoem {
+  id               String   @id @default(cuid())
+  sessionId        String
+  text             String
+  rotations        String
+  wheelSize        Float?
+  sessionUpdatedAt DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sessionId])
 }

@@ -3,6 +3,7 @@
 // import { type SEOHandle } from '@nasa-gcn/remix-seo'
 // import * as E from '@react-email/components'
 // import { data, redirect, type ActionFunctionArgs, type MetaFunction, Form, Navigate, useActionData, useSearchParams  } from 'react-router';
+import { type SEOHandle } from '@nasa-gcn/remix-seo'
 import { Navigate } from 'react-router'
 // import { HoneypotInputs } from 'remix-utils/honeypot/react'
 // import { z } from 'zod'
@@ -19,16 +20,16 @@ import { Navigate } from 'react-router'
 // import { useIsPending } from '#app/utils/misc.tsx'
 // import { EmailSchema } from '#app/utils/user-validation.ts'
 // import { prepareVerification } from './verify.server.ts'
-
-// export const handle: SEOHandle = {
-// 	getSitemapEntries: () => null,
-// }
+// import { Route } from './+types/signup'
+export const handle: SEOHandle = {
+	getSitemapEntries: () => null,
+}
 
 // const SignupSchema = z.object({
 // 	email: EmailSchema,
 // })
 
-// export async function action({ request }: ActionFunctionArgs) {
+// export async function action({ request }: Route.ActionArgs) {
 // 	const formData = await request.formData()
 
 // 	checkHoneypot(formData)

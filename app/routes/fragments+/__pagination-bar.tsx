@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router'
 import { Icon } from '#app/components/ui/icon.tsx'
 import { cn } from '#app/utils/misc.tsx'
 import { setSearchParamsString } from './__util'
@@ -13,12 +13,15 @@ export function PaginationBar({ total }: { total: number }) {
 	const skip = Number(searchParams.get('skip')) || 0
 	const top = Number(searchParams.get('top')) || POSTS_PER_PAGE
 
-	const totalPages = Math.ceil(total / top)
-	const currentPage = Math.floor(skip / top) + 1
+	const totalPages = Math.max(1, Math.ceil(total / top))
+	const currentPage = Math.max(
+		1,
+		Math.min(Math.floor(skip / top) + 1, totalPages),
+	)
 	const maxPages = 3
 	const halfMaxPages = Math.floor(maxPages / 2)
-	const canPageBackwardsBy = (skip - 0) / top
-	const canPageForwardsBy = total - (skip + top)
+	const isFirstPage = currentPage === 1
+	const isLastPage = currentPage === totalPages
 
 	const pages = maxPages < totalPages ? maxPages : totalPages
 	const pageNumbers = [] as Array<number>
@@ -41,7 +44,7 @@ export function PaginationBar({ total }: { total: number }) {
 		}
 	}
 
-	if (total < top) return null
+	if (total <= top) return null
 
 	return (
 		<div className="mx-auto flex items-center gap-1">
@@ -51,11 +54,10 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: 0,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					canPageBackwardsBy < 2 && paginationButtonDisabledClasses,
+					isFirstPage && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> First page</span>
@@ -68,11 +70,10 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: Math.max(skip - top, 0),
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					canPageBackwardsBy < 1 && paginationButtonDisabledClasses,
+					isFirstPage && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Previous page</span>
@@ -103,7 +104,6 @@ export function PaginationBar({ total }: { total: number }) {
 									skip: pageSkip,
 								}),
 							}}
-							preventScrollReset
 							prefetch="intent"
 							className={paginationButtonClasses}
 						>
@@ -118,11 +118,10 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: skip + top,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					canPageForwardsBy < 1 && paginationButtonDisabledClasses,
+					isLastPage && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Next page</span>
@@ -134,11 +133,10 @@ export function PaginationBar({ total }: { total: number }) {
 						skip: (totalPages - 1) * top,
 					}),
 				}}
-				preventScrollReset
 				prefetch="intent"
 				className={cn(
 					paginationButtonClasses,
-					canPageForwardsBy < 2 && paginationButtonDisabledClasses,
+					isLastPage && paginationButtonDisabledClasses,
 				)}
 			>
 				<span className="sr-only"> Last page</span>

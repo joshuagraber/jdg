@@ -1,4 +1,5 @@
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { format } from 'date-fns'
 import {
 	type LoaderFunctionArgs,
 	Link,
@@ -8,7 +9,6 @@ import {
 import { Button } from '#app/components/ui/button.tsx'
 import { requireUserId } from '#app/utils/auth.server'
 import { prisma } from '#app/utils/db.server'
-import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { DeletePost } from './__deleters'
 import { PostImageManager } from './__image-manager'
 import { PostVideoManager } from './__video-manager'
@@ -30,13 +30,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				createdAt: true,
 				updatedAt: true,
 			},
-			orderBy: { createdAt: 'desc' },
+			orderBy: [{ publishAt: { sort: 'desc', nulls: 'first' } }],
 		}),
 		prisma.postImage.findMany({
 			select: {
 				id: true,
 				altText: true,
 				title: true,
+				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		}),
@@ -59,11 +60,14 @@ export default function AdminPosts() {
 	return (
 		<div className="p-8">
 			<h1 className="font-bold">Manage Posts and Images</h1>
-			<Link to="/fragments">View fragments</Link>
+			<Link to="/fragments" prefetch="none">
+				View fragments
+			</Link>
 			<div className="mb-6 flex flex-wrap items-center justify-between">
 				<h2>Manage posts</h2>
 				<Link
 					to="create"
+					prefetch="none"
 					className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 				>
 					New Post
@@ -80,20 +84,17 @@ export default function AdminPosts() {
 							<div>
 								<h2 className="text-xl font-semibold">{post.title}</h2>
 								<div className="flex gap-2 text-sm text-muted-foreground">
-									<span>
-										Created{' '}
-										{formatDateStringForPostDefault(
-											post.createdAt.toDateString(),
-										)}
-									</span>
+									<span>Created {format(post.createdAt, 'dd MMM yyyy')}</span>
 									<span>•</span>
 									<span>
 										{post.publishAt
-											? `Published ${formatDateStringForPostDefault(post.publishAt.toDateString())}`
+											? `Published ${format(post.publishAt, 'dd MMM yyyy, hh:mm aaaa')}`
 											: 'Draft'}
 									</span>
 									<span>•</span>
-									<Link to={`/fragments/${post.slug}`}>View post</Link>
+									<Link to={`/fragments/${post.slug}`} prefetch="none">
+										View post
+									</Link>
 								</div>
 							</div>
 
@@ -102,6 +103,7 @@ export default function AdminPosts() {
 									<Link
 										className="text-primary-foreground no-underline hover:text-primary-foreground"
 										to={`edit/${post.id}`}
+										prefetch="none"
 									>
 										Edit
 									</Link>

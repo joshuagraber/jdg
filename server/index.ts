@@ -17,6 +17,16 @@ const IS_PROD = MODE === 'production'
 const IS_DEV = MODE === 'development'
 const ALLOW_INDEXING = process.env.ALLOW_INDEXING !== 'false'
 const SENTRY_ENABLED = IS_PROD && process.env.SENTRY_DSN
+const ASSET_ORIGIN = (() => {
+	const raw = process.env.ASSET_BASE_URL?.trim()
+	if (!raw) return null
+	try {
+		const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+		return `${url.protocol}//${url.host}`
+	} catch {
+		return null
+	}
+})()
 
 if (SENTRY_ENABLED) {
 	void import('./utils/monitoring.js').then(({ init }) => init())
@@ -119,8 +129,15 @@ app.use(
 					"'self'",
 				].filter(Boolean),
 				'font-src': ["'self'"],
-				'frame-src': ["'self'"],
-				'img-src': ["'self'", 'data:'],
+				'frame-src': ["'self'", 'https://www.youtube.com/'],
+				'img-src': ["'self'", 'data:', ASSET_ORIGIN].filter(
+					Boolean,
+				) as string[],
+				'media-src': [
+					"'self'",
+					'https://jdg-media.s3.us-east-2.amazonaws.com',
+					ASSET_ORIGIN,
+				].filter(Boolean) as string[],
 				'script-src': [
 					"'strict-dynamic'",
 					"'self'",
@@ -220,6 +237,12 @@ if (!ALLOW_INDEXING) {
 	})
 }
 
+app.use(
+	'/fonts',
+	// Can aggressively cache fonts as they don't change often
+	express.static('public/fonts', { immutable: true, maxAge: '1y' }),
+)
+
 app.all(
 	'*',
 	createRequestHandler({
@@ -276,6 +299,59 @@ ${chalk.bold('Press Ctrl+C to stop')}
 		`.trim(),
 	)
 })
+
+// --- Boot-time MDX prewarm (runs in background, non-blocking) ---
+async function prewarmPublishedFragments() {
+	try {
+		const token = process.env.INTERNAL_COMMAND_TOKEN
+		if (!token) {
+			console.info('🧯 Prewarm: skipping (no INTERNAL_COMMAND_TOKEN)')
+			return
+		}
+		const url = `http://127.0.0.1:${portToUse}/resources/prewarm?target=fragments,link-previews`
+		console.info('🧯 Prewarm: calling', url)
+		const res = await fetch(url, {
+			headers: { Authorization: `Bearer ${token}` },
+		})
+		if (!res.ok) {
+			console.warn('🧯 Prewarm: request failed', res.status, res.statusText)
+			return
+		}
+		const body = await res.json().catch(() => ({}))
+		console.info('🧯 Prewarm: done', body)
+	} catch (e) {
+		console.warn('🧯 Prewarm: unexpected error', e)
+	}
+}
+
+// Wait for readiness, then kick off prewarm in background
+async function waitForReadiness(origin: string, timeoutMs = 60000) {
+	const start = Date.now()
+	const url = `${origin}/resources/readiness`
+	let attempt = 0
+	while (Date.now() - start < timeoutMs) {
+		attempt++
+		try {
+			const res = await fetch(url, { headers: { 'X-Healthcheck': 'true' } })
+			if (res.ok) return true
+		} catch {
+			// ignore
+		}
+		await new Promise((r) => setTimeout(r, Math.min(500 + attempt * 250, 3000)))
+	}
+	return false
+}
+
+void (async () => {
+	const origin = `http://127.0.0.1:${portToUse}`
+	const ready = await waitForReadiness(origin)
+	if (!ready) {
+		console.info(
+			'🧯 Prewarm: readiness not confirmed after timeout; proceeding anyway',
+		)
+	}
+	void prewarmPublishedFragments()
+})()
 
 closeWithGrace(async ({ err }) => {
 	await new Promise((resolve, reject) => {

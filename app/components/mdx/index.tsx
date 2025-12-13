@@ -1,9 +1,17 @@
 import { LinkPreview } from '../link-preview'
+import { LinkPreviewStatic } from '../link-preview-static'
+import { MdxImage } from '../mdx-image'
 import { YouTubeEmbed } from './youtube'
 
 type MDXComponents = {
 	youtube: (props: { id: string }) => JSX.Element
-	preview: (props: { url: string }) => JSX.Element
+	LinkPreviewStatic: (
+		props: React.ComponentProps<typeof LinkPreviewStatic>,
+	) => JSX.Element
+	LinkPreview: (props: React.ComponentProps<typeof LinkPreview>) => JSX.Element
+	MdxImage: (props: React.ComponentProps<typeof MdxImage>) => JSX.Element
+	// Back-compat for previously compiled content/components
+	ClientOnlyImage: (props: React.ComponentProps<typeof MdxImage>) => JSX.Element
 }
 
 export const mdxComponents: MDXComponents = {
@@ -11,7 +19,8 @@ export const mdxComponents: MDXComponents = {
 	youtube: ({ id }: { id: string }) => {
 		return <YouTubeEmbed id={id} />
 	},
-	preview: ({ url }: { url: string }) => {
-		return <LinkPreview url={url} />
-	},
+	LinkPreviewStatic: (props) => <LinkPreviewStatic {...props} />,
+	LinkPreview: (props) => <LinkPreview {...props} />,
+	MdxImage: (props) => <MdxImage {...props} />,
+	ClientOnlyImage: (props) => <MdxImage {...props} />,
 } as const

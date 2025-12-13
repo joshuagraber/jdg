@@ -4,13 +4,15 @@ node_modules
 /build
 /public/build
 /server-build
-.env
+.env*
 .cache
+other/cache.db*
 .temp*
 .uploads
 
 /prisma/data.db
 /prisma/data.db-journal
+/postgres-data
 /tests/prisma
 
 /test-results/

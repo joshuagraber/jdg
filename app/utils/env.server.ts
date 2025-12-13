@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import 'dotenv/config'
 
 const schema = z.object({
 	NODE_ENV: z.enum(['production', 'development', 'test'] as const),
@@ -9,15 +8,19 @@ const schema = z.object({
 	INTERNAL_COMMAND_TOKEN: z.string(),
 	HONEYPOT_SECRET: z.string(),
 	CACHE_DATABASE_PATH: z.string(),
-	// If you plan on using Sentry, uncomment this line
-	// SENTRY_DSN: z.string(),
-	// If you plan to use Resend, uncomment this line
-	// RESEND_API_KEY: z.string(),
+	SENTRY_DSN: z.string(),
+	COMMIT_SHA: z.string().optional(),
+	RELEASE_VERSION: z.string().optional(),
+	RESEND_API_KEY: z.string(),
 	// If you plan to use GitHub auth, remove the default:
 	GITHUB_CLIENT_ID: z.string().default('MOCK_GITHUB_CLIENT_ID'),
 	GITHUB_CLIENT_SECRET: z.string().default('MOCK_GITHUB_CLIENT_SECRET'),
 	GITHUB_TOKEN: z.string().default('MOCK_GITHUB_TOKEN'),
 	ALLOW_INDEXING: z.enum(['true', 'false']).optional(),
+	ASSET_BASE_URL: z.string().optional(),
+	AWS_REGION: z.string(),
+	AWS_ACCESS_KEY_ID: z.string(),
+	AWS_SECRET_ACCESS_KEY: z.string(),
 })
 
 declare global {
@@ -52,7 +55,10 @@ export function getEnv() {
 	return {
 		MODE: process.env.NODE_ENV,
 		SENTRY_DSN: process.env.SENTRY_DSN ?? '',
+		COMMIT_SHA: process.env.COMMIT_SHA ?? '',
+		RELEASE_VERSION: process.env.RELEASE_VERSION ?? '',
 		ALLOW_INDEXING: process.env.ALLOW_INDEXING ?? 'true',
+		ASSET_BASE_URL: process.env.ASSET_BASE_URL ?? '',
 	}
 }
 
