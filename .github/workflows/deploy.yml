@@ -64,42 +64,6 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-  release:
-    name: 📦 Release
-    needs: deploy
-    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' }}
-    runs-on: ubuntu-latest
-    env:
-      RELEASE_VERSION: ${{ needs.deploy.outputs.release_version }}
-      IS_PRERELEASE: ${{ github.ref == 'refs/heads/dev' }}
-    steps:
-      - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🧾 Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: 🏷 Create tag
-        run: |
-          git tag "$RELEASE_VERSION" "${GITHUB_SHA}"
-          git push origin "$RELEASE_VERSION"
-
-      - name: ✅ Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: ${{ env.RELEASE_VERSION }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true
-          prerelease: ${{ env.IS_PRERELEASE }}
-
-      - name: 🎈 Setup Fly
-        uses: superfly/flyctl-actions/setup-flyctl@1.5
-
       - name: 🚀 Deploy Production
         if: ${{ github.ref == 'refs/heads/main' }}
         run: >-
@@ -110,3 +74,12 @@ jobs:
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  release:
+    name: Release
+    needs: [validate, deploy]
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' }}
+    uses: ./.github/workflows/release.yml
+    with:
+      release_version: ${{ needs.deploy.outputs.release_version }}
+      is_prerelease: ${{ github.ref == 'refs/heads/dev' }}
