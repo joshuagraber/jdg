@@ -8,6 +8,7 @@ import {
 	Scripts,
 	ScrollRestoration,
 	useLoaderData,
+	useLocation,
 } from 'react-router'
 import { HoneypotProvider } from 'remix-utils/honeypot/react'
 import { type Route } from './+types/root'
@@ -252,90 +253,111 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
 	const data = useLoaderData<typeof loader>()
+	const location = useLocation()
 	const user = useOptionalUser()
 	const theme = useTheme()
 	useToast(data.toast)
 
+	const showFullName = location.pathname !== '/'
+	const brandWrapperClass = cn(
+		'relative inline-flex overflow-hidden whitespace-nowrap transition-[width] duration-300 ease-out',
+		showFullName ? 'w-[14.5rem]' : 'w-[2.75rem]',
+	)
+	const collapsedLabelClass = cn(
+		'transition-opacity duration-200 ease-out',
+		showFullName ? 'opacity-0' : 'opacity-100',
+	)
+	const expandedLabelClass = cn(
+		'absolute left-0 transition-opacity duration-200 ease-out',
+		showFullName ? 'opacity-100' : 'opacity-0',
+	)
+
 	return (
 		<>
 			<div className="flex min-h-screen flex-col justify-between">
-				<header className="container py-6">
-					<nav className="flex flex-wrap items-center justify-between gap-4 md:gap-8">
-						<NavLink
-							className={({ isActive }) =>
-								`text-body-lg no-underline focus:underline md:text-body-xl hover:underline${isActive ? ' ' + 'text-secondary-foreground' : ''}`
-							}
-							to="/"
-						>
-							JDG{' '}
-						</NavLink>
-						<div className="text-sm [&>*]:no-underline">
-							<HashLink
-								className="no-underline hover:underline focus:underline md:text-body-md"
-								activeClassName="text-secondary-foreground"
-								to="/#writing"
-							>
-								writing
-							</HashLink>{' '}
-							|{' '}
-							<HashLink
-								className="no-underline hover:underline focus:underline md:text-body-md"
-								activeClassName="text-secondary-foreground"
-								to="/#software"
-							>
-								software
-							</HashLink>{' '}
-							|{' '}
-							<HashLink
-								className="no-underline hover:underline focus:underline md:text-body-md"
-								activeClassName="text-secondary-foreground"
-								to="/#editing"
-							>
-								editing
-							</HashLink>{' '}
-							|{' '}
+				<header className="sticky top-0 z-30 border-b border-border/40 bg-background/90 backdrop-blur">
+					<div className="container py-6">
+						<nav className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
 							<NavLink
+								aria-label="Joshua D. Graber"
 								className={({ isActive }) =>
-									cn(
-										'no-underline hover:underline focus:underline md:text-body-md',
-										isActive && 'text-secondary-foreground',
-									)
+									`text-body-lg no-underline focus:underline md:text-body-xl hover:underline${isActive ? ' ' + 'text-secondary-foreground' : ''}`
 								}
-								to="fragments"
+								to="/"
 							>
-								fragments
-							</NavLink>{' '}
-							|{' '}
-							<NavLink
-								className={({ isActive }) =>
-									cn(
-										'no-underline hover:underline focus:underline md:text-body-md',
-										isActive && 'text-secondary-foreground',
-									)
-								}
-								to="contact"
-							>
-								contact
+								<span className={brandWrapperClass}>
+									<span className={collapsedLabelClass}>JDG</span>
+									<span className={expandedLabelClass}>Joshua D. Graber</span>
+								</span>
 							</NavLink>
-							{user?.roles.some(({ name }) => name === 'admin') && (
-								<>
-									{' '}
-									|{' '}
-									<NavLink
-										className={({ isActive }) =>
-											cn(
-												'no-underline hover:underline focus:underline md:text-body-md',
-												isActive && 'text-secondary-foreground',
-											)
-										}
-										to="/admin"
-									>
-										admin
-									</NavLink>
-								</>
-							)}
-						</div>
-					</nav>
+							<div className="text-sm [&>*]:no-underline">
+								<HashLink
+									className="no-underline hover:underline focus:underline md:text-body-md"
+									activeClassName="text-secondary-foreground"
+									to="/#writing"
+								>
+									writing
+								</HashLink>{' '}
+								|{' '}
+								<HashLink
+									className="no-underline hover:underline focus:underline md:text-body-md"
+									activeClassName="text-secondary-foreground"
+									to="/#software"
+								>
+									software
+								</HashLink>{' '}
+								|{' '}
+								<HashLink
+									className="no-underline hover:underline focus:underline md:text-body-md"
+									activeClassName="text-secondary-foreground"
+									to="/#editing"
+								>
+									editing
+								</HashLink>{' '}
+								|{' '}
+								<NavLink
+									className={({ isActive }) =>
+										cn(
+											'no-underline hover:underline focus:underline md:text-body-md',
+											isActive && 'text-secondary-foreground',
+										)
+									}
+									to="fragments"
+								>
+									fragments
+								</NavLink>{' '}
+								|{' '}
+								<NavLink
+									className={({ isActive }) =>
+										cn(
+											'no-underline hover:underline focus:underline md:text-body-md',
+											isActive && 'text-secondary-foreground',
+										)
+									}
+									to="contact"
+								>
+									contact
+								</NavLink>
+								{user?.roles.some(({ name }) => name === 'admin') && (
+									<>
+										{' '}
+										|{' '}
+										<NavLink
+											className={({ isActive }) =>
+												cn(
+													'no-underline hover:underline focus:underline md:text-body-md',
+													isActive && 'text-secondary-foreground',
+												)
+											}
+											to="/admin"
+										>
+											admin
+										</NavLink>
+									</>
+								)}
+							</div>
+						</nav>
+					</div>
 				</header>
 
 				<div className="flex-1">
