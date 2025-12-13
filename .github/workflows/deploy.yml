@@ -97,6 +97,9 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ env.IS_PRERELEASE }}
 
+      - name: 🎈 Setup Fly
+        uses: superfly/flyctl-actions/setup-flyctl@1.5
+
       - name: 🚀 Deploy Production
         if: ${{ github.ref == 'refs/heads/main' }}
         run: >-
