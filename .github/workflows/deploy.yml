@@ -27,7 +27,7 @@ jobs:
       release_version: ${{ steps.release.outputs.version }}
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: '50'
 
@@ -74,7 +74,7 @@ jobs:
       IS_PRERELEASE: ${{ github.ref == 'refs/heads/dev' }}
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
