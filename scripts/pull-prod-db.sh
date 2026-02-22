@@ -19,20 +19,23 @@ usage() {
 Usage:
   scripts/pull-prod-db.sh [options]
 
+This syncs CONTENT ONLY (Post, PostImage, PostVideo, HomeLink)
+from source app DB into local/staging DBs. It does NOT overwrite User/Session/Auth tables.
+
 Options:
   --app <name>              Source Fly app name (default: jdg)
   --machine <id>            Source Fly machine ID (default: auto-select by highest Post count)
   --db-path <path>          Source sqlite path (default: /litefs/data/sqlite.db)
   --output <path>           Output SQL dump path (default: /tmp/<app>-prod-YYYYmmddHHMMSS.sql)
 
-  --import-local            Import dump into local sqlite DB after download
-  --local-db <path>         Local sqlite DB path for import (default: prisma/data.db)
-  --skip-migrate            Skip `npx prisma migrate deploy` after local import
+  --import-local            Sync content tables into local sqlite DB
+  --local-db <path>         Local sqlite DB path for content sync (default: prisma/data.db)
+  --skip-migrate            Skip `npx prisma migrate deploy` before local content sync
 
-  --sync-staging            Push imported prod data to staging app
+  --sync-staging            Sync content tables into staging app DB
   --staging-app <name>      Staging Fly app name (default: jdg-staging)
   --staging-machine <id>    Staging machine ID (default: auto-select by highest Post count)
-  --no-restart-staging      Do not restart staging machine after restore
+  --no-restart-staging      Do not restart staging machine after content sync
 
   --help                    Show this help message
 
@@ -40,7 +43,6 @@ Examples:
   scripts/pull-prod-db.sh
   scripts/pull-prod-db.sh --import-local
   scripts/pull-prod-db.sh --import-local --sync-staging
-  scripts/pull-prod-db.sh --machine 2871560a612e08 --sync-staging --staging-machine e82d4d1fe1e538
 EOF
 }
 
@@ -179,43 +181,97 @@ dump_remote_db() {
 		echo "Dump failed: output file is empty: $out_path" >&2
 		exit 1
 	fi
+}
 
-	if ! rg -q '^CREATE TABLE .*Post' "$out_path"; then
-		log "Warning: dump does not contain obvious Post table DDL"
+build_source_sqlite_from_dump() {
+	local dump_path="$1"
+	local out_db="$2"
+	rm -f "$out_db"
+	sqlite3 "$out_db" < "$dump_path"
+
+	local integrity
+	integrity=$(sqlite3 "$out_db" "pragma integrity_check;")
+	if [[ "$integrity" != "ok" ]]; then
+		echo "Source SQLite integrity check failed: $integrity" >&2
+		exit 1
 	fi
 }
 
-import_local_db() {
-	local dump_path="$1"
-	local local_db="$2"
-	local backup_path
+table_exists() {
+	local db="$1"
+	local table="$2"
+	sqlite3 "$db" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='$table';" | grep -q '^1$'
+}
 
-	mkdir -p "$(dirname "$local_db")"
-	if [[ -f "$local_db" ]]; then
-		backup_path="${local_db}.bak.$(date +%Y%m%d%H%M%S)"
-		cp "$local_db" "$backup_path"
-		log "Backed up existing local DB to $backup_path"
+resolve_target_author_id_local() {
+	local target_db="$1"
+	local author_id
+	author_id=$(sqlite3 "$target_db" "SELECT u.id FROM \"User\" u JOIN \"_RoleToUser\" ru ON ru.\"B\"=u.id JOIN \"Role\" r ON r.id=ru.\"A\" WHERE r.name='admin' LIMIT 1;")
+	if [[ -z "$author_id" ]]; then
+		author_id=$(sqlite3 "$target_db" "SELECT id FROM \"User\" ORDER BY \"createdAt\" ASC LIMIT 1;")
 	fi
+	if [[ -z "$author_id" ]]; then
+		echo ""
+		return
+	fi
+	echo "$author_id"
+}
 
-	rm -f "$local_db" "${local_db}-journal" "${local_db}-wal" "${local_db}-shm"
-	sqlite3 "$local_db" < "$dump_path"
-	log "Imported dump into $local_db"
+sync_content_into_local() {
+	local source_db="$1"
+	local target_db="$2"
 
 	if (( RUN_MIGRATE == 1 )); then
-		log "Running prisma migrate deploy"
+		log "Running prisma migrate deploy before local content sync"
 		npx prisma migrate deploy >/dev/null
 	fi
 
+	local author_id
+	author_id=$(resolve_target_author_id_local "$target_db")
+	if [[ -z "$author_id" ]]; then
+		echo "No local user found to own synced posts. Create a local user/admin first." >&2
+		exit 1
+	fi
+
+	local include_home_link_sql=""
+	if table_exists "$source_db" "HomeLink" && table_exists "$target_db" "HomeLink"; then
+		include_home_link_sql=$(cat <<'SQL'
+DELETE FROM "HomeLink";
+INSERT INTO "HomeLink" ("id","section","url","position","createdAt","updatedAt")
+  SELECT "id","section","url","position","createdAt","updatedAt" FROM src."HomeLink";
+SQL
+)
+	fi
+
+	sqlite3 "$target_db" <<SQL
+ATTACH DATABASE '$source_db' AS src;
+PRAGMA foreign_keys=OFF;
+BEGIN;
+DELETE FROM "Post";
+DELETE FROM "PostVideo";
+DELETE FROM "PostImage";
+${include_home_link_sql}
+INSERT INTO "PostImage" ("id","altText","title","contentType","s3Key","width","height","createdAt","updatedAt")
+  SELECT "id","altText","title","contentType","s3Key","width","height","createdAt","updatedAt" FROM src."PostImage";
+INSERT INTO "PostVideo" ("id","altText","title","contentType","s3Key","createdAt","updatedAt")
+  SELECT "id","altText","title","contentType","s3Key","createdAt","updatedAt" FROM src."PostVideo";
+INSERT INTO "Post" ("id","title","slug","content","description","previewTitle","previewDescription","previewImageId","createdAt","publishAt","updatedAt","authorId")
+  SELECT "id","title","slug","content","description","previewTitle","previewDescription","previewImageId","createdAt","publishAt","updatedAt",'$author_id' FROM src."Post";
+COMMIT;
+PRAGMA foreign_keys=ON;
+DETACH DATABASE src;
+SQL
+
 	local integrity
-	integrity=$(sqlite3 "$local_db" "pragma integrity_check;")
+	integrity=$(sqlite3 "$target_db" "pragma integrity_check;")
 	if [[ "$integrity" != "ok" ]]; then
-		echo "Local DB integrity check failed: $integrity" >&2
+		echo "Local DB integrity check failed after content sync: $integrity" >&2
 		exit 1
 	fi
 
 	local counts
-	counts=$(sqlite3 "$local_db" "select (select count(*) from User),(select count(*) from Post);")
-	log "Local DB sanity counts (User|Post): $counts"
+	counts=$(sqlite3 "$target_db" "select (select count(*) from \"User\"),(select count(*) from \"Post\"),(select count(*) from \"HomeLink\");")
+	log "Local DB counts (User|Post|HomeLink): $counts"
 }
 
 upload_file_to_machine() {
@@ -226,8 +282,20 @@ upload_file_to_machine() {
 	fly ssh console -a "$app_name" --machine "$machine_id" -C "sh -lc 'cat > $remote_path'" < "$local_path"
 }
 
-sync_staging_from_dump() {
-	local dump_path="$1"
+resolve_target_author_id_remote() {
+	local app_name="$1"
+	local machine_id="$2"
+	local db_path="$3"
+	local author_id
+	author_id=$(fly ssh console -a "$app_name" --machine "$machine_id" -C "sqlite3 '$db_path' \"SELECT u.id FROM \\\"User\\\" u JOIN \\\"_RoleToUser\\\" ru ON ru.\\\"B\\\"=u.id JOIN \\\"Role\\\" r ON r.id=ru.\\\"A\\\" WHERE r.name='admin' LIMIT 1;\"" | tr -d '\r')
+	if [[ -z "$author_id" ]]; then
+		author_id=$(fly ssh console -a "$app_name" --machine "$machine_id" -C "sqlite3 '$db_path' \"SELECT id FROM \\\"User\\\" ORDER BY \\\"createdAt\\\" ASC LIMIT 1;\"" | tr -d '\r')
+	fi
+	echo "$author_id"
+}
+
+sync_content_into_staging() {
+	local source_db="$1"
 	local staging_machine="$STAGING_MACHINE_ID"
 
 	if [[ -z "$staging_machine" ]]; then
@@ -241,49 +309,83 @@ sync_staging_from_dump() {
 
 	log "Using staging machine: $staging_machine"
 
+	local author_id
+	author_id=$(resolve_target_author_id_remote "$STAGING_APP" "$staging_machine" "$DB_PATH")
+	if [[ -z "$author_id" ]]; then
+		echo "No staging user found to own synced posts." >&2
+		exit 1
+	fi
+
 	local ts
 	ts=$(date +%Y%m%d%H%M%S)
-	local local_stage_db
-	local_stage_db="/tmp/${APP}-to-${STAGING_APP}-${ts}.sqlite"
-	local remote_stage_db
-	remote_stage_db="/tmp/import-${ts}.sqlite"
-	local remote_backup
-	remote_backup="/tmp/sqlite.db.pre-sync.${ts}.bak"
+	local remote_source_db="/tmp/source-content-${ts}.sqlite"
+	local remote_sql="/tmp/content-sync-${ts}.sql"
+	local remote_backup="/tmp/sqlite.db.pre-content-sync.${ts}.bak"
+	local local_sql="/tmp/content-sync-${ts}.sql"
 
-	log "Building temporary SQLite file from dump: $local_stage_db"
-	rm -f "$local_stage_db"
-	sqlite3 "$local_stage_db" < "$dump_path"
-
-	local local_integrity
-	local_integrity=$(sqlite3 "$local_stage_db" "pragma integrity_check;")
-	if [[ "$local_integrity" != "ok" ]]; then
-		echo "Temporary staging SQLite integrity check failed: $local_integrity" >&2
-		exit 1
+	local include_home_link_sql=""
+	if table_exists "$source_db" "HomeLink"; then
+		include_home_link_sql=$(cat <<'SQL'
+CREATE TABLE IF NOT EXISTS "HomeLink" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "section" TEXT NOT NULL,
+  "url" TEXT NOT NULL,
+  "position" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "HomeLink_section_url_key" ON "HomeLink"("section", "url");
+CREATE INDEX IF NOT EXISTS "HomeLink_section_position_createdAt_idx" ON "HomeLink"("section", "position", "createdAt");
+DELETE FROM "HomeLink";
+INSERT INTO "HomeLink" ("id","section","url","position","createdAt","updatedAt")
+  SELECT "id","section","url","position","createdAt","updatedAt" FROM src."HomeLink";
+SQL
+)
 	fi
 
-	log "Creating staging backup via sqlite .backup -> $remote_backup"
+	cat > "$local_sql" <<SQL
+ATTACH DATABASE '$remote_source_db' AS src;
+PRAGMA foreign_keys=OFF;
+BEGIN;
+DELETE FROM "Post";
+DELETE FROM "PostVideo";
+DELETE FROM "PostImage";
+${include_home_link_sql}
+INSERT INTO "PostImage" ("id","altText","title","contentType","s3Key","width","height","createdAt","updatedAt")
+  SELECT "id","altText","title","contentType","s3Key","width","height","createdAt","updatedAt" FROM src."PostImage";
+INSERT INTO "PostVideo" ("id","altText","title","contentType","s3Key","createdAt","updatedAt")
+  SELECT "id","altText","title","contentType","s3Key","createdAt","updatedAt" FROM src."PostVideo";
+INSERT INTO "Post" ("id","title","slug","content","description","previewTitle","previewDescription","previewImageId","createdAt","publishAt","updatedAt","authorId")
+  SELECT "id","title","slug","content","description","previewTitle","previewDescription","previewImageId","createdAt","publishAt","updatedAt",'$author_id' FROM src."Post";
+COMMIT;
+PRAGMA foreign_keys=ON;
+DETACH DATABASE src;
+SQL
+
+	log "Creating staging backup at $remote_backup"
 	fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sh -lc 'sqlite3 $DB_PATH \".backup $remote_backup\"'" >/dev/null
 
-	log "Uploading SQLite file to staging: $remote_stage_db"
-	upload_file_to_machine "$STAGING_APP" "$staging_machine" "$local_stage_db" "$remote_stage_db"
+	log "Uploading source content DB to staging"
+	upload_file_to_machine "$STAGING_APP" "$staging_machine" "$source_db" "$remote_source_db"
+	log "Uploading sync SQL to staging"
+	upload_file_to_machine "$STAGING_APP" "$staging_machine" "$local_sql" "$remote_sql"
 
-	log "Restoring uploaded SQLite into staging live DB using sqlite .restore"
-	fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sh -lc 'sqlite3 $DB_PATH \".restore $remote_stage_db\"'" >/dev/null
+	log "Applying content-only sync SQL on staging"
+	fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sh -lc 'sqlite3 $DB_PATH < $remote_sql'" >/dev/null
 
-	local staging_integrity
-	staging_integrity=$(fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sqlite3 $DB_PATH \"pragma integrity_check;\"" | tr -d '\r')
-	if [[ "$staging_integrity" != "ok" ]]; then
-		echo "Staging DB integrity check failed after restore: $staging_integrity" >&2
+	local integrity
+	integrity=$(fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sqlite3 $DB_PATH \"pragma integrity_check;\"" | tr -d '\r')
+	if [[ "$integrity" != "ok" ]]; then
+		echo "Staging DB integrity check failed after content sync: $integrity" >&2
 		exit 1
 	fi
 
-	local staging_counts
-	staging_counts=$(fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sqlite3 $DB_PATH \"select (select count(*) from User),(select count(*) from Post);\"" | tr -d '\r')
-	log "Staging DB sanity counts (User|Post): $staging_counts"
+	local counts
+	counts=$(fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sqlite3 $DB_PATH \"select (select count(*) from \\\"User\\\"),(select count(*) from \\\"Post\\\"),(select count(*) from \\\"HomeLink\\\");\"" | tr -d '\r')
+	log "Staging DB counts (User|Post|HomeLink): $counts"
 
-	log "Removing uploaded temporary SQLite from staging"
-	fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sh -lc 'rm -f $remote_stage_db'" >/dev/null || true
-	rm -f "$local_stage_db"
+	fly ssh console -a "$STAGING_APP" --machine "$staging_machine" -C "sh -lc 'rm -f $remote_source_db $remote_sql'" >/dev/null || true
+	rm -f "$local_sql"
 
 	if (( RESTART_STAGING == 1 )); then
 		log "Restarting staging machine $staging_machine"
@@ -315,17 +417,23 @@ main() {
 	dump_remote_db "$APP" "$selected_machine" "$DB_PATH" "$out_path"
 	log "Saved dump: $out_path"
 
+	local source_sqlite="/tmp/${APP}-source-$(date +%Y%m%d%H%M%S).sqlite"
+	build_source_sqlite_from_dump "$out_path" "$source_sqlite"
+	log "Built source SQLite: $source_sqlite"
+
 	if (( IMPORT_LOCAL == 1 )); then
-		import_local_db "$out_path" "$LOCAL_DB"
+		sync_content_into_local "$source_sqlite" "$LOCAL_DB"
 	else
-		log "Skipping local import (pass --import-local to enable)"
+		log "Skipping local content sync (pass --import-local to enable)"
 	fi
 
 	if (( SYNC_STAGING == 1 )); then
-		sync_staging_from_dump "$out_path"
+		sync_content_into_staging "$source_sqlite"
 	else
-		log "Skipping staging sync (pass --sync-staging to enable)"
+		log "Skipping staging content sync (pass --sync-staging to enable)"
 	fi
+
+	rm -f "$source_sqlite"
 }
 
 main "$@"
