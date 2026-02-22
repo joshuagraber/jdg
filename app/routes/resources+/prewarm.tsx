@@ -1,6 +1,6 @@
 import { data } from 'react-router'
-import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
 import { prisma } from '#app/utils/db.server.ts'
+import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 import { compileMDX } from '#app/utils/mdx.server'
 
 export async function loader({ request }: { request: Request }) {
@@ -49,19 +49,20 @@ export async function loader({ request }: { request: Request }) {
 		)
 	}
 
-	// Also warm homepage link previews if requested, by calling our own route
+	// Also warm configured external link previews if requested.
 	let previews = 0
 	let previewsTotal = 0
 	if (targets.has('link-previews')) {
-		previewsTotal = RECENT_PUBLICATIONS.length
+		const links = await getHomeLinkUrls()
+		previewsTotal = links.length
 		const origin = reqUrl.origin
 		const concurrency = 2
 		let idx = 0
 		const worker = async () => {
 			while (true) {
 				const i = idx++
-				if (i >= RECENT_PUBLICATIONS.length) break
-				const link = RECENT_PUBLICATIONS[i]!
+				if (i >= links.length) break
+				const link = links[i]!
 				try {
 					const res = await fetch(
 						`${origin}/resources/link-preview?url=${encodeURIComponent(link)}`,
@@ -74,10 +75,7 @@ export async function loader({ request }: { request: Request }) {
 			}
 		}
 		await Promise.all(
-			Array.from(
-				{ length: Math.min(concurrency, RECENT_PUBLICATIONS.length) },
-				() => worker(),
-			),
+			Array.from({ length: Math.min(concurrency, links.length) }, () => worker()),
 		)
 	}
 

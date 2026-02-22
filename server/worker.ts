@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises'
+import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 import { refreshLinkPreview } from '#app/utils/link-preview.server.ts'
-import { RECENT_PUBLICATIONS } from '../app/content/recent-publications.ts'
 import { openReadWrite } from './cache/sqlite.ts'
 
 const DEFAULT_LOOP_DELAY_MS = 1000 * 60 * 5
@@ -22,8 +22,9 @@ async function ensureDatabaseReady() {
 	db.close()
 }
 
-async function refreshRecentPublications() {
-	for (const url of RECENT_PUBLICATIONS) {
+async function refreshConfiguredHomeLinks() {
+	const homeLinkUrls = await getHomeLinkUrls()
+	for (const url of homeLinkUrls) {
 		if (!active) break
 		try {
 			const result = await refreshLinkPreview(url)
@@ -46,7 +47,7 @@ async function run() {
 		await delay(startupStagger)
 	}
 	while (active) {
-		await refreshRecentPublications()
+		await refreshConfiguredHomeLinks()
 		if (!active) break
 		await delay(loopDelay)
 	}
