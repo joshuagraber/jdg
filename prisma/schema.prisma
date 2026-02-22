@@ -195,3 +195,16 @@ model UserCreatedWheelPoem {
 
   @@unique([sessionId])
 }
+
+model HomeLink {
+  id       String @id @default(cuid())
+  section  String
+  url      String
+  position Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([section, url])
+  @@index([section, position, createdAt])
+}

@@ -15,7 +15,6 @@ import { type Route } from './+types/root'
 import appleTouchIconAssetUrl from './assets/favicons/apple-touch-icon.png'
 import faviconAssetUrl from './assets/favicons/favicon.svg'
 import { GeneralErrorBoundary } from './components/error-boundary.tsx'
-import { HashLink } from './components/hash-link.tsx'
 import { Progress } from './components/progress-bar.tsx'
 import { useToast } from './components/toaster.tsx'
 import { href as iconsHref } from './components/ui/icon.tsx'
@@ -291,29 +290,41 @@ function App() {
 								</span>
 							</NavLink>
 							<div className="text-sm [&>*]:no-underline">
-								<HashLink
-									className="no-underline hover:underline focus:underline md:text-body-md"
-									activeClassName="text-secondary-foreground"
-									to="/#writing"
+								<NavLink
+									className={({ isActive }) =>
+										cn(
+											'no-underline hover:underline focus:underline md:text-body-md',
+											isActive && 'text-secondary-foreground',
+										)
+									}
+									to="/writing"
 								>
 									writing
-								</HashLink>{' '}
+								</NavLink>{' '}
 								|{' '}
-								<HashLink
-									className="no-underline hover:underline focus:underline md:text-body-md"
-									activeClassName="text-secondary-foreground"
-									to="/#software"
+								<NavLink
+									className={({ isActive }) =>
+										cn(
+											'no-underline hover:underline focus:underline md:text-body-md',
+											isActive && 'text-secondary-foreground',
+										)
+									}
+									to="/software"
 								>
 									software
-								</HashLink>{' '}
+								</NavLink>{' '}
 								|{' '}
-								<HashLink
-									className="no-underline hover:underline focus:underline md:text-body-md"
-									activeClassName="text-secondary-foreground"
-									to="/#editing"
+								<NavLink
+									className={({ isActive }) =>
+										cn(
+											'no-underline hover:underline focus:underline md:text-body-md',
+											isActive && 'text-secondary-foreground',
+										)
+									}
+									to="/editing"
 								>
 									editing
-								</HashLink>{' '}
+								</NavLink>{' '}
 								|{' '}
 								<NavLink
 									className={({ isActive }) =>

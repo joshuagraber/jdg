@@ -6,11 +6,13 @@ import {
 	HOME_EXPERIMENT_PREVIEWS,
 	type ExperimentPreviewConfig,
 } from '#app/content/experiments'
-import { RECENT_PUBLICATIONS } from '#app/content/recent-publications'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
+import {
+	getHomeLinkPreviews,
+	getHomeLinkUrls,
+} from '#app/utils/home-links.server.ts'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
-import { getLinkPreviewForRequest } from '#app/utils/link-preview.server.ts'
 import { Time } from './fragments+/__time'
 
 function resolveExperimentImage(
@@ -25,7 +27,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		where: {
 			publishAt: {
 				not: null,
-				lte: new Date(), // less than or equal to current time
+				lte: new Date(),
 			},
 		},
 		orderBy: {
@@ -41,6 +43,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		fragmentPaths,
 		request,
 	)
+	const publicationUrls = await getHomeLinkUrls('writing')
+	const publicationPreviews = await getHomeLinkPreviews(publicationUrls.slice(0, 4))
+
 	const siteHostname = new URL(request.url).hostname
 	const hints = getHints(request)
 	const experimentPreviews = HOME_EXPERIMENT_PREVIEWS.map((preview) => {
@@ -60,45 +65,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		}
 	})
 
-	// Fetch and cache link previews server-side for homepage
-	const MAX_PREVIEW_WAIT_MS = 350
-	const previews = await Promise.all(
-		RECENT_PUBLICATIONS.map(async (url) => {
-			const domain = url.startsWith('data:')
-				? 'data-url'
-				: new URL(url).hostname
-			const fallbackPreview = {
-				url,
-				title: undefined,
-				description: undefined,
-				image: undefined,
-				domain,
-			}
-			const { data, resolvedFrom } = await getLinkPreviewForRequest(url, {
-				maxWaitMs: MAX_PREVIEW_WAIT_MS,
-			})
-			if (!data) {
-				if (resolvedFrom === 'pending') {
-					console.debug('Link preview pending; using fallback', { url })
-				}
-				return fallbackPreview
-			}
-
-			return {
-				url,
-				title: data.title,
-				description: data.description,
-				image: data.image,
-				domain,
-			}
-		}),
-	)
-
 	return {
 		fragments: recentFragments,
-		recentPubs: RECENT_PUBLICATIONS,
-		previews,
 		fragmentLinkPreviews,
+		publicationPreviews,
 		experimentPreviews,
 		siteHostname,
 	}
@@ -117,11 +87,15 @@ export default function Index() {
 				engineer, with a career that has spanned writing, tech, and education.
 				Along the way, I&apos;ve also worked as a professor, activist, tutor,
 				bartender, landscaper, farm worker, and dishwasher.
-				<Spacer size="4xs" />
+			</p>
+			<Spacer size="4xs" />
+			<p>
+				Learn more about my <Link to="/writing">writing</Link>,{' '}
+				<Link to="/editing">editing</Link>, and{' '}
+				<Link to="/software">software work</Link>.
 			</p>
 			<Spacer size="2xs" />
-			{/* Experiments */}
-			<h2 id="experiments">Experiments</h2>
+			<h2>Experiments</h2>
 			<Spacer size="4xs" />
 			<p>Experiments in digital poetics and programming</p>
 			<Spacer size="5xs" />
@@ -137,36 +111,8 @@ export default function Index() {
 				))}
 			</ul>
 			<Spacer size="2xs" />
-			{/* Writing */}
-			<h2 id="writing">Writing</h2>
+			<h2>Recent fragments</h2>
 			<Spacer size="4xs" />
-			<p>
-				I&apos;m trained as a fiction writer (M.F.A.,{' '}
-				<a
-					href="https://www.writing.pitt.edu/graduate"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					University of Pittsburgh
-				</a>
-				) and have published fiction, poetry, essays, and genre-bending work in
-				journals and publications including <em>Guernica</em>, <em>diagram</em>,{' '}
-				<em>Glimmer Train</em>, <em>The New Guard Review</em>
-				&apos;s BANG!, the Pittsburgh <em>Post Gazette</em>,{' '}
-				<em>Adroit Journal</em>, and <em>Art Review</em>.
-				<Spacer size="4xs" />I also write and produce audio documentary, and I'm
-				a founder of the storytelling collective{' '}
-				<a
-					href="https://www.coolmolecules.media/"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					Cool Molecules Media
-				</a>
-				.
-			</p>
-			<Spacer size="3xs" />
-			<h3>Recent fragments</h3>
 			<Link to="fragments">View all fragments</Link>
 			<ul className="my-4 flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
 				{data.fragments.map((fragment) => {
@@ -192,95 +138,17 @@ export default function Index() {
 					)
 				})}
 			</ul>
-			<Spacer size="3xs" />
-			<h3>Recent publications</h3>
-			<Spacer size="5xs" />
-			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
-				{data.previews.map((p) => (
-					<li key={p.url}>
-						<LinkPreviewStatic className="w-full max-w-3xl" {...p} />
+			<Spacer size="2xs" />
+			<h2>Recent publications</h2>
+			<Spacer size="4xs" />
+			<Link to="/writing">View all writing</Link>
+			<ul className="my-4 flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.publicationPreviews.map((preview) => (
+					<li key={preview.url}>
+						<LinkPreviewStatic className="w-full max-w-3xl" {...preview} />
 					</li>
 				))}
 			</ul>
-			<Spacer size="2xs" />
-			{/* Software */}
-			<h2 id="software">Software</h2>
-			<Spacer size="4xs" />
-			<p>
-				I currently work as a software engineer for{' '}
-				<a href="https://www.aura.com" rel="noreferrer noopener" target="blank">
-					Aura
-				</a>
-				, a consumer digital safety company.
-				<Spacer size="4xs" />I also maintain the open-source client applications
-				for the{' '}
-				<a href="https://www.pdap.io" rel="noreferrer noopener" target="blank">
-					Police Data Accessibility Project
-				</a>
-				, dedicated to making police data accessible to researchers,
-				journalists, and communities impacted by policing.
-				<Spacer size="4xs" />I am occasionally available for engineering
-				projects on a freelance basis. Please{' '}
-				<Link to="contact">get in touch</Link> if you are interested in
-				collaborating.
-			</p>
-			<Spacer size="2xs" />
-			{/* Editing */}
-			<h2 id="editing">Editing</h2>
-			<Spacer size="4xs" />
-			<p>
-				For nearly 15 years, I’ve worked as a literary editor of prose and
-				poetry. As an undergraduate, I became the founding executive editor of{' '}
-				<em>The Quaker</em>.
-				<Spacer size="4xs" />
-				In graduate school, I served as fiction editor for{' '}
-				<a
-					href="https://en.wikipedia.org/wiki/Hot_Metal_Bridge_(journal)/"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					<em>Hot Metal Bridge</em>
-				</a>{' '}
-				and as managing editor for{' '}
-				<a
-					href="https://asterixjournal.com/"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					<em>Aster(ix)</em>
-				</a>
-				.
-				<Spacer size="4xs" />
-				After earning my degree, I became the founding fiction editor of{' '}
-				<a
-					href="https://www.wordwest.co"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					Word West Press
-				</a>
-				, working on an array of remarkable books across styles and genres.
-				<Spacer size="4xs" />
-				I&apos;m available for freelance editorial work&mdash;
-				<Link to="contact">say hello</Link> or check out{' '}
-				<a
-					href="https://reedsy.com/joshua-graber"
-					rel="noreferrer noopener"
-					target="blank"
-				>
-					my profile on Reedsy
-				</a>
-				.
-			</p>
-			<Spacer size="2xs" />
-			{/* Misc. */}
-			<h2>Teaching and speaking</h2>
-			<Spacer size="4xs" />
-			<p>
-				Every now and then, I put my professor hat back on and teach writing
-				workshops or programming courses. If you’re looking for an engaging,
-				improvisational speaker, <Link to="contact">let&apos;s chat</Link>.
-			</p>
 			<Spacer size="lg" />
 		</main>
 	)
