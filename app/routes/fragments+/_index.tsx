@@ -10,6 +10,7 @@ import {
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { Spacer } from '#app/components/spacer.tsx'
+import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
@@ -21,6 +22,9 @@ import { Time } from './__time'
 
 export const POSTS_PER_PAGE = 5
 const FRAGMENTS_DESCRIPTION = 'Collection of fragments and short posts'
+const MDX_LIST_COMPILE_CONCURRENCY = 1
+const FRAGMENTS_ROUTE_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
+const FRAGMENTS_ROUTE_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 
 export const handle: LinkPreviewHandle = {
 	async linkPreview({ request }) {
@@ -40,53 +44,80 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
 	const skip = Number(url.searchParams.get('skip')) || 0
 
-	const [posts, totalPosts] = await time(
+	const publishedVersion = await time(
 		() =>
-			Promise.all([
-				prisma.post.findMany({
-					where: { publishAt: { not: null } },
-					select: {
-						id: true,
-						title: true,
-						slug: true,
-						content: true,
-						description: true,
-						createdAt: true,
-						publishAt: true,
-					},
-					orderBy: { publishAt: 'desc' },
-					take: top,
-					skip,
-				}),
-				prisma.post.count({
-					where: { publishAt: { not: null } },
-				}),
-			]),
-		{ timings, type: 'db:posts-and-count' },
+			prisma.post.aggregate({
+				where: { publishAt: { not: null } },
+				_count: { _all: true },
+				_max: { updatedAt: true },
+			}),
+		{ timings, type: 'db:published-version' },
 	)
 
-	// Bundle MDX for each post
-	const postsWithMDX = await time(
+	const versionUpdatedAt = publishedVersion._max.updatedAt?.getTime() ?? 0
+	const versionCount = publishedVersion._count._all
+	const cached = await time(
 		() =>
-			Promise.all(
-				posts.map(async (post) => {
-					const { code, frontmatter } = await compileMDX(post.content, {
-						title: post.title,
-					})
+			cachified({
+				key: `fragments:index:v1:top:${top}:skip:${skip}:count:${versionCount}:updatedAt:${versionUpdatedAt}`,
+				cache,
+				ttl: FRAGMENTS_ROUTE_CACHE_TTL_MS,
+				swr: FRAGMENTS_ROUTE_CACHE_SWR_MS,
+				async getFreshValue() {
+					const [posts, totalPosts] = await Promise.all([
+						prisma.post.findMany({
+							where: { publishAt: { not: null } },
+							select: {
+								id: true,
+								title: true,
+								slug: true,
+								content: true,
+								description: true,
+								publishAt: true,
+							},
+							orderBy: { publishAt: 'desc' },
+							take: top,
+							skip,
+						}),
+						prisma.post.count({
+							where: { publishAt: { not: null } },
+						}),
+					])
+
+					// Bundle MDX with constrained concurrency to avoid CPU spikes that can
+					// starve health checks on smaller Fly machines.
+					const postsWithMDX = await mapWithConcurrency(
+						posts,
+						MDX_LIST_COMPILE_CONCURRENCY,
+						async (post) => {
+							const { code, frontmatter } = await compileMDX(post.content, {
+								title: post.title,
+							})
+							return {
+								id: post.id,
+								title: post.title,
+								slug: post.slug,
+								description: post.description,
+								publishAt: post.publishAt?.toISOString() ?? null,
+								code,
+								frontmatter,
+							}
+						},
+					)
+
 					return {
-						...post,
-						code,
-						frontmatter,
+						posts: postsWithMDX,
+						total: totalPosts,
 					}
-				}),
-			),
-		{ timings, type: 'mdx:compile-list' },
+				},
+			}),
+		{ timings, type: 'cache:fragments-index' },
 	)
 
 	return data(
 		{
-			posts: postsWithMDX,
-			total: totalPosts,
+			posts: cached.posts,
+			total: cached.total,
 			ogURL: url,
 		},
 		{ headers: { 'Server-Timing': timings.toString() } },
@@ -157,8 +188,9 @@ export default function Fragments() {
 							<p className="mb-2 text-muted-foreground">{post.description}</p>
 						</Link>
 						<p className="text-sm text-neutral-500">
-							{/* Non-null assertion okay here. If the post is returned here, that means it's published */}
-							<Time time={post.publishAt!.toDateString()} />
+							{post.publishAt ? (
+								<Time time={new Date(post.publishAt).toDateString()} />
+							) : null}
 						</p>
 						<div className="mb-4">
 							<PostContent code={post.code} />
@@ -173,3 +205,27 @@ export default function Fragments() {
 }
 
 export const ErrorBoundary = GeneralErrorBoundary
+
+async function mapWithConcurrency<TIn, TOut>(
+	items: Array<TIn>,
+	concurrency: number,
+	mapper: (item: TIn, index: number) => Promise<TOut>,
+): Promise<Array<TOut>> {
+	if (!items.length) return []
+	const limit = Math.max(1, concurrency)
+	const output = new Array<TOut>(items.length)
+	let index = 0
+
+	const worker = async () => {
+		while (true) {
+			const current = index++
+			if (current >= items.length) break
+			output[current] = await mapper(items[current]!, current)
+		}
+	}
+
+	await Promise.all(
+		Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+	)
+	return output
+}

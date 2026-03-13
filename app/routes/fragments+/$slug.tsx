@@ -6,6 +6,7 @@ import { data, useLoaderData, type HeadersFunction } from 'react-router'
 import { serverOnly$ } from 'vite-env-only/macros'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
+import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
@@ -14,6 +15,9 @@ import { toAbsoluteUrl, getPostImageSource } from '#app/utils/misc.tsx'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
+
+const FRAGMENT_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
+const FRAGMENT_SLUG_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 
 export const handle: SEOHandle & LinkPreviewHandle = {
 	getSitemapEntries: serverOnly$(async (_request) => {
@@ -33,42 +37,80 @@ export const handle: SEOHandle & LinkPreviewHandle = {
 export async function loader({ params, request }: Route.LoaderArgs) {
 	const timings = makeTimings('fragment slug loader')
 	const url = new URL(request.url)
-	const post = await time(
+	const version = await time(
 		() =>
 			prisma.post.findUnique({
 				where: {
 					slug: params.slug,
-					publishAt: { not: null },
 				},
 				select: {
-					content: true,
+					id: true,
 					publishAt: true,
-					title: true,
-					description: true,
-					slug: true,
-					previewImageId: true,
-					previewImage: {
-						select: { s3Key: true },
-					},
+					updatedAt: true,
 				},
 			}),
-		{ timings, type: 'db:fragment-by-slug' },
+		{ timings, type: 'db:fragment-version' },
 	)
 
-	invariantResponse(post, 'Not found', { status: 404 })
+	invariantResponse(version?.publishAt, 'Not found', { status: 404 })
 
-	const { code } = await time(
-		() => compileMDX(post.content, { title: post.title }),
-		{ timings, type: 'mdx:compile-slug' },
+	const cached = await time(
+		() =>
+			cachified({
+				key: `fragments:slug:v1:${params.slug}:updatedAt:${version.updatedAt.getTime()}`,
+				cache,
+				ttl: FRAGMENT_SLUG_CACHE_TTL_MS,
+				swr: FRAGMENT_SLUG_CACHE_SWR_MS,
+				async getFreshValue() {
+					const post = await prisma.post.findUnique({
+						where: {
+							slug: params.slug,
+							publishAt: { not: null },
+						},
+						select: {
+							content: true,
+							publishAt: true,
+							title: true,
+							description: true,
+							slug: true,
+							previewImageId: true,
+							previewImage: {
+								select: { s3Key: true },
+							},
+						},
+					})
+
+					if (!post) {
+						throw new Response('Not found', { status: 404 })
+					}
+
+					const { code } = await compileMDX(post.content, { title: post.title })
+					const previewImageUrl = post.previewImageId
+						? getPostImageSource(post.previewImageId, {
+								s3Key: post.previewImage?.s3Key ?? null,
+							})
+						: null
+
+					return {
+						post: {
+							...post,
+							publishAt: post.publishAt?.toISOString() ?? null,
+						},
+						code,
+						previewImageUrl,
+					}
+				},
+			}),
+		{ timings, type: 'cache:fragment-slug' },
 	)
-	const previewImageUrl = post.previewImageId
-		? getPostImageSource(post.previewImageId, {
-				s3Key: post.previewImage?.s3Key ?? null,
-			})
-		: null
 
 	return data(
-		{ post, code, ogURL: url, previewImageUrl },
+		{
+			post: cached.post,
+			code: cached.code,
+			ogURL: url,
+			previewImageUrl: cached.previewImageUrl,
+		},
 		{ headers: { 'Server-Timing': timings.toString() } },
 	)
 }
@@ -136,8 +178,9 @@ export default function Fragment() {
 			<h1 className="mb-4">{post.title}</h1>
 			<p>{post.description}</p>
 			<p className="text-sm text-neutral-500">
-				{/* Non-null assertion okay here. If the post is returned here, that means it's published */}
-				<Time time={post.publishAt!.toDateString()} />
+				{post.publishAt ? (
+					<Time time={new Date(post.publishAt).toDateString()} />
+				) : null}
 			</p>
 			<div>
 				<Component components={mdxComponents} />
