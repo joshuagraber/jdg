@@ -33,7 +33,7 @@ export interface HomeLinkPreview {
 
 export async function getHomeLinkPreviews(
 	urls: string[],
-	{ maxWaitMs = 350 }: { maxWaitMs?: number } = {},
+	{ maxWaitMs = 0 }: { maxWaitMs?: number } = {},
 ): Promise<Array<HomeLinkPreview>> {
 	return Promise.all(
 		urls.map(async (url) => {

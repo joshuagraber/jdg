@@ -1,6 +1,12 @@
 import { getMDXComponent } from 'mdx-bundler/client'
 import { useEffect, useMemo, useRef } from 'react'
-import { Link, useLoaderData, useLocation } from 'react-router'
+import {
+	data,
+	Link,
+	useLoaderData,
+	useLocation,
+	type HeadersFunction,
+} from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { Spacer } from '#app/components/spacer.tsx'
@@ -8,6 +14,7 @@ import { prisma } from '#app/utils/db.server'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
+import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { type Route } from './+types/_index'
 import { PaginationBar } from './__pagination-bar'
 import { Time } from './__time'
@@ -28,49 +35,67 @@ export const handle: LinkPreviewHandle = {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+	const timings = makeTimings('fragments index loader')
 	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
 	const skip = Number(url.searchParams.get('skip')) || 0
 
-	const [posts, totalPosts] = await Promise.all([
-		prisma.post.findMany({
-			where: { publishAt: { not: null } },
-			select: {
-				id: true,
-				title: true,
-				slug: true,
-				content: true,
-				description: true,
-				createdAt: true,
-				publishAt: true,
-			},
-			orderBy: { publishAt: 'desc' },
-			take: top,
-			skip,
-		}),
-		prisma.post.count({
-			where: { publishAt: { not: null } },
-		}),
-	])
-
-	// Bundle MDX for each post
-	const postsWithMDX = await Promise.all(
-		posts.map(async (post) => {
-			const { code, frontmatter } = await compileMDX(post.content, {
-				title: post.title,
-			})
-			return {
-				...post,
-				code,
-				frontmatter,
-			}
-		}),
+	const [posts, totalPosts] = await time(
+		() =>
+			Promise.all([
+				prisma.post.findMany({
+					where: { publishAt: { not: null } },
+					select: {
+						id: true,
+						title: true,
+						slug: true,
+						content: true,
+						description: true,
+						createdAt: true,
+						publishAt: true,
+					},
+					orderBy: { publishAt: 'desc' },
+					take: top,
+					skip,
+				}),
+				prisma.post.count({
+					where: { publishAt: { not: null } },
+				}),
+			]),
+		{ timings, type: 'db:posts-and-count' },
 	)
 
+	// Bundle MDX for each post
+	const postsWithMDX = await time(
+		() =>
+			Promise.all(
+				posts.map(async (post) => {
+					const { code, frontmatter } = await compileMDX(post.content, {
+						title: post.title,
+					})
+					return {
+						...post,
+						code,
+						frontmatter,
+					}
+				}),
+			),
+		{ timings, type: 'mdx:compile-list' },
+	)
+
+	return data(
+		{
+			posts: postsWithMDX,
+			total: totalPosts,
+			ogURL: url,
+		},
+		{ headers: { 'Server-Timing': timings.toString() } },
+	)
+}
+
+export const headers: HeadersFunction = ({ loaderHeaders }) => {
 	return {
-		posts: postsWithMDX,
-		total: totalPosts,
-		ogURL: url,
+		'Server-Timing': loaderHeaders.get('Server-Timing') ?? '',
 	}
 }
 

@@ -2,7 +2,7 @@ import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
 import { getMDXComponent } from 'mdx-bundler/client'
 import { useMemo } from 'react'
-import { useLoaderData } from 'react-router'
+import { data, useLoaderData, type HeadersFunction } from 'react-router'
 import { serverOnly$ } from 'vite-env-only/macros'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
@@ -11,6 +11,7 @@ import { type LinkPreviewHandle } from '#app/utils/link-preview'
 import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
 import { toAbsoluteUrl, getPostImageSource } from '#app/utils/misc.tsx'
+import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
 
@@ -30,35 +31,52 @@ export const handle: SEOHandle & LinkPreviewHandle = {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
+	const timings = makeTimings('fragment slug loader')
 	const url = new URL(request.url)
-	const post = await prisma.post.findUnique({
-		where: {
-			slug: params.slug,
-			publishAt: { not: null },
-		},
-		select: {
-			content: true,
-			publishAt: true,
-			title: true,
-			description: true,
-			slug: true,
-			previewImageId: true,
-			previewImage: {
-				select: { s3Key: true },
-			},
-		},
-	})
+	const post = await time(
+		() =>
+			prisma.post.findUnique({
+				where: {
+					slug: params.slug,
+					publishAt: { not: null },
+				},
+				select: {
+					content: true,
+					publishAt: true,
+					title: true,
+					description: true,
+					slug: true,
+					previewImageId: true,
+					previewImage: {
+						select: { s3Key: true },
+					},
+				},
+			}),
+		{ timings, type: 'db:fragment-by-slug' },
+	)
 
 	invariantResponse(post, 'Not found', { status: 404 })
 
-	const { code } = await compileMDX(post.content, { title: post.title })
+	const { code } = await time(
+		() => compileMDX(post.content, { title: post.title }),
+		{ timings, type: 'mdx:compile-slug' },
+	)
 	const previewImageUrl = post.previewImageId
 		? getPostImageSource(post.previewImageId, {
 				s3Key: post.previewImage?.s3Key ?? null,
 			})
 		: null
 
-	return { post, code, ogURL: url, previewImageUrl }
+	return data(
+		{ post, code, ogURL: url, previewImageUrl },
+		{ headers: { 'Server-Timing': timings.toString() } },
+	)
+}
+
+export const headers: HeadersFunction = ({ loaderHeaders }) => {
+	return {
+		'Server-Timing': loaderHeaders.get('Server-Timing') ?? '',
+	}
 }
 
 export const meta: Route.MetaFunction = ({ data, matches }) => {
