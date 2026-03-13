@@ -8,11 +8,7 @@ import { type Node } from 'unist'
 import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
-import {
-	getOpenGraphData,
-	hasPreviewData,
-	type OpenGraphData,
-} from './link-preview.server.ts'
+import { getLinkPreviewForRequest } from './link-preview.server.ts'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -112,26 +108,21 @@ const remarkInlinePreviewData: Plugin = () => {
 
 			tasks.push(async () => {
 				try {
-					const og = await cachified<OpenGraphData>({
-						key: `link-preview:${url}`,
-						cache,
-						ttl: 1000 * 60 * 60 * 24, // 24h
-						swr: 1000 * 60 * 60 * 24 * 7, // 7d
-						fallbackToCache: 1000 * 60 * 60,
-						checkValue(value) {
-							return hasPreviewData(value)
-								? true
-								: 'Link preview missing essential fields'
-						},
-						async getFreshValue(context) {
-							const result = await getOpenGraphData(url)
-							if (!hasPreviewData(result)) {
-								context.metadata.ttl = 0
-								throw new Error('No preview data available')
-							}
-							return result
-						},
+					// MDX compilation runs in route loaders and should not block on
+					// outbound metadata fetches. We read cache immediately and trigger
+					// any required refresh in the background.
+					const { data: og } = await getLinkPreviewForRequest(url, {
+						maxWaitMs: 0,
 					})
+					if (!og) {
+						const previewNode = node as unknown as MdxJsxFlowElement
+						previewNode.type = 'mdxJsxFlowElement'
+						previewNode.name = 'LinkPreview'
+						previewNode.attributes = [
+							{ type: 'mdxJsxAttribute', name: 'url', value: String(url) },
+						]
+						return
+					}
 
 					const domainFromUrl = url.startsWith('data:')
 						? 'data-url'

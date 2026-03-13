@@ -1,4 +1,10 @@
-import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router'
+import {
+	data,
+	Link,
+	useLoaderData,
+	type HeadersFunction,
+	type LoaderFunctionArgs,
+} from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreviewStatic } from '#app/components/link-preview-static'
 import { Spacer } from '#app/components/spacer'
@@ -13,6 +19,7 @@ import {
 	getHomeLinkUrls,
 } from '#app/utils/home-links.server.ts'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
+import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { Time } from './fragments+/__time'
 
 function resolveExperimentImage(
@@ -23,28 +30,39 @@ function resolveExperimentImage(
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	const recentFragments = await prisma.post.findMany({
-		where: {
-			publishAt: {
-				not: null,
-				lte: new Date(),
-			},
-		},
-		orderBy: {
-			publishAt: 'desc',
-		},
-		take: 4,
-	})
+	const timings = makeTimings('index loader')
+	const recentFragments = await time(
+		() =>
+			prisma.post.findMany({
+				where: {
+					publishAt: {
+						not: null,
+						lte: new Date(),
+					},
+				},
+				orderBy: {
+					publishAt: 'desc',
+				},
+				take: 4,
+			}),
+		{ timings, type: 'db:recent-fragments' },
+	)
 
 	const fragmentPaths = recentFragments.map(
 		(fragment) => `/fragments/${fragment.slug}`,
 	)
-	const fragmentLinkPreviews = await getInternalLinkPreviews(
-		fragmentPaths,
-		request,
+	const fragmentLinkPreviews = await time(
+		() => getInternalLinkPreviews(fragmentPaths, request),
+		{ timings, type: 'internal-link-previews' },
 	)
-	const publicationUrls = await getHomeLinkUrls('writing')
-	const publicationPreviews = await getHomeLinkPreviews(publicationUrls.slice(0, 4))
+	const publicationUrls = await time(() => getHomeLinkUrls('writing'), {
+		timings,
+		type: 'db:home-link-urls',
+	})
+	const publicationPreviews = await time(
+		() => getHomeLinkPreviews(publicationUrls.slice(0, 4)),
+		{ timings, type: 'external-link-previews' },
+	)
 
 	const siteHostname = new URL(request.url).hostname
 	const hints = getHints(request)
@@ -65,12 +83,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		}
 	})
 
+	return data(
+		{
+			fragments: recentFragments,
+			fragmentLinkPreviews,
+			publicationPreviews,
+			experimentPreviews,
+			siteHostname,
+		},
+		{ headers: { 'Server-Timing': timings.toString() } },
+	)
+}
+
+export const headers: HeadersFunction = ({ loaderHeaders }) => {
 	return {
-		fragments: recentFragments,
-		fragmentLinkPreviews,
-		publicationPreviews,
-		experimentPreviews,
-		siteHostname,
+		'Server-Timing': loaderHeaders.get('Server-Timing') ?? '',
 	}
 }
 
