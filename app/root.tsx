@@ -96,22 +96,50 @@ export async function loader({ request }: Route.LoaderArgs) {
 		// them in the database. Maybe they were deleted? Let's log them out.
 		await logout({ request, redirectTo: '/' })
 	}
-	const { toast, headers: toastHeaders } = await getToast(request)
-	const honeyProps = honeypot.getInputProps()
+	const { toast, headers: toastHeaders } = await time(() => getToast(request), {
+		timings,
+		type: 'getToast',
+		desc: 'get toast in root',
+	})
+	const honeyProps = await time(() => honeypot.getInputProps(), {
+		timings,
+		type: 'honeypot',
+		desc: 'honeypot input props',
+	})
+	const hints = await time(() => getHints(request), {
+		timings,
+		type: 'client hints',
+		desc: 'get client hints',
+	})
+	const origin = await time(() => getDomainUrl(request), {
+		timings,
+		type: 'domain',
+		desc: 'get domain URL',
+	})
+	const theme = await time(() => getTheme(request), {
+		timings,
+		type: 'theme',
+		desc: 'get theme preference',
+	})
+	const env = await time(() => getEnv(), {
+		timings,
+		type: 'env',
+		desc: 'resolve public env',
+	})
 
 	return data(
 		{
 			user,
 			requestInfo: {
-				hints: getHints(request),
-				origin: getDomainUrl(request),
+				hints,
+				origin,
 				path: new URL(request.url).pathname,
 				userPrefs: {
-					theme: getTheme(request),
+					theme,
 				},
 				ogURL,
 			},
-			ENV: getEnv(),
+			ENV: env,
 			toast,
 			honeyProps,
 		},
