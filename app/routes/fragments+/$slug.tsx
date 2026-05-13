@@ -6,18 +6,14 @@ import { data, useLoaderData, type HeadersFunction } from 'react-router'
 import { serverOnly$ } from 'vite-env-only/macros'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
-import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server'
+import { getCachedFragmentBySlug } from '#app/utils/fragments.server.ts'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
-import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
-import { toAbsoluteUrl, getPostImageSource } from '#app/utils/misc.tsx'
+import { toAbsoluteUrl } from '#app/utils/misc.tsx'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { type Route } from './+types/$slug'
 import { Time } from './__time'
-
-const FRAGMENT_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
-const FRAGMENT_SLUG_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 
 export const handle: SEOHandle & LinkPreviewHandle = {
 	getSitemapEntries: serverOnly$(async (_request) => {
@@ -56,50 +52,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
 	const cached = await time(
 		() =>
-			cachified({
-				key: `fragments:slug:v1:${params.slug}:updatedAt:${version.updatedAt.getTime()}`,
-				cache,
-				ttl: FRAGMENT_SLUG_CACHE_TTL_MS,
-				swr: FRAGMENT_SLUG_CACHE_SWR_MS,
-				async getFreshValue() {
-					const post = await prisma.post.findUnique({
-						where: {
-							slug: params.slug,
-							publishAt: { not: null },
-						},
-						select: {
-							content: true,
-							publishAt: true,
-							title: true,
-							description: true,
-							slug: true,
-							previewImageId: true,
-							previewImage: {
-								select: { s3Key: true },
-							},
-						},
-					})
-
-					if (!post) {
-						throw new Response('Not found', { status: 404 })
-					}
-
-					const { code } = await compileMDX(post.content, { title: post.title })
-					const previewImageUrl = post.previewImageId
-						? getPostImageSource(post.previewImageId, {
-								s3Key: post.previewImage?.s3Key ?? null,
-							})
-						: null
-
-					return {
-						post: {
-							...post,
-							publishAt: post.publishAt?.toISOString() ?? null,
-						},
-						code,
-						previewImageUrl,
-					}
-				},
+			getCachedFragmentBySlug({
+				slug: params.slug!,
+				updatedAt: version.updatedAt,
 			}),
 		{ timings, type: 'cache:fragment-slug' },
 	)

@@ -22,7 +22,7 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { compileMDX } from '#app/utils/mdx.server.ts'
+import { warmPublishedFragment } from '#app/utils/fragments.server.ts'
 import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
@@ -100,6 +100,7 @@ export async function action({ request }: Route.ActionArgs) {
 	const normalizedPreviewTitle = previewTitle?.trim() ?? null
 	const normalizedPreviewDescription = previewDescription?.trim() ?? null
 	const normalizedPreviewImageId = previewImageId?.trim() ?? null
+	const resolvedSlug = makePostSlug(title, slug)
 
 	try {
 		await prisma.post.create({
@@ -107,7 +108,7 @@ export async function action({ request }: Route.ActionArgs) {
 				title,
 				content,
 				description,
-				slug: makePostSlug(title, slug),
+				slug: resolvedSlug,
 				publishAt: publishAtWithTimezone,
 				authorId,
 				previewTitle: normalizedPreviewTitle,
@@ -116,8 +117,8 @@ export async function action({ request }: Route.ActionArgs) {
 			},
 		} as any)
 
-		// Warm compiled MDX & inline previews (non-blocking)
-		void compileMDX(content, { title })
+		// Warm the exact public fragment payload cache when the post is publishable.
+		void warmPublishedFragment(resolvedSlug)
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post created',
