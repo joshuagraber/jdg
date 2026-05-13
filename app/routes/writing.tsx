@@ -7,13 +7,10 @@ import {
 	type MetaFunction,
 } from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
-import { LinkPreviewStatic } from '#app/components/link-preview-static'
+import { LinkPreview } from '#app/components/link-preview'
 import { Spacer } from '#app/components/spacer'
 import { prisma } from '#app/utils/db.server'
-import {
-	getHomeLinkPreviews,
-	getHomeLinkUrls,
-} from '#app/utils/home-links.server.ts'
+import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { Time } from './fragments+/__time'
@@ -51,17 +48,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		timings,
 		type: 'db:home-link-urls',
 	})
-	const publicationPreviews = await time(
-		() => getHomeLinkPreviews(publicationUrls),
-		{ timings, type: 'external-link-previews' },
-	)
 	const siteHostname = new URL(request.url).hostname
 
 	return data(
 		{
 			fragments: recentFragments,
 			fragmentLinkPreviews,
-			publicationPreviews,
+			publicationUrls,
 			siteHostname,
 		},
 		{ headers: { 'Server-Timing': timings.toString() } },
@@ -139,9 +132,9 @@ export default function WritingRoute() {
 			<h2>Recent publications</h2>
 			<Spacer size="5xs" />
 			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
-				{data.publicationPreviews.map((preview) => (
-					<li key={preview.url}>
-						<LinkPreviewStatic className="w-full max-w-3xl" {...preview} />
+				{data.publicationUrls.map((url) => (
+					<li key={url}>
+						<LinkPreview url={url} className="w-full max-w-3xl" />
 					</li>
 				))}
 			</ul>

@@ -31,10 +31,13 @@ import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
 }
+
+export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader() {
 	const [images, videos] = await Promise.all([

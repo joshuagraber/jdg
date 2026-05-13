@@ -32,12 +32,15 @@ import { PostImageManager } from './__image-manager'
 import { PostSchemaUpdate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 
 type PostPreviewFields = {
 	previewTitle: string | null
 	previewDescription: string | null
 	previewImageId: string | null
 }
+
+export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader({ params, request }: Route.LoaderArgs) {
 	await requireUserId(request)

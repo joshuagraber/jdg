@@ -9,6 +9,7 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 	useLocation,
+	type ShouldRevalidateFunctionArgs,
 } from 'react-router'
 import { HoneypotProvider } from 'remix-utils/honeypot/react'
 import { type Route } from './+types/root'
@@ -36,7 +37,6 @@ import { type Theme, getTheme } from './utils/theme.server.ts'
 import { makeTimings, time } from './utils/timing.server.ts'
 import { getToast } from './utils/toast.server.ts'
 import { useOptionalUser } from './utils/user.ts'
-import '@mdxeditor/editor/style.css?url'
 
 export const links: Route.LinksFunction = () => {
 	return [
@@ -224,6 +224,20 @@ export const headers: Route.HeadersFunction = ({ loaderHeaders }) => {
 		'Server-Timing': loaderHeaders.get('Server-Timing') ?? '',
 	}
 	return headers
+}
+
+export function shouldRevalidate({
+	formMethod,
+	formAction,
+	currentUrl,
+	nextUrl,
+	defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+	if (defaultShouldRevalidate) return true
+	if (formMethod && formMethod !== 'GET') return true
+	if (formAction) return true
+	if (currentUrl.pathname === nextUrl.pathname) return false
+	return false
 }
 
 function Document({
