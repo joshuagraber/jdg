@@ -1,4 +1,4 @@
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	Form,
 	redirect,
@@ -22,17 +22,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	await requireUserWithRole(request, 'admin')
 
 	const links = await prisma.homeLink.findMany({
-		orderBy: [
-			{ section: 'asc' },
-			{ position: 'asc' },
-			{ createdAt: 'desc' },
-		],
+		orderBy: [{ section: 'asc' }, { position: 'asc' }, { createdAt: 'desc' }],
 	})
 
 	return { links, sections: HOME_LINK_SECTIONS }
 }
 
-function parseSection(value: FormDataEntryValue | null): HomeLinkSection | null {
+function parseSection(
+	value: FormDataEntryValue | null,
+): HomeLinkSection | null {
 	if (typeof value !== 'string') return null
 	return HOME_LINK_SECTIONS.includes(value as HomeLinkSection)
 		? (value as HomeLinkSection)

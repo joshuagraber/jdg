@@ -13,11 +13,7 @@ export async function getHomeLinkUrls(
 		select: { url: true },
 		orderBy: section
 			? [{ position: 'asc' }, { createdAt: 'desc' }]
-			: [
-					{ section: 'asc' },
-					{ position: 'asc' },
-					{ createdAt: 'desc' },
-			  ],
+			: [{ section: 'asc' }, { position: 'asc' }, { createdAt: 'desc' }],
 	})
 
 	return links.map((link) => link.url)

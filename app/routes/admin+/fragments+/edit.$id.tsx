@@ -22,7 +22,11 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints, useHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { compileMDX } from '#app/utils/mdx.server.ts'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
+import {
+	warmFragmentsIndexPages,
+	warmPublishedFragment,
+} from '#app/utils/fragments.server.ts'
 import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { invalidatePostCaches } from '#app/utils/preview-utils.server.ts'
@@ -32,12 +36,15 @@ import { PostImageManager } from './__image-manager'
 import { PostSchemaUpdate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 
 type PostPreviewFields = {
 	previewTitle: string | null
 	previewDescription: string | null
 	previewImageId: string | null
 }
+
+export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader({ params, request }: Route.LoaderArgs) {
 	await requireUserId(request)
@@ -147,8 +154,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 			existingPost?.slug ?? undefined,
 			slug,
 		)
-		// Warm new compiled MDX & inline previews (non-blocking)
-		void compileMDX(content, { title })
+		// Warm the exact public fragment payload cache when the post is publishable.
+		void warmPublishedFragment(slug)
+		void warmFragmentsIndexPages({ top: FRAGMENTS_POSTS_PER_PAGE })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post updated',

@@ -1,7 +1,9 @@
 import { Link, type MetaFunction } from 'react-router'
 import { Spacer } from '#app/components/spacer'
 
-export const meta: MetaFunction = () => [{ title: 'Software | Joshua D. Graber' }]
+export const meta: MetaFunction = () => [
+	{ title: 'Software | Joshua D. Graber' },
+]
 
 export default function SoftwareRoute() {
 	return (
@@ -23,8 +25,9 @@ export default function SoftwareRoute() {
 				, dedicated to making police data accessible to researchers,
 				journalists, and communities impacted by policing.
 				<Spacer size="4xs" />I am occasionally available for engineering
-				projects on a freelance basis. Please <Link to="/contact">get in touch</Link>{' '}
-				if you are interested in collaborating.
+				projects on a freelance basis. Please{' '}
+				<Link to="/contact">get in touch</Link> if you are interested in
+				collaborating.
 			</p>
 			<Spacer size="lg" />
 		</main>

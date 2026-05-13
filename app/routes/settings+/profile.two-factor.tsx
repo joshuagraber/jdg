@@ -1,4 +1,4 @@
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { Outlet } from 'react-router'
 import { Icon } from '#app/components/ui/icon.tsx'
 import { type VerificationTypes } from '#app/routes/_auth+/verify.tsx'

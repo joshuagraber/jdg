@@ -7,18 +7,17 @@ import {
 	type MetaFunction,
 } from 'react-router'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
-import { LinkPreviewStatic } from '#app/components/link-preview-static'
+import { LinkPreview } from '#app/components/link-preview'
 import { Spacer } from '#app/components/spacer'
 import { prisma } from '#app/utils/db.server'
-import {
-	getHomeLinkPreviews,
-	getHomeLinkUrls,
-} from '#app/utils/home-links.server.ts'
-import { getInternalLinkPreviews } from '#app/utils/internal-link-previews.server.ts'
+import { getFragmentPreviewData } from '#app/utils/fragments.ts'
+import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { Time } from './fragments+/__time'
 
-export const meta: MetaFunction = () => [{ title: 'Writing | Joshua D. Graber' }]
+export const meta: MetaFunction = () => [
+	{ title: 'Writing | Joshua D. Graber' },
+]
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const timings = makeTimings('writing loader')
@@ -31,6 +30,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 						lte: new Date(),
 					},
 				},
+				select: {
+					title: true,
+					slug: true,
+					description: true,
+					publishAt: true,
+					previewTitle: true,
+					previewDescription: true,
+					previewImageId: true,
+					previewImage: {
+						select: { s3Key: true },
+					},
+				},
 				orderBy: {
 					publishAt: 'desc',
 				},
@@ -39,29 +50,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		{ timings, type: 'db:recent-fragments' },
 	)
 
-	const fragmentPaths = recentFragments.map(
-		(fragment) => `/fragments/${fragment.slug}`,
-	)
-	const fragmentLinkPreviews = await time(
-		() => getInternalLinkPreviews(fragmentPaths, request),
-		{ timings, type: 'internal-link-previews' },
-	)
-
 	const publicationUrls = await time(() => getHomeLinkUrls('writing'), {
 		timings,
 		type: 'db:home-link-urls',
 	})
-	const publicationPreviews = await time(
-		() => getHomeLinkPreviews(publicationUrls),
-		{ timings, type: 'external-link-previews' },
-	)
 	const siteHostname = new URL(request.url).hostname
 
 	return data(
 		{
 			fragments: recentFragments,
-			fragmentLinkPreviews,
-			publicationPreviews,
+			publicationUrls,
 			siteHostname,
 		},
 		{ headers: { 'Server-Timing': timings.toString() } },
@@ -96,8 +94,8 @@ export default function WritingRoute() {
 				<em>Glimmer Train</em>, <em>The New Guard Review</em>
 				&apos;s BANG!, the Pittsburgh <em>Post Gazette</em>,{' '}
 				<em>Adroit Journal</em>, and <em>Art Review</em>.
-				<Spacer size="4xs" />I also write and produce audio documentary, and I&apos;m
-				a founder of the storytelling collective{' '}
+				<Spacer size="4xs" />I also write and produce audio documentary, and
+				I&apos;m a founder of the storytelling collective{' '}
 				<a
 					href="https://www.coolmolecules.media/"
 					rel="noreferrer noopener"
@@ -114,12 +112,7 @@ export default function WritingRoute() {
 			<ul className="my-4 flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
 				{data.fragments.map((fragment) => {
 					const path = `/fragments/${fragment.slug}`
-					const preview = data.fragmentLinkPreviews[path] ?? {
-						url: path,
-						title: fragment.title,
-						description: fragment.description,
-						domain: data.siteHostname,
-					}
+					const preview = getFragmentPreviewData(fragment)
 					const publishMeta = fragment.publishAt ? (
 						<Time time={fragment.publishAt.toDateString()} />
 					) : null
@@ -139,9 +132,9 @@ export default function WritingRoute() {
 			<h2>Recent publications</h2>
 			<Spacer size="5xs" />
 			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
-				{data.publicationPreviews.map((preview) => (
-					<li key={preview.url}>
-						<LinkPreviewStatic className="w-full max-w-3xl" {...preview} />
+				{data.publicationUrls.map((url) => (
+					<li key={url}>
+						<LinkPreview url={url} className="w-full max-w-3xl" />
 					</li>
 				))}
 			</ul>

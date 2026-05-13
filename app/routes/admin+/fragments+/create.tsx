@@ -6,7 +6,7 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -22,7 +22,11 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { compileMDX } from '#app/utils/mdx.server.ts'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
+import {
+	warmFragmentsIndexPages,
+	warmPublishedFragment,
+} from '#app/utils/fragments.server.ts'
 import { makePostSlug } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
@@ -31,10 +35,13 @@ import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
 }
+
+export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader() {
 	const [images, videos] = await Promise.all([
@@ -97,6 +104,7 @@ export async function action({ request }: Route.ActionArgs) {
 	const normalizedPreviewTitle = previewTitle?.trim() ?? null
 	const normalizedPreviewDescription = previewDescription?.trim() ?? null
 	const normalizedPreviewImageId = previewImageId?.trim() ?? null
+	const resolvedSlug = makePostSlug(title, slug)
 
 	try {
 		await prisma.post.create({
@@ -104,7 +112,7 @@ export async function action({ request }: Route.ActionArgs) {
 				title,
 				content,
 				description,
-				slug: makePostSlug(title, slug),
+				slug: resolvedSlug,
 				publishAt: publishAtWithTimezone,
 				authorId,
 				previewTitle: normalizedPreviewTitle,
@@ -113,8 +121,9 @@ export async function action({ request }: Route.ActionArgs) {
 			},
 		} as any)
 
-		// Warm compiled MDX & inline previews (non-blocking)
-		void compileMDX(content, { title })
+		// Warm the exact public fragment payload cache when the post is publishable.
+		void warmPublishedFragment(resolvedSlug)
+		void warmFragmentsIndexPages({ top: FRAGMENTS_POSTS_PER_PAGE })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post created',

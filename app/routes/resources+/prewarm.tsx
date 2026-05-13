@@ -1,7 +1,11 @@
 import { data } from 'react-router'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
 import { prisma } from '#app/utils/db.server.ts'
+import {
+	warmFragmentsIndexPages,
+	warmPublishedFragment,
+} from '#app/utils/fragments.server.ts'
 import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
-import { compileMDX } from '#app/utils/mdx.server'
 
 export async function loader({ request }: { request: Request }) {
 	const auth = request.headers.get('authorization') || ''
@@ -20,7 +24,7 @@ export async function loader({ request }: { request: Request }) {
 	if (targets.has('fragments')) {
 		const posts = await prisma.post.findMany({
 			where: { publishAt: { not: null } },
-			select: { id: true, slug: true, content: true, title: true },
+			select: { id: true, slug: true },
 			orderBy: { publishAt: 'desc' },
 		})
 		total = posts.length
@@ -34,7 +38,7 @@ export async function loader({ request }: { request: Request }) {
 				if (i >= posts.length) break
 				const current = posts[i]!
 				try {
-					await compileMDX(current.content, { title: current.title })
+					await warmPublishedFragment(current.slug)
 					compiled++
 				} catch (e) {
 					// swallow; prewarm shouldn't fail the app
@@ -47,6 +51,7 @@ export async function loader({ request }: { request: Request }) {
 				worker(),
 			),
 		)
+		await warmFragmentsIndexPages({ top: FRAGMENTS_POSTS_PER_PAGE })
 	}
 
 	// Also warm configured external link previews if requested.
@@ -75,7 +80,9 @@ export async function loader({ request }: { request: Request }) {
 			}
 		}
 		await Promise.all(
-			Array.from({ length: Math.min(concurrency, links.length) }, () => worker()),
+			Array.from({ length: Math.min(concurrency, links.length) }, () =>
+				worker(),
+			),
 		)
 	}
 
