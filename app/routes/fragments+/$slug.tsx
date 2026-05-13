@@ -1,5 +1,5 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { getMDXComponent } from 'mdx-bundler/client'
 import { useMemo } from 'react'
 import { data, useLoaderData, type HeadersFunction } from 'react-router'

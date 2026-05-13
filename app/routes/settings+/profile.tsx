@@ -1,5 +1,5 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { type LoaderFunctionArgs, Link, Outlet, useMatches } from 'react-router'
 import { z } from 'zod'
 import { Spacer } from '#app/components/spacer.tsx'

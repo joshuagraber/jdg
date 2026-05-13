@@ -1,9 +1,9 @@
 // import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 // import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-// import { type SEOHandle } from '@nasa-gcn/remix-seo'
+// import { type SEOHandle } from '#app/utils/seo.ts'
 // import * as E from '@react-email/components'
 // import { data, redirect, type ActionFunctionArgs, type MetaFunction, Form, Navigate, useActionData, useSearchParams  } from 'react-router';
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { Navigate } from 'react-router'
 // import { HoneypotInputs } from 'remix-utils/honeypot/react'
 // import { z } from 'zod'

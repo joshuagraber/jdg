@@ -1,4 +1,4 @@
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	Form,
 	redirect,

@@ -1,6 +1,6 @@
-import { generateRobotsTxt } from '@nasa-gcn/remix-seo'
 import { type LoaderFunctionArgs } from 'react-router'
 import { getDomainUrl } from '#app/utils/misc.tsx'
+import { generateRobotsTxt } from '#app/utils/seo.server.ts'
 
 export function loader({ request }: LoaderFunctionArgs) {
 	return generateRobotsTxt([

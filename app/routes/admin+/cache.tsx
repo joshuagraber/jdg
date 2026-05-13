@@ -1,5 +1,5 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '@nasa-gcn/remix-seo'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	redirect,
 	type LoaderFunctionArgs,
