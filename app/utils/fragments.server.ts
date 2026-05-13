@@ -36,7 +36,10 @@ export function getFragmentsIndexCacheKey({
 	return `fragments:index:v1:top:${top}:skip:${skip}:count:${versionCount}:updatedAt:${versionUpdatedAt}`
 }
 
-export function getFragmentSlugCacheKey(slug: string, updatedAt: Date | number) {
+export function getFragmentSlugCacheKey(
+	slug: string,
+	updatedAt: Date | number,
+) {
 	const updatedAtMs =
 		updatedAt instanceof Date ? updatedAt.getTime() : updatedAt
 	return `fragments:slug:v1:${slug}:updatedAt:${updatedAtMs}`

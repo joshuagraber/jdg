@@ -80,7 +80,9 @@ export async function loader({ request }: { request: Request }) {
 			}
 		}
 		await Promise.all(
-			Array.from({ length: Math.min(concurrency, links.length) }, () => worker()),
+			Array.from({ length: Math.min(concurrency, links.length) }, () =>
+				worker(),
+			),
 		)
 	}
 

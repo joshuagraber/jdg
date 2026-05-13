@@ -15,7 +15,9 @@ import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { Time } from './fragments+/__time'
 
-export const meta: MetaFunction = () => [{ title: 'Writing | Joshua D. Graber' }]
+export const meta: MetaFunction = () => [
+	{ title: 'Writing | Joshua D. Graber' },
+]
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const timings = makeTimings('writing loader')
@@ -92,8 +94,8 @@ export default function WritingRoute() {
 				<em>Glimmer Train</em>, <em>The New Guard Review</em>
 				&apos;s BANG!, the Pittsburgh <em>Post Gazette</em>,{' '}
 				<em>Adroit Journal</em>, and <em>Art Review</em>.
-				<Spacer size="4xs" />I also write and produce audio documentary, and I&apos;m
-				a founder of the storytelling collective{' '}
+				<Spacer size="4xs" />I also write and produce audio documentary, and
+				I&apos;m a founder of the storytelling collective{' '}
 				<a
 					href="https://www.coolmolecules.media/"
 					rel="noreferrer noopener"

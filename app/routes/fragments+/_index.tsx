@@ -39,10 +39,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
 	const skip = Number(url.searchParams.get('skip')) || 0
-	const cached = await time(
-		() => getCachedFragmentsIndex({ top, skip }),
-		{ timings, type: 'cache:fragments-index' },
-	)
+	const cached = await time(() => getCachedFragmentsIndex({ top, skip }), {
+		timings,
+		type: 'cache:fragments-index',
+	})
 
 	return data(
 		{

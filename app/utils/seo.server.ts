@@ -119,7 +119,9 @@ async function getSitemapXml(
 
 	const sitemapEntries: Array<SitemapEntry> = []
 	for (const entry of rawSitemapEntries) {
-		const existingEntry = sitemapEntries.find((item) => item.route === entry.route)
+		const existingEntry = sitemapEntries.find(
+			(item) => item.route === entry.route,
+		)
 		if (existingEntry) {
 			if (!isSameSitemapEntry(existingEntry, entry)) {
 				console.warn(
