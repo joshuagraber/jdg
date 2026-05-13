@@ -10,21 +10,17 @@ import {
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
 import { Spacer } from '#app/components/spacer.tsx'
-import { cachified, cache } from '#app/utils/cache.server.ts'
-import { prisma } from '#app/utils/db.server'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
+import { getCachedFragmentsIndex } from '#app/utils/fragments.server.ts'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
-import { compileMDX } from '#app/utils/mdx.server'
 import { mergeMeta } from '#app/utils/merge-meta.ts'
 import { makeTimings, time } from '#app/utils/timing.server.ts'
 import { type Route } from './+types/_index'
 import { PaginationBar } from './__pagination-bar'
 import { Time } from './__time'
 
-export const POSTS_PER_PAGE = 5
+export const POSTS_PER_PAGE = FRAGMENTS_POSTS_PER_PAGE
 const FRAGMENTS_DESCRIPTION = 'Collection of fragments and short posts'
-const MDX_LIST_COMPILE_CONCURRENCY = 1
-const FRAGMENTS_ROUTE_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
-const FRAGMENTS_ROUTE_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 
 export const handle: LinkPreviewHandle = {
 	async linkPreview({ request }) {
@@ -43,74 +39,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const url = new URL(request.url ?? 'https://www.joshuadgraber.com')
 	const top = Number(url.searchParams.get('top')) || POSTS_PER_PAGE
 	const skip = Number(url.searchParams.get('skip')) || 0
-
-	const publishedVersion = await time(
-		() =>
-			prisma.post.aggregate({
-				where: { publishAt: { not: null } },
-				_count: { _all: true },
-				_max: { updatedAt: true },
-			}),
-		{ timings, type: 'db:published-version' },
-	)
-
-	const versionUpdatedAt = publishedVersion._max.updatedAt?.getTime() ?? 0
-	const versionCount = publishedVersion._count._all
 	const cached = await time(
-		() =>
-			cachified({
-				key: `fragments:index:v1:top:${top}:skip:${skip}:count:${versionCount}:updatedAt:${versionUpdatedAt}`,
-				cache,
-				ttl: FRAGMENTS_ROUTE_CACHE_TTL_MS,
-				swr: FRAGMENTS_ROUTE_CACHE_SWR_MS,
-				async getFreshValue() {
-					const [posts, totalPosts] = await Promise.all([
-						prisma.post.findMany({
-							where: { publishAt: { not: null } },
-							select: {
-								id: true,
-								title: true,
-								slug: true,
-								content: true,
-								description: true,
-								publishAt: true,
-							},
-							orderBy: { publishAt: 'desc' },
-							take: top,
-							skip,
-						}),
-						prisma.post.count({
-							where: { publishAt: { not: null } },
-						}),
-					])
-
-					// Bundle MDX with constrained concurrency to avoid CPU spikes that can
-					// starve health checks on smaller Fly machines.
-					const postsWithMDX = await mapWithConcurrency(
-						posts,
-						MDX_LIST_COMPILE_CONCURRENCY,
-						async (post) => {
-							const { code, frontmatter } = await compileMDX(post.content, {
-								title: post.title,
-							})
-							return {
-								id: post.id,
-								title: post.title,
-								slug: post.slug,
-								description: post.description,
-								publishAt: post.publishAt?.toISOString() ?? null,
-								code,
-								frontmatter,
-							}
-						},
-					)
-
-					return {
-						posts: postsWithMDX,
-						total: totalPosts,
-					}
-				},
-			}),
+		() => getCachedFragmentsIndex({ top, skip }),
 		{ timings, type: 'cache:fragments-index' },
 	)
 
@@ -205,27 +135,3 @@ export default function Fragments() {
 }
 
 export const ErrorBoundary = GeneralErrorBoundary
-
-async function mapWithConcurrency<TIn, TOut>(
-	items: Array<TIn>,
-	concurrency: number,
-	mapper: (item: TIn, index: number) => Promise<TOut>,
-): Promise<Array<TOut>> {
-	if (!items.length) return []
-	const limit = Math.max(1, concurrency)
-	const output = new Array<TOut>(items.length)
-	let index = 0
-
-	const worker = async () => {
-		while (true) {
-			const current = index++
-			if (current >= items.length) break
-			output[current] = await mapper(items[current]!, current)
-		}
-	}
-
-	await Promise.all(
-		Array.from({ length: Math.min(limit, items.length) }, () => worker()),
-	)
-	return output
-}

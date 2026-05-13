@@ -1,6 +1,8 @@
 import { type InternalLinkPreviewData } from '#app/utils/link-preview.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 
+export const FRAGMENTS_POSTS_PER_PAGE = 5
+
 type FragmentPreviewPost = {
 	slug: string
 	title: string

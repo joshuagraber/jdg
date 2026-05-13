@@ -22,7 +22,11 @@ import { StatusButton } from '#app/components/ui/status-button'
 import { requireUserId } from '#app/utils/auth.server'
 import { getHints, useHints } from '#app/utils/client-hints.tsx'
 import { prisma } from '#app/utils/db.server'
-import { warmPublishedFragment } from '#app/utils/fragments.server.ts'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
+import {
+	warmFragmentsIndexPages,
+	warmPublishedFragment,
+} from '#app/utils/fragments.server.ts'
 import { formatDateStringForPostDefault } from '#app/utils/mdx.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { invalidatePostCaches } from '#app/utils/preview-utils.server.ts'
@@ -152,6 +156,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 		)
 		// Warm the exact public fragment payload cache when the post is publishable.
 		void warmPublishedFragment(slug)
+		void warmFragmentsIndexPages({ top: FRAGMENTS_POSTS_PER_PAGE })
 
 		return redirectWithToast('/admin/fragments', {
 			title: 'Post updated',
