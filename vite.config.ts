@@ -4,9 +4,8 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { glob } from 'glob'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
-import { defineConfig } from 'vite'
 import { envOnlyMacros } from 'vite-env-only'
-import tsconfigPaths from 'vite-tsconfig-paths'
+import { defineConfig } from 'vitest/config'
 
 const MODE = process.env.NODE_ENV
 
@@ -38,6 +37,9 @@ export default defineConfig({
 			ignored: ['**/playwright-report/**'],
 		},
 	},
+	resolve: {
+		tsconfigPaths: true,
+	},
 	plugins: [
 		mdx({
 			remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter],
@@ -67,7 +69,6 @@ export default defineConfig({
 					},
 				})
 			: null,
-		tsconfigPaths(),
 	],
 	// optimizeDeps: {
 	// 	exclude: ['@prisma/client'],
@@ -79,7 +80,6 @@ export default defineConfig({
 		restoreMocks: true,
 		coverage: {
 			include: ['app/**/*.{ts,tsx}'],
-			all: true,
 		},
 	},
 })

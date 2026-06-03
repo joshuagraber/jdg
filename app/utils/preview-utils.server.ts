@@ -1,13 +1,13 @@
 import crypto from 'node:crypto'
 import { cache } from '#app/utils/cache.server.ts'
 
-const MDX_CACHE_PREFIX_V2 = 'mdx:bundle:'
+const MDX_CACHE_PREFIX_V3 = 'mdx:bundle:v3:'
 const INTERNAL_PREVIEW_CACHE_PREFIX = 'internal-link-preview:'
 
 export function mdxCacheKeyFor(source: string, title?: string) {
 	const hash = crypto.createHash('sha1').update(source).digest('hex')
 	const titlePart = title?.trim() ? title.trim() : 'untitled'
-	return `${MDX_CACHE_PREFIX_V2}${titlePart}:${hash}`
+	return `${MDX_CACHE_PREFIX_V3}${titlePart}:${hash}`
 }
 
 export function internalPreviewCacheKey(slug: string) {

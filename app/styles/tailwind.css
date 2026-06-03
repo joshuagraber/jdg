@@ -11,6 +11,22 @@
 }
 
 @font-face {
+	font-family: 'Yantramanav';
+	src: url('/fonts/yantramanav/medium.ttf') format('truetype');
+	font-weight: 500 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Yantramanav';
+	src: url('/fonts/yantramanav/bold.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
 	font-family: 'Antic Didone';
 	src: url('/fonts/antic_didone/regular.ttf') format('truetype');
 	font-weight: 400;
@@ -296,7 +312,7 @@
 	color: var(--neutral-4);
 	--basePageBg: var(--neutral-0);
 	background: var(--neutral-0);
-	--baseTextContrast: var(var(--neutral-4));
+	--baseTextContrast: var(--neutral-4);
 }
 
 /* MDX Editor Toolbar Styling */

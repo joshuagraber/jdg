@@ -5,7 +5,7 @@ import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
 import {
 	getImageDimensions,
-	resizeImage,
+	processPostImage,
 } from '#app/utils/image-processing.server.ts'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import {
@@ -23,25 +23,22 @@ export async function action({ request }: Route.ActionArgs) {
 	const uploadHandler = async (fileUpload: FileUpload) => {
 		const storageKey = `post-image-${Date.now()}-${fileUpload.name}`
 
-		// If a GIF, skip the processing
-		if (fileUpload.type === 'image/gif') {
-			await fileStorage.set(storageKey, fileUpload)
-			return fileStorage.get(storageKey)
-		}
-
 		if (fileUpload.fieldName === 'file') {
-			// Convert upload to buffer for processing
-			const buffer = await fileUpload.arrayBuffer()
-			// Resize to max 800px (post container max width)
-			const inputBuffer = Buffer.from(buffer)
-			const resizedImageBuffer = await resizeImage(inputBuffer)
+			const inputBuffer = Buffer.from(await fileUpload.arrayBuffer())
+			const processedImage = await processPostImage(
+				inputBuffer,
+				fileUpload.name,
+			)
 
-			// Create a new File object with the resized image
-			const resizedFile = new File([resizedImageBuffer], fileUpload.name, {
-				type: fileUpload.type,
-			})
+			const processedFile = new File(
+				[processedImage.buffer],
+				processedImage.fileName,
+				{
+					type: processedImage.contentType,
+				},
+			)
 
-			await fileStorage.set(storageKey, resizedFile)
+			await fileStorage.set(storageKey, processedFile)
 			return fileStorage.get(storageKey)
 		}
 	}
@@ -69,7 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
 		const key = `images/${Date.now()}-${file.name}`
 		const uploadUrl = await getSignedUploadUrl(key, file.type)
 
-		// Determine dimensions of the file we will upload (resized or original if gif)
+		// Determine dimensions of the processed WebP file we will upload.
 		const arrayBuf = await file.arrayBuffer()
 		const { width, height } = await getImageDimensions(Buffer.from(arrayBuf))
 

@@ -1,7 +1,7 @@
 import { useForm, getFormProps } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { useEffect } from 'react'
+import { type ComponentProps, useEffect } from 'react'
 import {
 	data,
 	type ActionFunctionArgs,
@@ -19,6 +19,7 @@ import {
 } from '#app/components/ui/dropdown-menu.tsx'
 import { Icon } from '#app/components/ui/icon.tsx'
 import { useHints, useOptionalHints } from '#app/utils/client-hints.tsx'
+import { cn } from '#app/utils/misc.tsx'
 import {
 	useOptionalRequestInfo,
 	useRequestInfo,
@@ -52,8 +53,14 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export function ThemeSwitch({
+	align = 'start',
+	side = 'top',
+	triggerClassName,
 	userPreference,
 }: {
+	align?: ComponentProps<typeof DropdownMenuContent>['align']
+	side?: ComponentProps<typeof DropdownMenuContent>['side']
+	triggerClassName?: string
 	userPreference?: Theme | null
 }) {
 	const fetcher = useFetcher<typeof action>()
@@ -105,13 +112,18 @@ export function ThemeSwitch({
 	}
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center">
+		<DropdownMenu modal={false}>
+			<DropdownMenuTrigger
+				type="button"
+				className={cn(
+					'flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+					triggerClassName,
+				)}
+				aria-label="Change theme"
+			>
 				{modeLabel[mode]}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" side="top">
-				{' '}
-				{/* Opens upward */}
+			<DropdownMenuContent align={align} side={side}>
 				<fetcher.Form
 					method="POST"
 					{...getFormProps(form)}
