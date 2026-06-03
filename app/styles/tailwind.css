@@ -312,7 +312,7 @@
 	color: var(--neutral-4);
 	--basePageBg: var(--neutral-0);
 	background: var(--neutral-0);
-	--baseTextContrast: var(var(--neutral-4));
+	--baseTextContrast: var(--neutral-4);
 }
 
 /* MDX Editor Toolbar Styling */
