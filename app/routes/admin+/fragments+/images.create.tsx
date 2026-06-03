@@ -25,7 +25,10 @@ export async function action({ request }: Route.ActionArgs) {
 
 		if (fileUpload.fieldName === 'file') {
 			const inputBuffer = Buffer.from(await fileUpload.arrayBuffer())
-			const processedImage = await processPostImage(inputBuffer, fileUpload.name)
+			const processedImage = await processPostImage(
+				inputBuffer,
+				fileUpload.name,
+			)
 
 			const processedFile = new File(
 				[processedImage.buffer],

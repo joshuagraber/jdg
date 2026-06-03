@@ -182,7 +182,8 @@ async function main() {
 			matched.add(replacement.imageId)
 		}
 
-		const shouldTouch = options.touchImagePosts && hasPostImageReference(post.content)
+		const shouldTouch =
+			options.touchImagePosts && hasPostImageReference(post.content)
 
 		if (nextContent === post.content && !shouldTouch) {
 			unchanged += 1
