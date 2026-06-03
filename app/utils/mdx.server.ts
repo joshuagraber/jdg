@@ -10,6 +10,8 @@ import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
 import { getLinkPreviewForRequest } from './link-preview.server.ts'
 
+const MDX_CACHE_PREFIX = 'mdx:bundle:v3:'
+
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
 	name: string
@@ -28,7 +30,7 @@ export async function compileMDX(source: string, opts?: { title?: string }) {
 
 	const hash = crypto.createHash('sha1').update(source).digest('hex')
 	const titlePart = opts?.title?.trim() ? opts.title.trim() : 'untitled'
-	const key = `mdx:bundle:${titlePart}:${hash}`
+	const key = `${MDX_CACHE_PREFIX}${titlePart}:${hash}`
 
 	return cachified({
 		key,
