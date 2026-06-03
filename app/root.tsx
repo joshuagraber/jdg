@@ -43,6 +43,34 @@ export const links: Route.LinksFunction = () => {
 		// Preload svg sprite as a resource to avoid render blocking
 		{ rel: 'preload', href: iconsHref, as: 'image' },
 		{
+			rel: 'preload',
+			href: '/fonts/antic_didone/regular.ttf',
+			as: 'font',
+			type: 'font/ttf',
+			crossOrigin: 'anonymous',
+		} as const,
+		{
+			rel: 'preload',
+			href: '/fonts/yantramanav/regular.ttf',
+			as: 'font',
+			type: 'font/ttf',
+			crossOrigin: 'anonymous',
+		} as const,
+		{
+			rel: 'preload',
+			href: '/fonts/yantramanav/medium.ttf',
+			as: 'font',
+			type: 'font/ttf',
+			crossOrigin: 'anonymous',
+		} as const,
+		{
+			rel: 'preload',
+			href: '/fonts/space_mono/regular.ttf',
+			as: 'font',
+			type: 'font/ttf',
+			crossOrigin: 'anonymous',
+		} as const,
+		{
 			rel: 'icon',
 			href: '/favicon.ico',
 			sizes: '48x48',
