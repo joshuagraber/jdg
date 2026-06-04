@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	data,
 	type ActionFunctionArgs,
@@ -24,6 +23,7 @@ import {
 } from '#app/utils/connections.tsx'
 import { checkHoneypot } from '#app/utils/honeypot.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { PasswordSchema, UsernameSchema } from '#app/utils/user-validation.ts'
 import { handleNewSession } from './login.server.ts'
 

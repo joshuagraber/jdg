@@ -1,4 +1,3 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	Form,
 	redirect,
@@ -13,6 +12,7 @@ import {
 	type HomeLinkSection,
 } from '#app/utils/home-links.server.ts'
 import { requireUserWithRole } from '#app/utils/permissions.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,

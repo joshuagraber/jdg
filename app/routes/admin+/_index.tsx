@@ -1,7 +1,7 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import { Link } from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { requireUserId } from '#app/utils/auth.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { type Route } from './+types/_index'
 
 export async function loader({ request }: Route.LoaderArgs) {

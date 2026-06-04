@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	type ActionFunctionArgs,
 	Form,
@@ -15,6 +14,7 @@ import { Spacer } from '#app/components/spacer.tsx'
 import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { checkHoneypot } from '#app/utils/honeypot.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { validateRequest } from './verify.server.ts'
 
 export const handle: SEOHandle = {

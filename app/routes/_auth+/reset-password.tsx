@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	data,
 	redirect,
@@ -16,6 +15,7 @@ import { ErrorList, Field } from '#app/components/forms.tsx'
 import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { requireAnonymous, resetUserPassword } from '#app/utils/auth.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { PasswordAndConfirmPasswordSchema } from '#app/utils/user-validation.ts'
 import { verifySessionStorage } from '#app/utils/verification.server.ts'
 

@@ -1,5 +1,4 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	redirect,
 	type LoaderFunctionArgs,
@@ -28,6 +27,7 @@ import {
 } from '#app/utils/litefs.server.ts'
 import { useDebounce, useDoubleCheck } from '#app/utils/misc.tsx'
 import { requireUserWithRole } from '#app/utils/permissions.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,

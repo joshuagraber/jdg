@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import * as QRCode from 'qrcode'
 import {
 	data,
@@ -20,6 +19,7 @@ import { isCodeValid } from '#app/routes/_auth+/verify.server.ts'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
 import { getDomainUrl, useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { getTOTPAuthUri } from '#app/utils/totp.server.ts'
 import { type BreadcrumbHandle } from './profile.tsx'

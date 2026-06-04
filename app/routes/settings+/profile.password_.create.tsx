@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	data,
 	redirect,
@@ -17,6 +16,7 @@ import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { getPasswordHash, requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { PasswordAndConfirmPasswordSchema } from '#app/utils/user-validation.ts'
 import { type BreadcrumbHandle } from './profile.tsx'
 

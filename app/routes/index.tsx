@@ -5,8 +5,8 @@ import {
 	type HeadersFunction,
 	type LoaderFunctionArgs,
 } from 'react-router'
-import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreview } from '#app/components/link-preview'
+import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { Spacer } from '#app/components/spacer'
 import {
 	HOME_EXPERIMENT_PREVIEWS,

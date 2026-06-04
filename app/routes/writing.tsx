@@ -6,8 +6,8 @@ import {
 	type LoaderFunctionArgs,
 	type MetaFunction,
 } from 'react-router'
-import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { LinkPreview } from '#app/components/link-preview'
+import { InternalLinkPreview } from '#app/components/link-preview-internal'
 import { Spacer } from '#app/components/spacer'
 import { prisma } from '#app/utils/db.server'
 import { getFragmentPreviewData } from '#app/utils/fragments.ts'

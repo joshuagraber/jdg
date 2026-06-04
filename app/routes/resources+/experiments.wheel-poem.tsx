@@ -15,7 +15,7 @@ const WheelPoemSessionSchema = z.object({
 					throw new Error('Rotations must be an array')
 				}
 				return parsed
-			} catch (error) {
+			} catch {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					message: 'Invalid rotations payload',

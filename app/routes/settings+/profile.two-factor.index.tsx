@@ -1,4 +1,3 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	redirect,
 	type LoaderFunctionArgs,
@@ -11,6 +10,7 @@ import { Icon } from '#app/components/ui/icon.tsx'
 import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { generateTOTP } from '#app/utils/totp.server.ts'
 import { twoFAVerificationType } from './profile.two-factor.tsx'
 import { twoFAVerifyVerificationType } from './profile.two-factor.verify.tsx'

@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import * as E from '@react-email/components'
 import {
 	data,
@@ -18,6 +17,7 @@ import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
 import { sendEmail } from '#app/utils/email.server.ts'
 import { checkHoneypot } from '#app/utils/honeypot.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { EmailSchema, UsernameSchema } from '#app/utils/user-validation.ts'
 import { prepareVerification } from './verify.server.ts'
 

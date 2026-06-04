@@ -1,4 +1,3 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	type LoaderFunctionArgs,
 	type ActionFunctionArgs,
@@ -10,6 +9,7 @@ import { requireRecentVerification } from '#app/routes/_auth+/verify.server.ts'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
 import { useDoubleCheck } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type BreadcrumbHandle } from './profile.tsx'
 import { twoFAVerificationType } from './profile.two-factor.tsx'

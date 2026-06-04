@@ -1,7 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import {
 	data,
 	type LoaderFunctionArgs,
@@ -18,6 +17,7 @@ import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { requireUserId, sessionKey } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
 import { getUserImgSrc, useDoubleCheck } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { authSessionStorage } from '#app/utils/session.server.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { NameSchema, UsernameSchema } from '#app/utils/user-validation.ts'
