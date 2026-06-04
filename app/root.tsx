@@ -41,36 +41,16 @@ import { useOptionalUser } from './utils/user.ts'
 
 export const links: Route.LinksFunction = () => {
 	return [
+		{ rel: 'stylesheet', href: tailwindStyleSheetUrl },
+		{
+			rel: 'preload',
+			href: '/fonts/antic_didone/regular.woff2',
+			as: 'font',
+			type: 'font/woff2',
+			crossOrigin: 'anonymous',
+		} as const,
 		// Preload svg sprite as a resource to avoid render blocking
 		{ rel: 'preload', href: iconsHref, as: 'image' },
-		{
-			rel: 'preload',
-			href: '/fonts/antic_didone/regular.ttf',
-			as: 'font',
-			type: 'font/ttf',
-			crossOrigin: 'anonymous',
-		} as const,
-		{
-			rel: 'preload',
-			href: '/fonts/yantramanav/regular.ttf',
-			as: 'font',
-			type: 'font/ttf',
-			crossOrigin: 'anonymous',
-		} as const,
-		{
-			rel: 'preload',
-			href: '/fonts/yantramanav/medium.ttf',
-			as: 'font',
-			type: 'font/ttf',
-			crossOrigin: 'anonymous',
-		} as const,
-		{
-			rel: 'preload',
-			href: '/fonts/space_mono/regular.ttf',
-			as: 'font',
-			type: 'font/ttf',
-			crossOrigin: 'anonymous',
-		} as const,
 		{
 			rel: 'icon',
 			href: '/favicon.ico',
@@ -83,7 +63,6 @@ export const links: Route.LinksFunction = () => {
 			href: '/site.webmanifest',
 			crossOrigin: 'use-credentials',
 		} as const, // necessary to make typescript happy
-		{ rel: 'stylesheet', href: tailwindStyleSheetUrl },
 	].filter(Boolean)
 }
 
