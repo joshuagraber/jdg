@@ -1,7 +1,7 @@
 import { cachified, cache } from '#app/utils/cache.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
-import { getPostImageSource } from '#app/utils/misc.tsx'
 import { compileMDX } from '#app/utils/mdx.server.ts'
+import { getPostImageSource } from '#app/utils/misc.tsx'
 
 const FRAGMENT_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
 const FRAGMENT_SLUG_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30

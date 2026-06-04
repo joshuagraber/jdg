@@ -5,7 +5,6 @@ import {
 	useForm,
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import React from 'react'
 import {
 	data,
@@ -37,6 +36,7 @@ import {
 } from '#app/components/ui/tooltip.tsx'
 import { checkHoneypot } from '#app/utils/honeypot.server.ts'
 import { useIsPending } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,

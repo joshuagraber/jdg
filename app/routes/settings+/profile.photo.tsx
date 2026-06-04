@@ -3,7 +3,6 @@ import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
 import { LocalFileStorage } from '@mjackson/file-storage/local'
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import { useState } from 'react'
 import {
 	data,
@@ -27,6 +26,7 @@ import {
 	useDoubleCheck,
 	useIsPending,
 } from '#app/utils/misc.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { type BreadcrumbHandle } from './profile.tsx'
 
 const fileStorage = new LocalFileStorage('.uploads/user-images')

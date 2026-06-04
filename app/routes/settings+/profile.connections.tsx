@@ -1,5 +1,4 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { type SEOHandle } from '#app/utils/seo.ts'
 import { useState } from 'react'
 import {
 	data,
@@ -27,6 +26,7 @@ import {
 	providerNames,
 } from '#app/utils/connections.tsx'
 import { prisma } from '#app/utils/db.server.ts'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { makeTimings } from '#app/utils/timing.server.ts'
 import { createToastHeaders } from '#app/utils/toast.server.ts'
 import { type BreadcrumbHandle } from './profile.tsx'

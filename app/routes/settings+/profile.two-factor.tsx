@@ -1,7 +1,7 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import { Outlet } from 'react-router'
 import { Icon } from '#app/components/ui/icon.tsx'
 import { type VerificationTypes } from '#app/routes/_auth+/verify.tsx'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { type BreadcrumbHandle } from './profile.tsx'
 
 export const handle: BreadcrumbHandle & SEOHandle = {

@@ -1,4 +1,3 @@
-import { type SEOHandle } from '#app/utils/seo.ts'
 import { format } from 'date-fns'
 import {
 	type LoaderFunctionArgs,
@@ -9,6 +8,7 @@ import {
 import { Button } from '#app/components/ui/button.tsx'
 import { requireUserId } from '#app/utils/auth.server'
 import { prisma } from '#app/utils/db.server'
+import { type SEOHandle } from '#app/utils/seo.ts'
 import { DeletePost } from './__deleters'
 import { PostImageManager } from './__image-manager'
 import { PostVideoManager } from './__video-manager'

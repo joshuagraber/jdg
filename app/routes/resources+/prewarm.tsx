@@ -1,10 +1,10 @@
 import { data } from 'react-router'
-import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
 import { prisma } from '#app/utils/db.server.ts'
 import {
 	warmFragmentsIndexPages,
 	warmPublishedFragment,
 } from '#app/utils/fragments.server.ts'
+import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
 import { getHomeLinkUrls } from '#app/utils/home-links.server.ts'
 
 export async function loader({ request }: { request: Request }) {
