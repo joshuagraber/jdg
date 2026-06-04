@@ -1,5 +1,6 @@
 import { LocalFileStorage } from '@mjackson/file-storage/local'
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
+import { MaxFileSizeExceededError } from '@mjackson/multipart-parser'
 import { data } from 'react-router'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server'
@@ -14,8 +15,15 @@ import {
 } from '#app/utils/s3.server.ts'
 import { type Route } from './+types/images.create'
 
-const MAX_UPLOAD_SIZE = 1024 * 1024 * 10 // 10MB
+const MAX_RAW_UPLOAD_SIZE = 1024 * 1024 * 75 // 75MB
+const MAX_PROCESSED_IMAGE_SIZE = 1024 * 1024 * 10 // 10MB
 const fileStorage = new LocalFileStorage('.uploads/post-images')
+
+class ProcessedImageTooLargeError extends Error {
+	constructor() {
+		super('Processed image is too large')
+	}
+}
 
 export async function action({ request }: Route.ActionArgs) {
 	await requireUserId(request)
@@ -29,6 +37,9 @@ export async function action({ request }: Route.ActionArgs) {
 				inputBuffer,
 				fileUpload.name,
 			)
+			if (processedImage.buffer.byteLength > MAX_PROCESSED_IMAGE_SIZE) {
+				throw new ProcessedImageTooLargeError()
+			}
 
 			const processedFile = new File(
 				[processedImage.buffer],
@@ -43,13 +54,30 @@ export async function action({ request }: Route.ActionArgs) {
 		}
 	}
 
-	const formData = await parseFormData(
-		request,
-		{
-			maxFileSize: MAX_UPLOAD_SIZE,
-		},
-		uploadHandler,
-	)
+	let formData: FormData
+	try {
+		formData = await parseFormData(
+			request,
+			{
+				maxFileSize: MAX_RAW_UPLOAD_SIZE,
+			},
+			uploadHandler,
+		)
+	} catch (error) {
+		if (error instanceof MaxFileSizeExceededError) {
+			return data(
+				{ error: 'Image upload is too large to process' },
+				{ status: 413 },
+			)
+		}
+		if (error instanceof ProcessedImageTooLargeError) {
+			return data(
+				{ error: 'Image is still too large after processing' },
+				{ status: 413 },
+			)
+		}
+		return data({ error: 'Error processing image' }, { status: 400 })
+	}
 
 	const file = formData.get('file') as File | null
 	const altText = formData.get('altText') as string | null

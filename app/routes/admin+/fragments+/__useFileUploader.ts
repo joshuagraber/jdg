@@ -1,6 +1,6 @@
 import { useFetcher } from 'react-router'
 
-const DEFAULT_TIMEOUT = 1000 * 30 // 30-second timeout by default
+const DEFAULT_TIMEOUT = 1000 * 120 // 2-minute timeout by default
 
 /**
  * This is useful for creating an image upload handler for the MDX editor. It's not actually the best way of doing things.
