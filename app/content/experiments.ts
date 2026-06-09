@@ -26,17 +26,15 @@ export const WHEEL_POEM_LINK_PREVIEW = {
 export const MATHEWS_ALGORITHM_LINK_PREVIEW = {
 	to: '/experiments/mathews-algorithm',
 	url: '/experiments/mathews-algorithm',
-	title: "Mathews' Algorithm Experiment",
+	title: "Mathews's Algorithm Experiment",
 	description:
 		'Build equivalent sets, apply Harry Mathews-inspired cyclic shifts, and read the generated combinations.',
-	imageAlt: "Mathews' Algorithm experiment interface preview",
+	imageAlt: "Mathews's Algorithm experiment interface preview",
 	images: {
 		light: '/img/mathews-preview_light.webp',
 		dark: '/img/mathews-preview_dark.webp',
 	},
 } satisfies ExperimentPreviewConfig
 
-export const HOME_EXPERIMENT_PREVIEWS: ReadonlyArray<ExperimentPreviewConfig> = [
-	WHEEL_POEM_LINK_PREVIEW,
-	MATHEWS_ALGORITHM_LINK_PREVIEW,
-]
+export const HOME_EXPERIMENT_PREVIEWS: ReadonlyArray<ExperimentPreviewConfig> =
+	[WHEEL_POEM_LINK_PREVIEW, MATHEWS_ALGORITHM_LINK_PREVIEW]

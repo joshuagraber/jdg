@@ -144,7 +144,10 @@ export default function AdminUserCreatedMathewsAlgorithmDetailRoute() {
 						<table className="w-full min-w-[32rem] border-collapse text-sm">
 							<tbody>
 								{record.table.map((row, rowIndex) => (
-									<tr key={`row-${rowIndex}`} className="border-b border-border/60">
+									<tr
+										key={`row-${rowIndex}`}
+										className="border-b border-border/60"
+									>
 										<th className="w-24 px-3 py-2 text-left font-medium text-muted-foreground">
 											Set {rowIndex + 1}
 										</th>

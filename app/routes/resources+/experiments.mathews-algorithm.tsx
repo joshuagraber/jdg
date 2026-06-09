@@ -5,19 +5,17 @@ import { prisma } from '#app/utils/db.server.ts'
 
 const MathewsAlgorithmSessionSchema = z.object({
 	id: z.string().min(1),
-	size: z
-		.string()
-		.transform((value, ctx) => {
-			const size = Number(value)
-			if (!Number.isInteger(size) || size < 2 || size > 10) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: 'Invalid table size',
-				})
-				return z.NEVER
-			}
-			return size
-		}),
+	size: z.string().transform((value, ctx) => {
+		const size = Number(value)
+		if (!Number.isInteger(size) || size < 2 || size > 10) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'Invalid table size',
+			})
+			return z.NEVER
+		}
+		return size
+	}),
 	table: z
 		.string()
 		.transform((value, ctx) => {
@@ -36,19 +34,17 @@ const MathewsAlgorithmSessionSchema = z.object({
 			}
 		})
 		.pipe(z.array(z.array(z.string()))),
-	shiftPasses: z
-		.string()
-		.transform((value, ctx) => {
-			const shiftPasses = Number(value)
-			if (!Number.isInteger(shiftPasses) || shiftPasses < 1) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: 'Invalid shift passes',
-				})
-				return z.NEVER
-			}
-			return shiftPasses
-		}),
+	shiftPasses: z.string().transform((value, ctx) => {
+		const shiftPasses = Number(value)
+		if (!Number.isInteger(shiftPasses) || shiftPasses < 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'Invalid shift passes',
+			})
+			return z.NEVER
+		}
+		return shiftPasses
+	}),
 	updatedAt: z.string().transform((value, ctx) => {
 		const timestamp = Date.parse(value)
 		if (Number.isNaN(timestamp)) {

@@ -162,8 +162,8 @@ export default function AdminUserCreatedIndexRoute() {
 								>
 									<div className="flex items-center justify-between gap-3">
 										<span className="text-sm font-medium text-foreground group-hover:text-primary">
-											{record.size}×{record.size} table,{' '}
-											{record.filledCells} filled cells
+											{record.size}×{record.size} table, {record.filledCells}{' '}
+											filled cells
 										</span>
 										<time
 											dateTime={record.sessionUpdatedAt}

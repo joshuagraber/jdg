@@ -4,10 +4,11 @@ import {
 	type MathewsSessionData,
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useFetcher } from 'react-router'
+import { Link, useFetcher } from 'react-router'
 import '@joshuagraber/digital-poetics/styles'
 import '#app/styles/digital-poetics.css'
 import { ClientOnly } from 'remix-utils/client-only'
+import { Button } from '#app/components/ui/button.tsx'
 import { MATHEWS_ALGORITHM_LINK_PREVIEW } from '#app/content/experiments'
 import { getHints } from '#app/utils/client-hints.tsx'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
@@ -222,20 +223,32 @@ function MathewsAlgorithmInteractive() {
 						<h1 className="text-3xl font-semibold tracking-tight text-foreground">
 							Mathews&apos; Algorithm
 						</h1>
-						<p className="mt-3 max-w-3xl text-base text-muted-foreground">
-							Build a table of equivalent elements, then generate new sets by
-							shifting left and reading down, and shifting right and reading up.
-						</p>
+						<div className="mt-3 space-y-4 text-base text-muted-foreground">
+							<p>
+								Based on{' '}
+								<Link
+									to="https://en.wikipedia.org/wiki/Harry_Mathews"
+									rel="noopener noreferrer"
+									target="_blank"
+								>
+									Harry Mathews&apos;s
+								</Link>{' '}
+								algorithm, developed during Mathews&apos;s association with the
+								Oulipo writers.
+							</p>
+							<p>
+								Build a table of equivalent textual elements, then generate new
+								sets by shifting left and reading down, and shifting right and
+								reading up.
+							</p>
+						</div>
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
-						<a
-							href={PDF_PATH}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex min-h-10 items-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground no-underline transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-						>
-							Open Mathews essay PDF
-						</a>
+						<Button asChild variant="outline">
+							<Link to={PDF_PATH} target="_blank" rel="noopener noreferrer">
+								Open a PDF of Mathews&apos;s essay explaining the algorithm
+							</Link>
+						</Button>
 					</div>
 				</header>
 
