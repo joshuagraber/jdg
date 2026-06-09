@@ -109,6 +109,7 @@
     "tailwindcss-radix": "^3.0.5",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
+    "uuid": "^14.0.0",
     "vite-env-only": "^3.0.3",
     "zod": "^3.23.8"
   },

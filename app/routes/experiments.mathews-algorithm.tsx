@@ -5,9 +5,10 @@ import {
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Link, useFetcher } from 'react-router'
+import { ClientOnly } from 'remix-utils/client-only'
+import { v4 as uuidv4 } from 'uuid'
 import '@joshuagraber/digital-poetics/styles'
 import '#app/styles/digital-poetics.css'
-import { ClientOnly } from 'remix-utils/client-only'
 import { Button } from '#app/components/ui/button.tsx'
 import { MATHEWS_ALGORITHM_LINK_PREVIEW } from '#app/content/experiments'
 import { getHints } from '#app/utils/client-hints.tsx'
@@ -51,13 +52,7 @@ function resolveMathewsSession(): MathewsSessionData | undefined {
 }
 
 function createSessionId() {
-	if (
-		typeof window !== 'undefined' &&
-		typeof window.crypto?.randomUUID === 'function'
-	) {
-		return window.crypto.randomUUID()
-	}
-	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+	return uuidv4()
 }
 
 function resolveMathewsSessionId() {
