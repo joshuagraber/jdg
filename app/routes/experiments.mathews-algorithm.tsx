@@ -1,7 +1,7 @@
 import {
 	MathewsAlgorithmWorkbench,
-	restoreSessionData,
 	type MathewsSessionData,
+	restoreSessionData,
 } from '@joshuagraber/digital-poetics'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Link, useFetcher } from 'react-router'
@@ -184,36 +184,42 @@ function MathewsAlgorithmInteractive() {
 		}
 	}, [persistenceFetcher.data])
 
-	const handleSessionChange = useCallback((session: MathewsSessionData) => {
-		try {
-			window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
-		} catch (error) {
-			console.error('Unable to save Mathews algorithm session', error)
-		}
+	const handleSessionChange = useCallback(
+		(session: MathewsSessionData) => {
+			try {
+				window.localStorage.setItem(
+					SESSION_STORAGE_KEY,
+					JSON.stringify(session),
+				)
+			} catch (error) {
+				console.error('Unable to save Mathews algorithm session', error)
+			}
 
-		if (!hasSeenInitialSession.current) {
-			hasSeenInitialSession.current = true
-			return
-		}
+			if (!hasSeenInitialSession.current) {
+				hasSeenInitialSession.current = true
+				return
+			}
 
-		if (!sessionId) return
+			if (!sessionId) return
 
-		const serializedSession = JSON.stringify(session)
-		if (serializedSession === lastSubmittedSession.current) return
-		lastSubmittedSession.current = serializedSession
+			const serializedSession = JSON.stringify(session)
+			if (serializedSession === lastSubmittedSession.current) return
+			lastSubmittedSession.current = serializedSession
 
-		const payload = new FormData()
-		payload.append('id', sessionId)
-		payload.append('size', session.size.toString())
-		payload.append('table', JSON.stringify(session.table))
-		payload.append('shiftPasses', (session.shiftPasses ?? 1).toString())
-		payload.append('updatedAt', new Date().toISOString())
+			const payload = new FormData()
+			payload.append('id', sessionId)
+			payload.append('size', session.size.toString())
+			payload.append('table', JSON.stringify(session.table))
+			payload.append('shiftPasses', (session.shiftPasses ?? 1).toString())
+			payload.append('updatedAt', new Date().toISOString())
 
-		void persistenceFetcher.submit(payload, {
-			method: 'POST',
-			action: '/resources/experiments/mathews-algorithm',
-		})
-	}, [persistenceFetcher, sessionId])
+			void persistenceFetcher.submit(payload, {
+				method: 'POST',
+				action: '/resources/experiments/mathews-algorithm',
+			})
+		},
+		[persistenceFetcher, sessionId],
+	)
 
 	return (
 		<main className="container pb-24 pt-10">
@@ -225,6 +231,11 @@ function MathewsAlgorithmInteractive() {
 						</h1>
 						<div className="mt-3 space-y-4 text-base text-muted-foreground">
 							<p>
+								Build a table of equivalent textual elements, then generate new
+								sets by shifting left and reading down, and shifting right and
+								reading up.
+							</p>
+							<p>
 								Based on{' '}
 								<Link
 									to="https://en.wikipedia.org/wiki/Harry_Mathews"
@@ -233,19 +244,25 @@ function MathewsAlgorithmInteractive() {
 								>
 									Harry Mathews&apos;s
 								</Link>{' '}
-								algorithm, developed during Mathews&apos;s association with the
-								Oulipo writers.
-							</p>
-							<p>
-								Build a table of equivalent textual elements, then generate new
-								sets by shifting left and reading down, and shifting right and
-								reading up.
+								algorithm, developed during Mathews&apos;s association with the{' '}
+								<Link
+									to="https://en.wikipedia.org/wiki/Oulipo"
+									rel="noopener noreferrer"
+									target="_blank"
+								>
+									Oulipo writers.
+								</Link>
 							</p>
 						</div>
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
 						<Button asChild variant="outline">
-							<Link to={PDF_PATH} target="_blank" rel="noopener noreferrer">
+							<Link
+								to={PDF_PATH}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="no-underline"
+							>
 								Open a PDF of Mathews&apos;s essay explaining the algorithm
 							</Link>
 						</Button>
@@ -259,8 +276,8 @@ function MathewsAlgorithmInteractive() {
 					<h2 className="text-lg font-semibold tracking-tight">Instructions</h2>
 					<ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
 						<li>
-							Use each row as a set, with each cell holding an element equivalent
-							to the others in its column.
+							Use each row as a set, with each cell holding an element
+							equivalent to the others in its column.
 						</li>
 						<li>
 							Adjust table size or shift passes, or start from the included
