@@ -1,10 +1,10 @@
 import {
 	data,
-	Link,
-	useLoaderData,
 	type HeadersFunction,
+	Link,
 	type LoaderFunctionArgs,
 	type MetaFunction,
+	useLoaderData,
 } from 'react-router'
 import { LinkPreview } from '#app/components/link-preview'
 import { InternalLinkPreview } from '#app/components/link-preview-internal'
@@ -106,6 +106,16 @@ export default function WritingRoute() {
 				.
 			</p>
 			<Spacer size="3xs" />
+			<h2>Recent publications</h2>
+			<Spacer size="5xs" />
+			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
+				{data.publicationUrls.map((url) => (
+					<li key={url}>
+						<LinkPreview url={url} className="w-full max-w-3xl" />
+					</li>
+				))}
+			</ul>
+			<Spacer size="3xs" />
 			<h2>Recent fragments</h2>
 			<Spacer size="4xs" />
 			<Link to="/fragments">View all fragments</Link>
@@ -127,16 +137,6 @@ export default function WritingRoute() {
 						</li>
 					)
 				})}
-			</ul>
-			<Spacer size="3xs" />
-			<h2>Recent publications</h2>
-			<Spacer size="5xs" />
-			<ul className="flex flex-wrap gap-4 [&>*]:min-w-0 [&>*]:grow [&>*]:basis-full sm:[&>*]:shrink-0 sm:[&>*]:basis-[450px]">
-				{data.publicationUrls.map((url) => (
-					<li key={url}>
-						<LinkPreview url={url} className="w-full max-w-3xl" />
-					</li>
-				))}
 			</ul>
 			<Spacer size="lg" />
 		</main>

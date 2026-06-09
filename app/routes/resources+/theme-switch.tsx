@@ -26,11 +26,35 @@ import {
 } from '#app/utils/request-info.ts'
 import { type Theme, setTheme } from '#app/utils/theme.server.ts'
 
+const THEME_COOKIE_NAME = 'en_theme'
+const THEME_COOKIE_MAX_AGE = 31_536_000
+
 const ThemeFormSchema = z.object({
 	theme: z.enum(['system', 'light', 'dark']),
 	// this is useful for progressive enhancement
 	redirectTo: z.string().optional(),
 })
+
+type ThemePreference = z.infer<typeof ThemeFormSchema>['theme']
+
+function applyClientThemePreference(theme: ThemePreference) {
+	if (typeof document === 'undefined') return
+
+	if (theme === 'system') {
+		document.cookie = `${THEME_COOKIE_NAME}=; Max-Age=-1; Path=/`
+
+		const systemPrefersDark = window.matchMedia(
+			'(prefers-color-scheme: dark)',
+		).matches
+		document.documentElement.classList.toggle('dark', systemPrefersDark)
+		document.documentElement.classList.toggle('light', !systemPrefersDark)
+		return
+	}
+
+	document.cookie = `${THEME_COOKIE_NAME}=${theme}; Max-Age=${THEME_COOKIE_MAX_AGE}; Path=/`
+	document.documentElement.classList.toggle('dark', theme === 'dark')
+	document.documentElement.classList.toggle('light', theme === 'light')
+}
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData()
@@ -140,6 +164,7 @@ export function ThemeSwitch({
 							type="submit"
 							name="theme"
 							value="system"
+							onClick={() => applyClientThemePreference('system')}
 							className={`flex w-full items-center gap-2 ${
 								mode === 'system' ? 'text-primary' : ''
 							}`}
@@ -154,6 +179,7 @@ export function ThemeSwitch({
 							type="submit"
 							name="theme"
 							value="light"
+							onClick={() => applyClientThemePreference('light')}
 							className={`flex w-full items-center gap-2 ${
 								mode === 'light' ? 'text-primary' : ''
 							}`}
@@ -168,6 +194,7 @@ export function ThemeSwitch({
 							type="submit"
 							name="theme"
 							value="dark"
+							onClick={() => applyClientThemePreference('dark')}
 							className={`flex w-full items-center gap-2 ${
 								mode === 'dark' ? 'text-primary' : ''
 							}`}

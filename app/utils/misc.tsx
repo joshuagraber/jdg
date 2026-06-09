@@ -32,7 +32,7 @@ export function toAbsoluteUrl(
 }
 
 export function getUserImgSrc(imageId?: string | null) {
-	return imageId ? `/resources/user-images/${imageId}` : '/img/user.png'
+	return imageId ? `/resources/user-images/${imageId}` : '/img/user.webp'
 }
 
 type AssetSourceOptions = {

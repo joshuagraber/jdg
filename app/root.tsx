@@ -163,8 +163,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 export const meta: Route.MetaFunction = ({ data }) => {
 	const img =
 		data?.requestInfo.hints.theme === 'dark'
-			? '/img/jdg_primary_inverted.png'
-			: '/img/jdg_primary.png'
+			? '/img/jdg_primary_inverted.webp'
+			: '/img/jdg_primary.webp'
 
 	let ogURL, imgURL
 
@@ -348,6 +348,7 @@ function App() {
 	const user = useOptionalUser()
 	const theme = useTheme()
 	const isHeaderVisible = useHeaderVisibility()
+	const currentYear = new Date().getFullYear()
 	useToast(data.toast)
 
 	const showFullName = location.pathname !== '/'
@@ -480,6 +481,10 @@ function App() {
 				<div className="flex-1">
 					<Outlet />
 				</div>
+
+				<footer className="container py-8 text-left text-sm text-muted-foreground">
+					© Joshua D. Graber {currentYear}
+				</footer>
 			</div>
 			<Toaster closeButton position="top-center" theme={theme} />
 			<Progress />

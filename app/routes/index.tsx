@@ -23,6 +23,7 @@ function resolveExperimentImage(
 	theme: string | null | undefined,
 	preview: ExperimentPreviewConfig,
 ) {
+	if (!preview.images) return null
 	return theme === 'dark' ? preview.images.dark : preview.images.light
 }
 
@@ -73,8 +74,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				title: preview.title,
 				description: preview.description,
 				image,
-				imageLight: preview.images.light,
-				imageDark: preview.images.dark,
+				imageLight: preview.images?.light ?? null,
+				imageDark: preview.images?.dark ?? null,
 				imageAlt: preview.imageAlt,
 				domain: siteHostname,
 			},

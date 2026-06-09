@@ -1,4 +1,5 @@
 import { matchPath } from 'react-router'
+import { handle as mathewsAlgorithmHandle } from '#app/routes/experiments.mathews-algorithm'
 import { handle as wheelPoemHandle } from '#app/routes/experiments.wheel-poem'
 import { handle as fragmentSlugHandle } from '#app/routes/fragments+/$slug'
 import { handle as fragmentsIndexHandle } from '#app/routes/fragments+/_index'
@@ -11,6 +12,7 @@ const linkPreviewRoutes: Array<{ path: string; handle: LinkPreviewHandle }> = [
 	{ path: '/fragments/:slug', handle: fragmentSlugHandle },
 	{ path: '/fragments', handle: fragmentsIndexHandle },
 	{ path: '/experiments/wheel-poem', handle: wheelPoemHandle },
+	{ path: '/experiments/mathews-algorithm', handle: mathewsAlgorithmHandle },
 ]
 
 export async function getInternalLinkPreview(
