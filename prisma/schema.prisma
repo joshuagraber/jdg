@@ -196,6 +196,19 @@ model UserCreatedWheelPoem {
   @@unique([sessionId])
 }
 
+model UserCreatedMathewsAlgorithm {
+  id               String   @id @default(cuid())
+  sessionId        String
+  size             Int
+  table            String
+  shiftPasses      Int
+  sessionUpdatedAt DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([sessionId])
+}
+
 model HomeLink {
   id       String @id @default(cuid())
   section  String

@@ -163,8 +163,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 export const meta: Route.MetaFunction = ({ data }) => {
 	const img =
 		data?.requestInfo.hints.theme === 'dark'
-			? '/img/jdg_primary_inverted.png'
-			: '/img/jdg_primary.png'
+			? '/img/jdg_primary_inverted.webp'
+			: '/img/jdg_primary.webp'
 
 	let ogURL, imgURL
 
