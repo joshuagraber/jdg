@@ -1,10 +1,9 @@
 import { invariantResponse } from '@epic-web/invariant'
-import { getMDXComponent } from 'mdx-bundler/client'
-import { useMemo } from 'react'
 import { data, useLoaderData, type HeadersFunction } from 'react-router'
 import { serverOnly$ } from 'vite-env-only/macros'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
+import { useMDXComponent } from '#app/components/mdx/runtime.ts'
 import { prisma } from '#app/utils/db.server'
 import { getCachedFragmentBySlug } from '#app/utils/fragments.server.ts'
 import { type LinkPreviewHandle } from '#app/utils/link-preview'
@@ -126,7 +125,7 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 
 export default function Fragment() {
 	const { post, code } = useLoaderData<typeof loader>()
-	const Component = useMemo(() => getMDXComponent(code), [code])
+	const Component = useMDXComponent(code)
 
 	return (
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">

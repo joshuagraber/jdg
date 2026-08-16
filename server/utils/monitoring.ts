@@ -11,7 +11,6 @@ export function init() {
 			(process.env.NODE_ENV === 'production' ? 'production' : 'development'),
 		dist: process.env.COMMIT_SHA,
 		tracesSampleRate: process.env.NODE_ENV === 'production' ? 1 : 0,
-		autoInstrumentRemix: true,
 		denyUrls: [
 			/\/resources\/healthcheck/,
 			// TODO: be smarter about the public assets...

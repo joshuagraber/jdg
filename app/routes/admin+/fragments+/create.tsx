@@ -6,7 +6,6 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -34,14 +33,11 @@ import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/create'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
-import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
 }
-
-export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader() {
 	const [images, videos] = await Promise.all([
@@ -142,10 +138,6 @@ export default function NewPost() {
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
 	const { images, videos } = useLoaderData<typeof loader>()
-
-	const handleImageUpload = useFileUploader({
-		path: '/admin/fragments/images/create',
-	})
 
 	const [form, fields] = useForm({
 		id: 'new-post-form',
@@ -268,7 +260,7 @@ export default function NewPost() {
 										getPostImageSource(image.id, { relative: true }) ??
 										`/resources/post-images/${image.id}`,
 								)}
-								imageUploadHandler={handleImageUpload}
+								imageUploadHandler={async () => ''}
 								markdown={content}
 								onChange={setContent}
 								className="min-h-[500px]"

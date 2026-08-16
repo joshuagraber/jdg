@@ -6,7 +6,6 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -35,7 +34,6 @@ import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/edit.$id'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaUpdate as PostSchema } from './__types'
-import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
 
 type PostPreviewFields = {
@@ -43,8 +41,6 @@ type PostPreviewFields = {
 	previewDescription: string | null
 	previewImageId: string | null
 }
-
-export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
 
 export async function loader({ params, request }: Route.LoaderArgs) {
 	await requireUserId(request)
@@ -175,10 +171,6 @@ export default function EditPost() {
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
 	const { timeZone } = useHints()
-
-	const handleImageUpload = useFileUploader({
-		path: '/admin/fragments/images/create',
-	})
 
 	const [form, fields] = useForm({
 		id: 'edit-post-form',
@@ -322,7 +314,7 @@ export default function EditPost() {
 						<label className="block text-sm font-medium">Content</label>
 						<div className="rounded-lg border border-input bg-background shadow-sm">
 							<MDXEditorComponent
-								imageUploadHandler={handleImageUpload}
+								imageUploadHandler={async () => ''}
 								images={images.map(
 									(image) =>
 										getPostImageSource(image.id, { s3Key: image.s3Key }) ??

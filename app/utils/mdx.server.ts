@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
+import { compile } from '@mdx-js/mdx'
+import matter from 'gray-matter'
 import { type MdxJsxFlowElement } from 'mdast-util-mdx'
-import { bundleMDX } from 'mdx-bundler'
 import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
 import { type Plugin, type Data } from 'unified'
@@ -38,22 +39,21 @@ export async function compileMDX(source: string, opts?: { title?: string }) {
 		ttl: 1000 * 60 * 60 * 24 * 365, // 1 year
 		swr: 1000 * 60 * 60 * 24 * 30, // 30 days
 		async getFreshValue() {
-			const result = await bundleMDX({
-				source,
-				mdxOptions(options) {
-					options.rehypePlugins = [...(options.rehypePlugins ?? [])]
-					options.remarkPlugins = [
-						...(options.remarkPlugins ?? []),
-						remarkGfm,
-						remarkDirective,
-						remarkYoutube,
-						remarkInlinePreviewData,
-						remarkClientOnlyImages,
-					]
-					return options
-				},
+			const parsed = matter(source)
+			const compiled = await compile(parsed.content, {
+				outputFormat: 'function-body',
+				remarkPlugins: [
+					remarkGfm,
+					remarkDirective,
+					remarkYoutube,
+					remarkInlinePreviewData,
+					remarkClientOnlyImages,
+				],
 			})
-			return result
+			return {
+				code: String(compiled),
+				frontmatter: parsed.data,
+			}
 		},
 	})
 }
