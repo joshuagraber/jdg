@@ -8,6 +8,8 @@ const FRAGMENT_SLUG_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 const FRAGMENTS_INDEX_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365
 const FRAGMENTS_INDEX_CACHE_SWR_MS = 1000 * 60 * 60 * 24 * 30
 const DEFAULT_INDEX_WARM_PAGE_COUNT = 3
+const FRAGMENT_SLUG_CACHE_PREFIX = 'fragments:slug:v2'
+const FRAGMENTS_INDEX_CACHE_PREFIX = 'fragments:index:v2'
 
 async function getPublishedVersion() {
 	const publishedVersion = await prisma.post.aggregate({
@@ -33,7 +35,7 @@ export function getFragmentsIndexCacheKey({
 	versionCount: number
 	versionUpdatedAt: number
 }) {
-	return `fragments:index:v1:top:${top}:skip:${skip}:count:${versionCount}:updatedAt:${versionUpdatedAt}`
+	return `${FRAGMENTS_INDEX_CACHE_PREFIX}:top:${top}:skip:${skip}:count:${versionCount}:updatedAt:${versionUpdatedAt}`
 }
 
 export function getFragmentSlugCacheKey(
@@ -42,7 +44,7 @@ export function getFragmentSlugCacheKey(
 ) {
 	const updatedAtMs =
 		updatedAt instanceof Date ? updatedAt.getTime() : updatedAt
-	return `fragments:slug:v1:${slug}:updatedAt:${updatedAtMs}`
+	return `${FRAGMENT_SLUG_CACHE_PREFIX}:${slug}:updatedAt:${updatedAtMs}`
 }
 
 export async function getCachedFragmentBySlug({
