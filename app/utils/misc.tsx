@@ -4,6 +4,7 @@ import { useFormAction, useNavigation } from 'react-router'
 import { useSpinDelay } from 'spin-delay'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
+import { buildAssetUrlFromKey } from './url.ts'
 
 function getAssetBaseUrl() {
 	const rawBase =
@@ -44,7 +45,7 @@ function buildCdnUrlFromKey(key?: string | null) {
 	if (!key) return null
 	const base = getAssetBaseUrl()
 	if (!base) return null
-	return `${base}/${key.replace(/^\/+/, '')}`
+	return buildAssetUrlFromKey(base, key)
 }
 
 export function getPostImageSource(

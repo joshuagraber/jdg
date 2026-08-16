@@ -1,5 +1,4 @@
-import { getMDXComponent } from 'mdx-bundler/client'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
 	data,
 	Link,
@@ -9,6 +8,7 @@ import {
 } from 'react-router'
 import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { mdxComponents } from '#app/components/mdx/index.tsx'
+import { useMDXComponent } from '#app/components/mdx/runtime.ts'
 import { Spacer } from '#app/components/spacer.tsx'
 import { getCachedFragmentsIndex } from '#app/utils/fragments.server.ts'
 import { FRAGMENTS_POSTS_PER_PAGE } from '#app/utils/fragments.ts'
@@ -85,8 +85,7 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
 }
 
 function PostContent({ code }: { code: string }) {
-	// Move this to useMemo to prevent recreating the component on every render
-	const Component = useMemo(() => getMDXComponent(code), [code])
+	const Component = useMDXComponent(code)
 	return <Component components={mdxComponents} />
 }
 
@@ -117,11 +116,9 @@ export default function Fragments() {
 							<h2 className="text-primary">{post.title}</h2>
 							<p className="mb-2 text-muted-foreground">{post.description}</p>
 						</Link>
-						<p className="text-sm text-neutral-500">
-							{post.publishAt ? (
-								<Time time={new Date(post.publishAt).toDateString()} />
-							) : null}
-						</p>
+							<p className="text-sm text-neutral-500">
+								{post.publishAt ? <Time time={post.publishAt} /> : null}
+							</p>
 						<div className="mb-4">
 							<PostContent code={post.code} />
 						</div>

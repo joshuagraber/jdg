@@ -6,7 +6,6 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -34,9 +33,12 @@ import { invalidatePostCaches } from '#app/utils/preview-utils.server.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/edit.$id'
 import { PostImageManager } from './__image-manager'
+import { getPageParam } from './__pagination-controls.tsx'
 import { PostSchemaUpdate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+
+const IMAGES_PAGE_SIZE = 12
 
 type PostPreviewFields = {
 	previewTitle: string | null
@@ -44,12 +46,11 @@ type PostPreviewFields = {
 	previewImageId: string | null
 }
 
-export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
-
 export async function loader({ params, request }: Route.LoaderArgs) {
 	await requireUserId(request)
+	const imagesPage = getPageParam(request, 'imagesPage')
 
-	const [post, images, videos] = await Promise.all([
+	const [post, images, imagesTotal, videos] = await Promise.all([
 		prisma.post.findUnique({
 			where: { id: params.id },
 		}),
@@ -61,7 +62,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
+			take: IMAGES_PAGE_SIZE,
+			skip: (imagesPage - 1) * IMAGES_PAGE_SIZE,
 		}),
+		prisma.postImage.count(),
 		await prisma.postVideo.findMany({
 			select: {
 				id: true,
@@ -85,7 +89,17 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 		publishAt: Date | null
 	}
 
-	return { post: postWithPreview, images, videos }
+	return {
+		post: postWithPreview,
+		images,
+		imagesPagination: {
+			page: imagesPage,
+			pageSize: IMAGES_PAGE_SIZE,
+			total: imagesTotal,
+			paramName: 'imagesPage',
+		},
+		videos,
+	}
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -170,12 +184,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 	}
 }
 export default function EditPost() {
-	const { post, images, videos } = useLoaderData<typeof loader>()
+	const { post, images, imagesPagination, videos } = useLoaderData<typeof loader>()
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
 	const { timeZone } = useHints()
-
 	const handleImageUpload = useFileUploader({
 		path: '/admin/fragments/images/create',
 	})
@@ -364,7 +377,11 @@ export default function EditPost() {
 				<div className="space-y-6">
 					<div className="space-y-4">
 						<h2 className="text-xl font-semibold">Manage Images</h2>
-						<PostImageManager images={images} />
+						<PostImageManager
+							images={images}
+							pagination={imagesPagination}
+							paginationTargetId="admin-images"
+						/>
 					</div>
 
 					<div className="space-y-4">

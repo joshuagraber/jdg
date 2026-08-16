@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { invariantResponse } from '@epic-web/invariant'
 import { type LoaderFunctionArgs } from 'react-router'
 import { prisma } from '#app/utils/db.server'
+import { buildAssetUrlFromKey } from '#app/utils/url.ts'
 
 const s3 = new S3Client({
 	region: process.env.AWS_REGION,
@@ -19,9 +20,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
 	invariantResponse(image, 'Not found', { status: 404 })
 
-	const assetBase = process.env.ASSET_BASE_URL?.replace(/\/$/, '')
-	if (assetBase && image.s3Key) {
-		const location = `${assetBase}/${image.s3Key.replace(/^\/+/, '')}`
+	const location = buildAssetUrlFromKey(process.env.ASSET_BASE_URL, image.s3Key)
+	if (location) {
 		return new Response(null, {
 			status: 307,
 			headers: new Headers({

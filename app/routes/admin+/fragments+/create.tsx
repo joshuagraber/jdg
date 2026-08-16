@@ -6,7 +6,6 @@ import {
 } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import { invariantResponse } from '@epic-web/invariant'
-import mdxEditorStyleUrl from '@mdxeditor/editor/style.css?url'
 import { fromZonedTime } from 'date-fns-tz'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -33,18 +32,20 @@ import { type SEOHandle } from '#app/utils/seo.ts'
 import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/create'
 import { PostImageManager } from './__image-manager'
+import { getPageParam } from './__pagination-controls.tsx'
 import { PostSchemaCreate as PostSchema } from './__types'
 import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
+
+const IMAGES_PAGE_SIZE = 12
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
 }
 
-export const links = () => [{ rel: 'stylesheet', href: mdxEditorStyleUrl }]
-
-export async function loader() {
-	const [images, videos] = await Promise.all([
+export async function loader({ request }: Route.LoaderArgs) {
+	const imagesPage = getPageParam(request, 'imagesPage')
+	const [images, imagesTotal, videos] = await Promise.all([
 		await prisma.postImage.findMany({
 			select: {
 				id: true,
@@ -53,7 +54,10 @@ export async function loader() {
 				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
+			take: IMAGES_PAGE_SIZE,
+			skip: (imagesPage - 1) * IMAGES_PAGE_SIZE,
 		}),
+		prisma.postImage.count(),
 		await prisma.postVideo.findMany({
 			select: {
 				id: true,
@@ -67,7 +71,16 @@ export async function loader() {
 	invariantResponse(images, 'Error fetching images', { status: 404 })
 	invariantResponse(videos, 'Error fetching videos', { status: 404 })
 
-	return { images, videos }
+	return {
+		images,
+		imagesPagination: {
+			page: imagesPage,
+			pageSize: IMAGES_PAGE_SIZE,
+			total: imagesTotal,
+			paramName: 'imagesPage',
+		},
+		videos,
+	}
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -141,8 +154,7 @@ export default function NewPost() {
 	const actionData = useActionData<typeof action>()
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
-	const { images, videos } = useLoaderData<typeof loader>()
-
+	const { images, imagesPagination, videos } = useLoaderData<typeof loader>()
 	const handleImageUpload = useFileUploader({
 		path: '/admin/fragments/images/create',
 	})
@@ -301,7 +313,11 @@ export default function NewPost() {
 				<div className="space-y-6">
 					<div className="space-y-4">
 						<h2 className="text-xl font-semibold">Manage Images</h2>
-						<PostImageManager images={images} />
+						<PostImageManager
+							images={images}
+							pagination={imagesPagination}
+							paginationTargetId="admin-images"
+						/>
 					</div>
 
 					<div className="space-y-4">

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
+import { compile } from '@mdx-js/mdx'
+import matter from 'gray-matter'
 import { type MdxJsxFlowElement } from 'mdast-util-mdx'
-import { bundleMDX } from 'mdx-bundler'
 import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
 import { type Plugin, type Data } from 'unified'
@@ -9,8 +10,9 @@ import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
 import { getLinkPreviewForRequest } from './link-preview.server.ts'
+import { buildAssetUrlFromKey } from './url.ts'
 
-const MDX_CACHE_PREFIX = 'mdx:bundle:v3:'
+const MDX_CACHE_PREFIX = 'mdx:bundle:v4:'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
@@ -38,22 +40,21 @@ export async function compileMDX(source: string, opts?: { title?: string }) {
 		ttl: 1000 * 60 * 60 * 24 * 365, // 1 year
 		swr: 1000 * 60 * 60 * 24 * 30, // 30 days
 		async getFreshValue() {
-			const result = await bundleMDX({
-				source,
-				mdxOptions(options) {
-					options.rehypePlugins = [...(options.rehypePlugins ?? [])]
-					options.remarkPlugins = [
-						...(options.remarkPlugins ?? []),
-						remarkGfm,
-						remarkDirective,
-						remarkYoutube,
-						remarkInlinePreviewData,
-						remarkClientOnlyImages,
-					]
-					return options
-				},
+			const parsed = matter(source)
+			const compiled = await compile(parsed.content, {
+				outputFormat: 'function-body',
+				remarkPlugins: [
+					remarkGfm,
+					remarkDirective,
+					remarkYoutube,
+					remarkInlinePreviewData,
+					remarkClientOnlyImages,
+				],
 			})
-			return result
+			return {
+				code: String(compiled),
+				frontmatter: parsed.data,
+			}
 		},
 	})
 }
@@ -253,16 +254,17 @@ const remarkClientOnlyImages: Plugin = () => {
 								})
 							}
 
-							// If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
-							const assetBase = process.env.ASSET_BASE_URL?.trim()
-							if (assetBase && img?.s3Key) {
-								const base = assetBase.replace(/\/$/, '')
-								const absolute = `${base}/${img.s3Key}`
-								const srcAttr = attrs.find(
-									(a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
-								) as any
-								if (srcAttr) srcAttr.value = absolute
-							}
+								// If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
+								const absolute = buildAssetUrlFromKey(
+									process.env.ASSET_BASE_URL,
+									img?.s3Key,
+								)
+								if (absolute) {
+									const srcAttr = attrs.find(
+										(a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
+									) as any
+									if (srcAttr) srcAttr.value = absolute
+								}
 						} catch {
 							// ignore
 						}

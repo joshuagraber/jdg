@@ -144,7 +144,7 @@ export default function Index() {
 					const path = `/fragments/${fragment.slug}`
 					const preview = getFragmentPreviewData(fragment)
 					const publishMeta = fragment.publishAt ? (
-						<Time time={fragment.publishAt.toDateString()} />
+						<Time time={fragment.publishAt} />
 					) : null
 					return (
 						<li key={fragment.title + fragment.slug}>

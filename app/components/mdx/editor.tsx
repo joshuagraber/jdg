@@ -1,47 +1,21 @@
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
+import { useFetcher } from 'react-router'
+import { mdxComponents } from '#app/components/mdx/index.tsx'
+import { useMDXComponent } from '#app/components/mdx/runtime.ts'
+import { Button } from '#app/components/ui/button.tsx'
 import {
-	MDXEditor,
-	headingsPlugin,
-	listsPlugin,
-	quotePlugin,
-	thematicBreakPlugin,
-	markdownShortcutPlugin,
-	linkPlugin,
-	linkDialogPlugin,
-	tablePlugin,
-	codeBlockPlugin,
-	codeMirrorPlugin,
-	diffSourcePlugin,
-	frontmatterPlugin,
-	toolbarPlugin,
-	UndoRedo,
-	BoldItalicUnderlineToggles,
-	BlockTypeSelect,
-	CodeToggle,
-	CreateLink,
-	InsertTable,
-	InsertThematicBreak,
-	InsertImage,
-	InsertCodeBlock,
-	ListsToggle,
-	DiffSourceToggleWrapper,
-	StrikeThroughSupSubToggles,
-	imagePlugin,
-	directivesPlugin,
-	type DirectiveDescriptor,
-	AdmonitionDirectiveDescriptor,
-	usePublisher,
-	DialogButton,
-	insertDirective$,
-	ConditionalContents,
-	ChangeCodeMirrorLanguage,
-	Separator,
-} from '@mdxeditor/editor'
-import { type LeafDirective } from 'mdast-util-directive'
-import { useRef } from 'react'
-import { ClientOnly } from 'remix-utils/client-only'
-import { LinkPreviewStatic } from '#app/components/link-preview-static.tsx'
-import { LinkPreview } from '#app/components/link-preview.tsx'
-import { useTheme } from '#app/routes/resources+/theme-switch.tsx'
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '#app/components/ui/dropdown-menu.tsx'
+import { Textarea } from '#app/components/ui/textarea.tsx'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '#app/components/ui/tooltip.tsx'
 import { cn } from '#app/utils/misc.tsx'
 
 type MDXEditorProps = {
@@ -53,382 +27,322 @@ type MDXEditorProps = {
 	imageUploadHandler: (file: File) => Promise<string>
 }
 
-const Toolbar = () => (
-	<DiffSourceToggleWrapper>
-		<ConditionalContents
-			options={[
-				{
-					when: (editor) => editor?.editorType === 'codeblock',
-					contents: () => <ChangeCodeMirrorLanguage />,
-				},
-				{
-					fallback: () => (
-						<div className="mdx-toolbar">
-							{/* History Controls */}
-							<div className="mdx-toolbar-group">
-								<UndoRedo />
-							</div>
-							<Separator />
-
-							{/* Text Formatting */}
-							<div className="mdx-toolbar-group">
-								<BoldItalicUnderlineToggles />
-								<CodeToggle />
-								<StrikeThroughSupSubToggles />
-							</div>
-							<Separator />
-
-							{/* Block Formatting */}
-							<div className="mdx-toolbar-group">
-								<BlockTypeSelect />
-								<ListsToggle />
-							</div>
-							<Separator />
-
-							{/* Code & Structure */}
-							<div className="mdx-toolbar-group">
-								<InsertCodeBlock />
-								<InsertThematicBreak />
-							</div>
-							<Separator />
-
-							{/* Media & Links */}
-							<div className="mdx-toolbar-group">
-								<CreateLink />
-								<InsertImage />
-							</div>
-							<Separator />
-
-							{/* Rich Content */}
-							<div className="mdx-toolbar-group">
-								<PreviewButton />
-								<YouTubeButton />
-							</div>
-							<Separator />
-
-							{/* Tables */}
-							<div className="mdx-toolbar-group">
-								<InsertTable />
-							</div>
-						</div>
-					),
-				},
-			]}
-		></ConditionalContents>
-	</DiffSourceToggleWrapper>
-)
-
 export function MDXEditorComponent({
 	markdown,
 	onChange,
 	className,
-	diffSource,
-	images = [],
+	images,
 	imageUploadHandler,
 }: MDXEditorProps) {
-	const editorRef = useRef(null)
-	const theme = useTheme()
+	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const fileInputId = useId()
+	const fileInputRef = useRef<HTMLInputElement>(null)
+	const previewFetcher = useFetcher<PreviewResponse>()
+	const previewSubmitRef = useRef(previewFetcher.submit)
+	const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+	const [isUploading, setIsUploading] = useState(false)
+	const [previewCode, setPreviewCode] = useState<string | null>(null)
+	const [previewError, setPreviewError] = useState<string | null>(null)
 
-	return (
-		<ClientOnly fallback={null}>
-			{() => {
-				return (
-					<MDXEditor
-						className={cn(
-							// TODO: Remove the typography plugin (https://github.com/tailwindlabs/tailwindcss-typography) when global typography styles updated
-							'jdg_typography min-h-[400px] w-full',
-							className,
-							theme === 'dark' && 'dark-theme dark-editor',
-						)}
-						ref={editorRef}
-						markdown={markdown}
-						onChange={onChange}
-						plugins={[
-							toolbarPlugin({
-								toolbarContents: () => <Toolbar />,
-							}),
-							listsPlugin(),
-							quotePlugin(),
-							headingsPlugin({ allowedHeadingLevels: [2, 3, 4, 5, 6] }),
-							linkPlugin(),
-							linkDialogPlugin(),
-							imagePlugin({
-								imageAutocompleteSuggestions: images,
-								imageUploadHandler,
-							}),
-							tablePlugin(),
-							thematicBreakPlugin(),
-							frontmatterPlugin(),
-							codeBlockPlugin({ defaultCodeBlockLanguage: '' }),
-							codeMirrorPlugin({
-								codeBlockLanguages: {
-									js: 'JavaScript',
-									css: 'CSS',
-									txt: 'Plain Text',
-									tsx: 'TypeScript',
-									'': 'Unspecified',
-								},
-							}),
-							directivesPlugin({
-								directiveDescriptors: [
-									YoutubeDirectiveDescriptor,
-									PreviewDirectiveDescriptor,
-									AdmonitionDirectiveDescriptor,
-								],
-							}),
-							diffSourcePlugin({
-								viewMode: 'source',
-								diffMarkdown: diffSource,
-							}),
-							markdownShortcutPlugin(),
-						]}
-					/>
-				)
-			}}
-		</ClientOnly>
-	)
-}
+	useEffect(() => {
+		previewSubmitRef.current = previewFetcher.submit
+	}, [previewFetcher.submit])
 
-const YouTubeButton = () => {
-	// grab the insertDirective action (a.k.a. publisher) from the
-	// state management system of the directivesPlugin
-	const insertDirective = usePublisher(insertDirective$)
+	useEffect(() => {
+		if (previewFetcher.data?.status === 'success') {
+			setPreviewCode(previewFetcher.data.code)
+			setPreviewError(null)
+		} else if (previewFetcher.data?.status === 'error') {
+			setPreviewCode(null)
+			setPreviewError(previewFetcher.data.message)
+		}
+	}, [previewFetcher.data])
 
-	return (
-		<DialogButton
-			tooltipTitle="Insert Youtube video"
-			submitButtonTitle="Insert video"
-			dialogInputPlaceholder="Paste the youtube video URL"
-			buttonContent="YT"
-			onSubmit={(url) => {
-				const videoId = extractYoutubeId(url)
-				if (!videoId) {
-					alert('Invalid YouTube URL')
-					return
-				}
+	useEffect(() => {
+		if (mode !== 'preview') return
+		const timer = setTimeout(() => {
+			const formData = new FormData()
+			formData.set('markdown', markdown)
+			void previewSubmitRef.current(formData, {
+				method: 'POST',
+				action: '/admin/fragments/preview',
+			})
+		}, 300)
+		return () => clearTimeout(timer)
+	}, [markdown, mode])
 
-				insertDirective({
-					name: 'youtube',
-					type: 'leafDirective',
-					attributes: { id: videoId },
-					children: [],
-				} as LeafDirective)
-			}}
-		/>
-	)
-}
+	function replaceSelection(
+		getNext: (selection: string) => {
+			text: string
+			selectionStart?: number
+			selectionEnd?: number
+		},
+	) {
+		const textarea = textareaRef.current
+		if (!textarea) return
 
-const PreviewButton = () => {
-	const insertDirective = usePublisher(insertDirective$)
+		const start = textarea.selectionStart
+		const end = textarea.selectionEnd
+		const selection = markdown.slice(start, end)
+		const next = getNext(selection)
+		const value = markdown.slice(0, start) + next.text + markdown.slice(end)
 
-	// Load recent URLs from localStorage for autocomplete
-	let recentSuggestions: string[] = []
-	try {
-		const raw =
-			typeof window !== 'undefined'
-				? localStorage.getItem('jdg:preview:recent')
-				: null
-		recentSuggestions = raw ? (JSON.parse(raw) as string[]) : []
-	} catch {
-		recentSuggestions = []
+		onChange(value)
+		window.requestAnimationFrame(() => {
+			textarea.focus()
+			textarea.setSelectionRange(
+				start + (next.selectionStart ?? next.text.length),
+				start + (next.selectionEnd ?? next.text.length),
+			)
+		})
+	}
+
+	function wrapSelection(prefix: string, suffix = prefix, fallback = 'text') {
+		replaceSelection((selection) => {
+			const content = selection || fallback
+			return {
+				text: `${prefix}${content}${suffix}`,
+				selectionStart: prefix.length,
+				selectionEnd: prefix.length + content.length,
+			}
+		})
+	}
+
+	function insertBlock(text: string) {
+		replaceSelection((selection) => {
+			const block = selection ? text.replace('__content__', selection) : text
+			const prefix = markdown && !markdown.endsWith('\n') ? '\n\n' : ''
+			return { text: `${prefix}${block}\n\n` }
+		})
+	}
+
+	async function handleUpload(file: File | undefined) {
+		if (!file) return
+		setIsUploading(true)
+		try {
+			const url = await imageUploadHandler(file)
+			insertImage(url)
+		} finally {
+			setIsUploading(false)
+			if (fileInputRef.current) fileInputRef.current.value = ''
+		}
+	}
+
+	function insertImage(url: string) {
+		replaceSelection((selection) => ({
+			text: `![${selection || 'image'}](${url})`,
+			selectionStart: 2,
+			selectionEnd: 2 + (selection || 'image').length,
+		}))
+	}
+
+	function insertLink() {
+		replaceSelection((selection) => {
+			const label = selection || 'link text'
+			const url = 'https://'
+			return {
+				text: `[${label}](${url})`,
+				selectionStart: label.length + 3,
+				selectionEnd: label.length + 3 + url.length,
+			}
+		})
+	}
+
+	function insertYoutube() {
+		const url = window.prompt('YouTube URL or video ID')
+		if (!url) return
+		insertBlock(`::youtube{url="${url.trim()}"}\n`)
+	}
+
+	function insertPreview() {
+		const url = window.prompt('Preview URL')
+		if (!url) return
+		insertBlock(`::preview{url="${url.trim()}"}\n`)
 	}
 
 	return (
-		<DialogButton
-			tooltipTitle="Insert Link Preview"
-			submitButtonTitle="Insert preview"
-			dialogInputPlaceholder="Paste the URL to preview"
-			buttonContent="Preview"
-			autocompleteSuggestions={recentSuggestions}
-			onSubmit={(url) => {
-				try {
-					const u = new URL(url)
-					if (!/^https?:/.test(u.protocol)) throw new Error('Invalid scheme')
-				} catch {
-					alert('Please enter a valid http(s) URL')
-					return
-				}
+		<TooltipProvider>
+			<div className="overflow-hidden rounded-md bg-background">
+				<div className="flex flex-wrap items-center gap-1 border-b border-input bg-muted/30 p-2">
+					<div className="mr-2 inline-flex rounded-md border border-input bg-background p-0.5">
+						<Button
+							type="button"
+							variant={mode === 'edit' ? 'secondary' : 'ghost'}
+							size="sm"
+							className="h-8 px-3"
+							onClick={() => setMode('edit')}
+						>
+							Edit
+						</Button>
+						<Button
+							type="button"
+							variant={mode === 'preview' ? 'secondary' : 'ghost'}
+							size="sm"
+							className="h-8 px-3"
+							onClick={() => setMode('preview')}
+						>
+							Preview
+						</Button>
+					</div>
 
-				// Optional overrides
-				const title =
-					window.prompt(
-						'Optional title override (leave blank to auto-fetch):',
-					) || ''
-				const description =
-					window.prompt(
-						'Optional description override (leave blank to auto-fetch):',
-					) || ''
-				const image =
-					window.prompt(
-						'Optional image URL override (leave blank to auto-fetch):',
-					) || ''
-				const domain =
-					window.prompt(
-						'Optional domain override (leave blank to auto-detect):',
-					) || ''
-
-				const attributes: Record<string, string> = { url }
-				if (title.trim()) attributes.title = title.trim()
-				if (description.trim()) attributes.description = description.trim()
-				if (image.trim()) attributes.image = image.trim()
-				if (domain.trim()) attributes.domain = domain.trim()
-
-				insertDirective({
-					name: 'preview',
-					type: 'leafDirective',
-					attributes,
-					children: [],
-				} as LeafDirective)
-
-				// Persist recent URL for autocomplete
-				try {
-					const raw = localStorage.getItem('jdg:preview:recent')
-					const list: string[] = raw ? (JSON.parse(raw) as string[]) : []
-					const next = [url, ...list.filter((u) => u !== url)].slice(0, 15)
-					localStorage.setItem('jdg:preview:recent', JSON.stringify(next))
-				} catch {
-					// ignore
-				}
-			}}
-		/>
-	)
-}
-
-interface YoutubeDirectiveNode extends LeafDirective {
-	name: 'youtube'
-	attributes: { id: string }
-}
-
-const YoutubeDirectiveDescriptor: DirectiveDescriptor<YoutubeDirectiveNode> = {
-	name: 'youtube',
-	type: 'leafDirective',
-	testNode(node) {
-		return node.name === 'youtube'
-	},
-	attributes: ['id'],
-	hasChildren: false,
-	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
-		const videoId = extractYoutubeId(mdastNode.attributes.id)
-		const previewSrc = videoId
-			? `https://www.youtube.com/embed/${videoId}`
-			: null
-
-		return (
-			<div className="mdx-directive-container">
-				<div className="mdx-directive-controls">
-					<button
-						className="mdx-delete-button"
-						onClick={() => {
-							parentEditor.update(() => {
-								lexicalNode.selectNext()
-								lexicalNode.remove()
-							})
-						}}
-						title="Delete YouTube video"
+					<ToolbarButton
+						label="Heading"
+						onClick={() => insertBlock('## __content__')}
 					>
-						🗑️
-					</button>
-				</div>
-				<div className="mdx-directive-content">
-					{previewSrc ? (
-						<iframe
-							width="560"
-							height="315"
-							src={previewSrc}
-							title="YouTube video player"
-							frameBorder="0"
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-						></iframe>
-					) : (
-						<div className="flex h-full items-center justify-center rounded border border-dashed border-destructive p-4 text-destructive">
-							Invalid YouTube URL
-						</div>
-					)}
-				</div>
-			</div>
-		)
-	},
-}
-
-interface PreviewDirectiveNode extends LeafDirective {
-	name: 'preview'
-	attributes: { url: string }
-}
-
-const PreviewDirectiveDescriptor: DirectiveDescriptor<PreviewDirectiveNode> = {
-	name: 'preview',
-	type: 'leafDirective',
-	testNode(node) {
-		return node.name === 'preview'
-	},
-	attributes: ['url', 'title', 'description', 'image', 'domain'],
-	hasChildren: false,
-	Editor: ({ mdastNode, lexicalNode, parentEditor }) => {
-		const url = mdastNode.attributes.url
-		const title = (mdastNode as any).attributes?.title as string | undefined
-		const description = (mdastNode as any).attributes?.description as
-			| string
-			| undefined
-		const image = (mdastNode as any).attributes?.image as string | undefined
-		const domain = (mdastNode as any).attributes?.domain as string | undefined
-		return (
-			<div className="mdx-directive-container">
-				<div className="mdx-directive-controls">
-					<button
-						className="mdx-delete-button"
-						onClick={() => {
-							parentEditor.update(() => {
-								lexicalNode.selectNext()
-								lexicalNode.remove()
-							})
-						}}
-						title="Delete link preview"
+						H2
+					</ToolbarButton>
+					<ToolbarButton label="Bold" onClick={() => wrapSelection('**')}>
+						B
+					</ToolbarButton>
+					<ToolbarButton label="Italic" onClick={() => wrapSelection('_')}>
+						I
+					</ToolbarButton>
+					<ToolbarButton label="Inline code" onClick={() => wrapSelection('`')}>
+						Code
+					</ToolbarButton>
+					<ToolbarButton label="Link" onClick={insertLink}>
+						Link
+					</ToolbarButton>
+					<ToolbarButton
+						label="Bulleted list"
+						onClick={() => insertBlock('- __content__')}
 					>
-						🗑️
-					</button>
+						List
+					</ToolbarButton>
+					<ToolbarButton
+						label="Code block"
+						onClick={() => insertBlock('```\n__content__\n```')}
+					>
+						Block
+					</ToolbarButton>
+					<ToolbarButton
+						label="Table"
+						onClick={() =>
+							insertBlock('| Column | Column |\n| --- | --- |\n| Value | Value |')
+						}
+					>
+						Table
+					</ToolbarButton>
+					<ToolbarButton label="YouTube" onClick={insertYoutube}>
+						YT
+					</ToolbarButton>
+					<ToolbarButton label="Link preview" onClick={insertPreview}>
+						Preview
+					</ToolbarButton>
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button type="button" variant="outline" size="sm" className="h-8">
+								Image
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="start"
+							className="max-h-72 w-72 overflow-auto"
+						>
+							{images.length ? (
+								images.map((image) => (
+									<DropdownMenuItem
+										key={image}
+										onSelect={() => insertImage(image)}
+										className="break-all"
+									>
+										{image}
+									</DropdownMenuItem>
+								))
+							) : (
+								<DropdownMenuItem disabled>No images</DropdownMenuItem>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<input
+						ref={fileInputRef}
+						id={fileInputId}
+						type="file"
+						accept="image/*"
+						className="hidden"
+						onChange={(event) =>
+							void handleUpload(event.currentTarget.files?.[0])
+						}
+					/>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-8"
+						disabled={isUploading}
+						onClick={() => fileInputRef.current?.click()}
+					>
+						{isUploading ? 'Uploading' : 'Upload'}
+					</Button>
 				</div>
-				<div className="mdx-directive-content">
-					<div className="mdx-link-preview-container">
-						{title || description || image || domain ? (
-							<LinkPreviewStatic
-								url={url}
-								title={title}
-								description={description}
-								image={image}
-								domain={domain}
-							/>
+
+				{mode === 'edit' ? (
+					<Textarea
+						ref={textareaRef}
+						value={markdown}
+						onChange={(event) => onChange(event.currentTarget.value)}
+						className={cn(
+							'min-h-[400px] resize-y rounded-none border-0 font-mono text-sm leading-6 focus-visible:ring-0 focus-visible:ring-offset-0',
+							className,
+						)}
+						spellCheck={false}
+					/>
+				) : (
+					<div className={cn('min-h-[400px] bg-background p-4', className)}>
+						{previewFetcher.state !== 'idle' ? (
+							<p className="text-sm text-muted-foreground">Rendering preview...</p>
+						) : previewError ? (
+							<pre className="whitespace-pre-wrap rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+								{previewError}
+							</pre>
+						) : previewCode ? (
+							<div className="jdg_typography max-w-none">
+								<MDXPreview code={previewCode} />
+							</div>
 						) : (
-							<LinkPreview url={url} />
+							<p className="text-sm text-muted-foreground">No preview yet.</p>
 						)}
 					</div>
-				</div>
+				)}
 			</div>
-		)
-	},
+		</TooltipProvider>
+	)
 }
 
-function extractYoutubeId(input: string): string | null {
-	if (!input) return null
-	const trimmed = input.trim()
-	if (!trimmed) return null
-
-	try {
-		if (/^https?:\/\//i.test(trimmed)) {
-			const url = new URL(trimmed)
-			if (url.hostname === 'youtu.be') {
-				return url.pathname.split('/').filter(Boolean)[0] ?? null
-			}
-			if (!url.hostname.includes('youtube')) return null
-			const paramId = url.searchParams.get('v')
-			if (paramId) return paramId
-			const segments = url.pathname.split('/').filter(Boolean)
-			if (segments[0] === 'shorts' || segments[0] === 'embed') {
-				return segments[1] ?? null
-			}
-		}
-	} catch {
-		// ignore malformed URLs, fall through to return raw value
-	}
-
-	return trimmed
+function ToolbarButton({
+	children,
+	label,
+	onClick,
+}: {
+	children: ReactNode
+	label: string
+	onClick: () => void
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className="h-8 px-2"
+					onClick={onClick}
+				>
+					{children}
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
+	)
 }
+
+function MDXPreview({ code }: { code: string }) {
+	const Component = useMDXComponent(code)
+	return <Component components={mdxComponents} />
+}
+
+type PreviewResponse =
+	| { status: 'success'; code: string }
+	| { status: 'error'; message: string }
