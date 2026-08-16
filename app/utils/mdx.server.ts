@@ -12,7 +12,7 @@ import { prisma } from './db.server.ts'
 import { getLinkPreviewForRequest } from './link-preview.server.ts'
 import { buildAssetUrlFromKey } from './url.ts'
 
-const MDX_CACHE_PREFIX = 'mdx:bundle:v3:'
+const MDX_CACHE_PREFIX = 'mdx:bundle:v4:'
 
 interface DirectiveNode extends Node {
 	type: 'leafDirective'
