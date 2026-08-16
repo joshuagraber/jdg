@@ -1,7 +1,7 @@
 # This file is moved to the root directory before building the image
 
 # base node image
-FROM node:22-bookworm-slim as base
+FROM node:24.19.0-bookworm-slim as base
 
 # set for base and all layer that inherit from it
 ENV NODE_ENV production
@@ -15,6 +15,7 @@ FROM base as deps
 WORKDIR /myapp
 
 ADD package.json package-lock.json .npmrc ./
+RUN apt-get update && apt-get install -y python3 make g++
 RUN npm ci --include=dev
 
 # Setup production node_modules
