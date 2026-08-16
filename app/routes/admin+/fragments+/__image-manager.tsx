@@ -9,14 +9,24 @@ import { StatusButton } from '#app/components/ui/status-button.tsx'
 import { type action as imageCreateAction } from '#app/routes/admin+/fragments+/images.create.tsx'
 import { getPostImageSource } from '#app/utils/misc.tsx'
 import { DeleteImage } from './__deleters'
+import {
+	PaginationControls,
+	type PaginationInfo,
+} from './__pagination-controls.tsx'
 
 type Image = Pick<PostImage, 'id' | 'altText' | 'title' | 's3Key'>
 
 interface PostImageManagerProps {
 	images: Image[]
+	pagination?: PaginationInfo
+	paginationTargetId?: string
 }
 
-export function PostImageManager({ images }: PostImageManagerProps) {
+export function PostImageManager({
+	images,
+	pagination,
+	paginationTargetId,
+}: PostImageManagerProps) {
 	const [copiedId, setCopiedId] = useState<string | null>(null)
 	const imageCreateFetcher = useFetcher<typeof imageCreateAction>()
 
@@ -64,7 +74,7 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 	}, [imageCreateFetcher.data])
 
 	return (
-		<div>
+		<div id={paginationTargetId} className="scroll-mt-8">
 			<h4>Upload new image</h4>
 			<imageCreateFetcher.Form
 				method="POST"
@@ -116,6 +126,15 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 				<h4 className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
 					Update current images
 				</h4>
+				{pagination ? (
+					<div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
+						<PaginationControls
+							label="Images"
+							pagination={pagination}
+							targetId={paginationTargetId}
+						/>
+					</div>
+				) : null}
 				{images.map((image) => (
 					<div key={image.id} className="space-y-4 rounded-lg border p-4">
 						<div className="relative aspect-video">
@@ -159,6 +178,15 @@ export function PostImageManager({ images }: PostImageManagerProps) {
 						</Button>
 					</div>
 				))}
+				{pagination ? (
+					<div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
+						<PaginationControls
+							label="Images"
+							pagination={pagination}
+							targetId={paginationTargetId}
+						/>
+					</div>
+				) : null}
 			</div>
 		</div>
 	)

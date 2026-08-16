@@ -11,7 +11,14 @@ import { prisma } from '#app/utils/db.server'
 import { type SEOHandle } from '#app/utils/seo.ts'
 import { DeletePost } from './__deleters'
 import { PostImageManager } from './__image-manager'
+import {
+	getPageParam,
+	PaginationControls,
+} from './__pagination-controls.tsx'
 import { PostVideoManager } from './__video-manager'
+
+const POSTS_PAGE_SIZE = 20
+const IMAGES_PAGE_SIZE = 12
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
@@ -19,8 +26,10 @@ export const handle: SEOHandle = {
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	await requireUserId(request)
+	const postsPage = getPageParam(request, 'postsPage')
+	const imagesPage = getPageParam(request, 'imagesPage')
 
-	const [posts, images, videos] = await Promise.all([
+	const [posts, postsTotal, images, imagesTotal, videos] = await Promise.all([
 		prisma.post.findMany({
 			select: {
 				id: true,
@@ -30,8 +39,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				createdAt: true,
 				updatedAt: true,
 			},
-			orderBy: [{ publishAt: { sort: 'desc', nulls: 'first' } }],
+			orderBy: [
+				{ publishAt: { sort: 'desc', nulls: 'first' } },
+				{ createdAt: 'desc' },
+			],
+			take: POSTS_PAGE_SIZE,
+			skip: (postsPage - 1) * POSTS_PAGE_SIZE,
 		}),
+		prisma.post.count(),
 		prisma.postImage.findMany({
 			select: {
 				id: true,
@@ -40,7 +55,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				s3Key: true,
 			},
 			orderBy: { createdAt: 'desc' },
+			take: IMAGES_PAGE_SIZE,
+			skip: (imagesPage - 1) * IMAGES_PAGE_SIZE,
 		}),
+		prisma.postImage.count(),
 		await prisma.postVideo.findMany({
 			select: {
 				id: true,
@@ -51,11 +69,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		}),
 	])
 
-	return { posts, images, videos }
+	return {
+		posts,
+		postsPagination: {
+			page: postsPage,
+			pageSize: POSTS_PAGE_SIZE,
+			total: postsTotal,
+			paramName: 'postsPage',
+		},
+		images,
+		imagesPagination: {
+			page: imagesPage,
+			pageSize: IMAGES_PAGE_SIZE,
+			total: imagesTotal,
+			paramName: 'imagesPage',
+		},
+		videos,
+	}
 }
 
 export default function AdminPosts() {
-	const { posts, images, videos } = useLoaderData<typeof loader>()
+	const { posts, postsPagination, images, imagesPagination, videos } =
+		useLoaderData<typeof loader>()
 
 	return (
 		<div className="p-8">
@@ -63,7 +98,10 @@ export default function AdminPosts() {
 			<Link to="/fragments" prefetch="none">
 				View fragments
 			</Link>
-			<div className="mb-6 flex flex-wrap items-center justify-between">
+			<div
+				id="admin-posts"
+				className="mb-6 scroll-mt-8 flex flex-wrap items-center justify-between"
+			>
 				<h2>Manage posts</h2>
 				<Link
 					to="create"
@@ -113,10 +151,19 @@ export default function AdminPosts() {
 						</div>
 					))}
 				</>
+				<PaginationControls
+					label="Posts"
+					pagination={postsPagination}
+					targetId="admin-posts"
+				/>
 			</div>
 			<div>
 				<h2>Manage post images</h2>
-				<PostImageManager images={images} />
+				<PostImageManager
+					images={images}
+					pagination={imagesPagination}
+					paginationTargetId="admin-images"
+				/>
 
 				<h2>Manage post videos</h2>
 				<PostVideoManager videos={videos} />
