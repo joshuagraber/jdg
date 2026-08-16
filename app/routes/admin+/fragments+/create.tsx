@@ -33,6 +33,7 @@ import { redirectWithToast } from '#app/utils/toast.server.ts'
 import { type Route } from './+types/create'
 import { PostImageManager } from './__image-manager'
 import { PostSchemaCreate as PostSchema } from './__types'
+import { useFileUploader } from './__useFileUploader'
 import { PostVideoManager } from './__video-manager'
 
 export const handle: SEOHandle = {
@@ -138,6 +139,9 @@ export default function NewPost() {
 	const navigation = useNavigation()
 	const isPending = navigation.state === 'submitting'
 	const { images, videos } = useLoaderData<typeof loader>()
+	const handleImageUpload = useFileUploader({
+		path: '/admin/fragments/images/create',
+	})
 
 	const [form, fields] = useForm({
 		id: 'new-post-form',
@@ -260,7 +264,7 @@ export default function NewPost() {
 										getPostImageSource(image.id, { relative: true }) ??
 										`/resources/post-images/${image.id}`,
 								)}
-								imageUploadHandler={async () => ''}
+								imageUploadHandler={handleImageUpload}
 								markdown={content}
 								onChange={setContent}
 								className="min-h-[500px]"
