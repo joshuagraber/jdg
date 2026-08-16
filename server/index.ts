@@ -11,6 +11,7 @@ import getPort, { portNumbers } from 'get-port'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import { type ServerBuild } from 'react-router'
+import { decodeUrlForLog } from '#app/utils/url.ts'
 
 const MODE = process.env.NODE_ENV ?? 'development'
 const IS_PROD = MODE === 'production'
@@ -98,7 +99,7 @@ app.get(['/img/*', '/favicons/*'], (_req, res) => {
 	return res.status(404).send('Not found')
 })
 
-morgan.token('url', (req) => decodeURIComponent(req.url ?? ''))
+morgan.token('url', (req) => decodeUrlForLog(req.url))
 app.use(
 	morgan('tiny', {
 		skip: (req, res) =>

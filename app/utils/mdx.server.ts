@@ -10,6 +10,7 @@ import { visit } from 'unist-util-visit'
 import { cachified, cache } from './cache.server.ts'
 import { prisma } from './db.server.ts'
 import { getLinkPreviewForRequest } from './link-preview.server.ts'
+import { buildAssetUrlFromKey } from './url.ts'
 
 const MDX_CACHE_PREFIX = 'mdx:bundle:v3:'
 
@@ -253,16 +254,17 @@ const remarkClientOnlyImages: Plugin = () => {
 								})
 							}
 
-							// If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
-							const assetBase = process.env.ASSET_BASE_URL?.trim()
-							if (assetBase && img?.s3Key) {
-								const base = assetBase.replace(/\/$/, '')
-								const absolute = `${base}/${img.s3Key}`
-								const srcAttr = attrs.find(
-									(a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
-								) as any
-								if (srcAttr) srcAttr.value = absolute
-							}
+								// If we have a public asset base and an s3Key, prefer direct CDN/S3 URL
+								const absolute = buildAssetUrlFromKey(
+									process.env.ASSET_BASE_URL,
+									img?.s3Key,
+								)
+								if (absolute) {
+									const srcAttr = attrs.find(
+										(a) => a.type === 'mdxJsxAttribute' && a.name === 'src',
+									) as any
+									if (srcAttr) srcAttr.value = absolute
+								}
 						} catch {
 							// ignore
 						}

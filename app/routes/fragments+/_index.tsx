@@ -116,11 +116,9 @@ export default function Fragments() {
 							<h2 className="text-primary">{post.title}</h2>
 							<p className="mb-2 text-muted-foreground">{post.description}</p>
 						</Link>
-						<p className="text-sm text-neutral-500">
-							{post.publishAt ? (
-								<Time time={new Date(post.publishAt).toDateString()} />
-							) : null}
-						</p>
+							<p className="text-sm text-neutral-500">
+								{post.publishAt ? <Time time={post.publishAt} /> : null}
+							</p>
 						<div className="mb-4">
 							<PostContent code={post.code} />
 						</div>

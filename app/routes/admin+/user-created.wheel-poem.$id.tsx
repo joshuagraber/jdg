@@ -1,6 +1,7 @@
 import { invariantResponse } from '@epic-web/invariant'
 import { useCallback } from 'react'
 import { Link, useLoaderData, useNavigate } from 'react-router'
+import { Time } from '#app/components/time.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { requireUserId } from '#app/utils/auth.server.ts'
 import { prisma } from '#app/utils/db.server.ts'
@@ -152,9 +153,9 @@ export default function AdminUserCreatedWheelPoemDetailRoute() {
 						<dt className="font-medium text-muted-foreground">
 							Last updated (session)
 						</dt>
-						<dd className="text-foreground">
-							{new Date(record.sessionUpdatedAt).toLocaleString()}
-						</dd>
+							<dd className="text-foreground">
+								<Time time={record.sessionUpdatedAt} formatStyle="dateTime" />
+							</dd>
 					</div>
 					<div className="space-y-1">
 						<dt className="font-medium text-muted-foreground">Wheel size</dt>

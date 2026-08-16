@@ -1,5 +1,6 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { prisma } from '#app/utils/db.server'
+import { buildAssetUrlFromKey } from '#app/utils/url.ts'
 import { type Route } from './+types/post-videos.$videoId'
 
 const s3 = new S3Client({
@@ -21,10 +22,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 	}
 
 	const assetBase =
-		process.env.VIDEO_ASSET_BASE_URL?.replace(/\/$/, '') ??
-		process.env.ASSET_BASE_URL?.replace(/\/$/, '')
-	if (assetBase && video.s3Key) {
-		const location = `${assetBase}/${video.s3Key.replace(/^\/+/, '')}`
+		process.env.VIDEO_ASSET_BASE_URL ?? process.env.ASSET_BASE_URL
+	const location = buildAssetUrlFromKey(assetBase, video.s3Key)
+	if (location) {
 		return new Response(null, {
 			status: 307,
 			headers: new Headers({

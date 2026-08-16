@@ -131,11 +131,9 @@ export default function Fragment() {
 		<div className="jdg_typography mx-auto w-full max-w-screen-md p-8">
 			<h1 className="mb-4">{post.title}</h1>
 			<p>{post.description}</p>
-			<p className="text-sm text-neutral-500">
-				{post.publishAt ? (
-					<Time time={new Date(post.publishAt).toDateString()} />
-				) : null}
-			</p>
+				<p className="text-sm text-neutral-500">
+					{post.publishAt ? <Time time={post.publishAt} /> : null}
+				</p>
 			<div>
 				<Component components={mdxComponents} />
 			</div>

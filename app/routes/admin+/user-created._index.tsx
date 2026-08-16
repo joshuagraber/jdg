@@ -1,4 +1,5 @@
 import { Link, type LoaderFunctionArgs, useLoaderData } from 'react-router'
+import { Time } from '#app/components/time.tsx'
 import { prisma } from '#app/utils/db.server.ts'
 
 type WheelPoemRecord = {
@@ -117,12 +118,11 @@ export default function AdminUserCreatedIndexRoute() {
 													(record.text.length > 80 ? '…' : '')
 												: '(empty)'}
 										</span>
-										<time
-											dateTime={record.sessionUpdatedAt}
-											className="text-xs text-muted-foreground"
-										>
-											{new Date(record.sessionUpdatedAt).toLocaleString()}
-										</time>
+											<Time
+												time={record.sessionUpdatedAt}
+												formatStyle="dateTime"
+												className="text-xs text-muted-foreground"
+											/>
 									</div>
 									<div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
 										<span>Session: {record.sessionId}</span>
@@ -165,12 +165,11 @@ export default function AdminUserCreatedIndexRoute() {
 											{record.size}×{record.size} table, {record.filledCells}{' '}
 											filled cells
 										</span>
-										<time
-											dateTime={record.sessionUpdatedAt}
-											className="text-xs text-muted-foreground"
-										>
-											{new Date(record.sessionUpdatedAt).toLocaleString()}
-										</time>
+											<Time
+												time={record.sessionUpdatedAt}
+												formatStyle="dateTime"
+												className="text-xs text-muted-foreground"
+											/>
 									</div>
 									<div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
 										<span>Session: {record.sessionId}</span>
