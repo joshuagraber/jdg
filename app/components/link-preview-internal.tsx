@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { useHydrated } from 'remix-utils/use-hydrated'
 import { useOptionalTheme } from '#app/routes/resources+/theme-switch.tsx'
 import { type InternalLinkPreviewData } from '#app/utils/link-preview'
 import { cn } from '#app/utils/misc.tsx'
@@ -20,6 +21,7 @@ export function InternalLinkPreview({
 	meta,
 }: InternalLinkPreviewProps) {
 	const theme = useOptionalTheme()
+	const hydrated = useHydrated()
 
 	const {
 		title,
@@ -32,10 +34,11 @@ export function InternalLinkPreview({
 		imageAlt,
 	} = data
 
-	const resolvedImage =
+	const themedImage =
 		theme === 'dark'
 			? (imageDark ?? image ?? imageLight ?? null)
 			: (imageLight ?? image ?? imageDark ?? null)
+	const resolvedImage = hydrated ? themedImage : (image ?? themedImage)
 	const hasAny = Boolean(title || description || resolvedImage)
 	const isInternal = url.startsWith('/')
 	let fallbackLabel: string | null = null
