@@ -31,12 +31,12 @@ export function MdxImage({
 	const resolvedSrc = src
 
 	return (
-		<div
-			className={cn('relative w-full overflow-hidden rounded-md', className)}
+		<span
+			className={cn('relative block w-full overflow-hidden rounded-md', className)}
 			style={aspect ? { aspectRatio: aspect } : undefined}
 		>
 			{/* Shimmer placeholder */}
-			<div
+			<span
 				className={cn(
 					'absolute inset-0 animate-pulse bg-secondary/50 dark:bg-secondary/20',
 					loaded && 'hidden',
@@ -56,6 +56,6 @@ export function MdxImage({
 				decoding="async"
 				onLoad={() => setLoaded(true)}
 			/>
-		</div>
+		</span>
 	)
 }
