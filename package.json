@@ -116,7 +116,7 @@
   "devDependencies": {
     "@aws-sdk/client-cloudfront": "^3.888.0",
     "@epic-web/config": "^1.16.5",
-    "@faker-js/faker": "^9.0.3",
+    "@faker-js/faker": "^10.0.0",
     "@mdx-js/rollup": "^3.1.0",
     "@playwright/test": "^1.48.1",
     "@react-router/dev": "7.15.0",
